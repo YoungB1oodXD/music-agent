@@ -1,0 +1,25 @@
+# Music Agent - 智能音乐推荐系统依赖
+
+# 数据处理
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.10.0
+pyarrow>=12.0.0
+tqdm>=4.65.0
+
+# 协同过滤 (Right Brain)
+implicit==0.7.2
+
+# 向量搜索 (Left Brain)
+sentence-transformers>=2.2.0
+chromadb>=0.4.0
+torch>=2.0.0
+
+# 模糊匹配
+rapidfuzz>=3.0.0
+# fuzzywuzzy>=0.18.0  # 备用，rapidfuzz 不可用时
+
+# Web 服务 (可选)
+# fastapi>=0.100.0
+# uvicorn>=0.23.0
+# streamlit>=1.25.0
