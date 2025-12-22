@@ -7,11 +7,6 @@ Implicit 协同过滤训练脚本
 """
 
 import os
-# 【Windows 兼容性】禁用 threadpoolctl BLAS 检查，防止 OSError
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
-os.environ['MKL_NUM_THREADS'] = '1'
-os.environ['NUMEXPR_NUM_THREADS'] = '1'
-os.environ['THREADPOOLCTL_DISABLE_BLAS_OPENMP_CHECK'] = '1'  # ← 关键
 # 【优化建议 1】即使是 implicit，在 Windows 上限制线程数也是好习惯
 # 这能防止 Numpy 底层的 OpenBLAS/MKL 与 implicit 争抢资源
 os.environ["OPENBLAS_NUM_THREADS"] = "1"

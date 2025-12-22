@@ -17,8 +17,7 @@ torch>=2.0.0
 
 # 模糊匹配
 rapidfuzz>=3.0.0
-# fuzzywuzzy>=0.18.0  # 备用，rapidfuzz 不可用时
-
+# fuzzywuzzy>=0.18.0  # 备用，rapidfuzz 不可
 # Web 服务 (可选)
 # fastapi>=0.100.0
 # uvicorn>=0.23.0
