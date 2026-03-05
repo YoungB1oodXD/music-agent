@@ -1,0 +1,4 @@
+# -*- coding: utf-8 -*-
+from .schemas import INTENT_AND_SLOTS_SCHEMA, FINAL_RESPONSE_SCHEMA
+
+__all__ = ["INTENT_AND_SLOTS_SCHEMA", "FINAL_RESPONSE_SCHEMA"]

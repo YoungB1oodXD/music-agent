@@ -14,12 +14,14 @@ import sys
 from pathlib import Path
 import json
 from datetime import datetime
+from typing import Protocol
+
 
 # 添加项目根目录到路径
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
+sys.path.insert(0, str(project_root))
 
-from manager.session_state import SessionState, RecommendationRecord
+from src.manager.session_state import SessionState
 
 
 def print_separator(title: str = ""):
@@ -124,7 +126,17 @@ def main():
     # ============================================================================
     state = SessionState(
         session_id="session_demo_001",
-        user_id="user_12345"
+        user_id="user_12345",
+        current_mood=None,
+        current_scene=None,
+        current_genre=None,
+        last_recommendation=None,
+        dialogue_history=[],
+        recommendation_history=[],
+        liked_songs=[],
+        disliked_songs=[],
+        preferred_moods=[],
+        preferred_scenes=[],
     )
     
     # 用户输入
@@ -245,7 +257,7 @@ def main():
 
 if __name__ == "__main__":
     # 重定向输出到文件
-    output_file = Path(__file__).parent.parent / "docs" / "session_simulation_log.txt"
+    output_file = Path(__file__).parent.parent / "data" / "logs" / "session_simulation_log.txt"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     
     # 使用 tee 方式：同时输出到控制台和文件
@@ -258,18 +270,47 @@ if __name__ == "__main__":
     output_buffer = io.StringIO()
     
     # 创建一个同时写入控制台和缓冲区的类
+    class _TeeTarget(Protocol):
+        @property
+        def encoding(self) -> str | None:
+            ...
+
+        def write(self, s: str, /) -> int:
+            ...
+
+        def flush(self) -> None:
+            ...
+
     class TeeOutput:
-        def __init__(self, *files):
-            self.files = files
-        
-        def write(self, data):
+        def __init__(self, *files: _TeeTarget):
+            self.files: tuple[_TeeTarget, ...] = files
+
+        def write(self, data: str) -> int:
             for f in self.files:
-                f.write(data)
-                f.flush()
-        
-        def flush(self):
+                try:
+                    _ = f.write(data)
+                except UnicodeEncodeError:
+                    enc = getattr(f, "encoding", None) or "utf-8"
+                    safe = data.encode(enc, errors="replace").decode(enc, errors="replace")
+                    try:
+                        _ = f.write(safe)
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+
+                try:
+                    f.flush()
+                except Exception:
+                    pass
+            return len(data)
+
+        def flush(self) -> None:
             for f in self.files:
-                f.flush()
+                try:
+                    f.flush()
+                except Exception:
+                    pass
     
     # 设置 tee 输出
     sys.stdout = TeeOutput(original_stdout, output_buffer)
@@ -283,6 +324,10 @@ if __name__ == "__main__":
         
         # 保存到文件
         with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(output_buffer.getvalue())
+            _ = f.write(output_buffer.getvalue())
         
-        print(f"\n✅ 会话日志已保存到: {output_file}")
+        try:
+            print(f"\n[ok] 会话日志已保存到: {output_file}")
+        except UnicodeEncodeError:
+            # 最后的保险，如果连 [ok] 这种 ASCII 都出问题（极罕见）
+            pass

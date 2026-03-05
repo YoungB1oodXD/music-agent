@@ -135,7 +135,7 @@ class MusicSearcher:
                 "请先运行: python scripts/vectorizer_bge.py"
             )
         
-        logger.info(f"📦 连接向量库: {self.index_path.name}")
+        logger.info(f" 📦 连接向量库: {self.index_path.name}")
         
         try:
             self.client = chromadb.PersistentClient(
