@@ -1,3 +1,31 @@
+"""
+Qwen 大模型客户端（OpenAI 兼容接口）
+
+功能：
+- 支持阿里云百炼普通接口和 Coding Plan 两种 API
+- 自动从环境变量读取 API Key，支持优先级覆盖
+- 提供详细的初始化日志和错误日志（脱敏处理）
+
+环境变量优先级（从高到低）：
+1. 显式传入的 api_key 参数
+2. DASHSCOPE_API_KEY_BAILIAN（百炼普通接口 Key）
+3. DASHSCOPE_API_KEY（Coding Plan Key，作为回退）
+
+默认配置：
+- base_url: https://dashscope.aliyuncs.com/compatible-mode/v1（百炼普通接口）
+- model: qwen3.5-plus
+- 可通过 DASHSCOPE_BASE_URL 和 DASHSCOPE_MODEL 环境变量覆盖
+
+使用示例：
+    # 使用百炼普通接口（推荐）
+    export DASHSCOPE_API_KEY_BAILIAN="sk-xxx"
+    client = QwenClient()  # 自动读取环境变量
+
+    # 使用 Coding Plan
+    export DASHSCOPE_API_KEY="your-coding-key"
+    export DASHSCOPE_BASE_URL="https://coding.dashscope.aliyuncs.com/v1"
+    client = QwenClient()
+"""
 import importlib
 import json
 import logging
@@ -14,7 +42,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+# 默认使用百炼普通接口，可通过 DASHSCOPE_BASE_URL 覆盖
+DEFAULT_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+# 默认模型，可通过 DASHSCOPE_MODEL 覆盖
 DEFAULT_MODEL = os.getenv("DASHSCOPE_MODEL", "qwen3.5-plus")
 
 
@@ -41,6 +72,11 @@ class _OpenAIConstructor(Protocol):
 
 
 class QwenClient(BaseLLMClient):
+    """
+    Qwen 大模型客户端
+    
+    API Key 优先级：显式参数 > DASHSCOPE_API_KEY_BAILIAN > DASHSCOPE_API_KEY
+    """
     def __init__(
         self,
         api_key: str | None = None,
@@ -48,16 +84,35 @@ class QwenClient(BaseLLMClient):
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 60.0,
     ):
-        self.api_key: str | None = api_key or os.getenv("DASHSCOPE_API_KEY")
+        # API Key 优先级：显式参数 > 百炼普通 Key > Coding Plan Key
+        env_bailian_key = (os.getenv("DASHSCOPE_API_KEY_BAILIAN") or "").strip() or None
+        env_coding_key = (os.getenv("DASHSCOPE_API_KEY") or "").strip() or None
+        explicit_key = (api_key or "").strip() or None
+        self.api_key: str | None = explicit_key or env_bailian_key or env_coding_key
         self.model: str = model
         self.base_url: str = base_url
         self.timeout: float = timeout
         self._client: _OpenAIClientProtocol | None = None
 
+        # 初始化日志：脱敏打印配置（不打印完整 Key）
+        api_key_present = bool(self.api_key)
+        api_key_prefix = ""
+        if self.api_key:
+            # sk- 开头的 Key 显示前9位，其他显示前6位
+            prefix_len = 9 if self.api_key.startswith("sk-") else 6
+            api_key_prefix = self.api_key[:prefix_len]
+        
+        logger.info(f"[LLM] provider=qwen")
+        logger.info(f"[LLM] base_url={self.base_url}")
+        logger.info(f"[LLM] model={self.model}")
+        logger.info(f"[LLM] api_key_present={str(api_key_present).lower()}")
+        logger.info(f"[LLM] api_key_prefix={api_key_prefix}")
+
     def _get_client(self) -> _OpenAIClientProtocol:
         if not self.api_key:
             raise EnvironmentError(
-                "缺少 DASHSCOPE_API_KEY。请先设置环境变量 DASHSCOPE_API_KEY。"
+                "缺少 API Key。请设置环境变量 DASHSCOPE_API_KEY_BAILIAN（百炼普通接口，优先）"
+                + "或 DASHSCOPE_API_KEY（Coding Plan，回退）。"
             )
 
         if self._client is None:
@@ -143,7 +198,54 @@ class QwenClient(BaseLLMClient):
                 logger.warning("tools provided; forcing stream=False for compatibility")
             payload["stream"] = False
 
-        completion_obj = self._get_client().chat.completions.create(**payload)
+        try:
+            completion_obj = self._get_client().chat.completions.create(**payload)
+        except Exception as e:
+            # 错误处理：提取关键信息并打印详细日志（用于调试 API 问题）
+            status_code = getattr(e, "status_code", "N/A")
+            response_text = "N/A"
+            request_id = "N/A"
+
+            # 尝试从异常对象提取 HTTP 响应信息
+            if hasattr(e, "response"):
+                resp = getattr(e, "response")
+                if hasattr(resp, "text"):
+                    response_text = resp.text
+                elif hasattr(resp, "content"):
+                    try:
+                        response_text = resp.content.decode("utf-8", errors="replace")
+                    except:
+                        response_text = str(resp.content)
+                
+                # 从响应头提取 request_id（用于向阿里云反馈问题）
+                if hasattr(resp, "headers"):
+                    request_id = resp.headers.get("x-request-id") or resp.headers.get("request-id") or "N/A"
+
+            # 如果响应体是 JSON，尝试从 body 提取 request_id
+            if request_id == "N/A" and response_text != "N/A":
+                try:
+                    body = json.loads(response_text)
+                    if isinstance(body, dict):
+                        request_id = (
+                            body.get("request_id") 
+                            or body.get("requestId") 
+                            or (body.get("error", {}) if isinstance(body.get("error"), dict) else {}).get("request_id")
+                            or "N/A"
+                        )
+                except:
+                    pass
+
+            # 打印详细错误日志（包含 status_code、model、base_url、响应体、request_id）
+            logger.error(
+                f"[LLM ERROR]\n"
+                + f"status_code={status_code}\n"
+                + f"model={self.model}\n"
+                + f"base_url={self.base_url}\n"
+                + f"response_text={response_text}\n"
+                + f"request_id={request_id}"
+            )
+            raise
+
         model_dump_attr = getattr(completion_obj, "model_dump", None)
         if not callable(model_dump_attr):
             raise ValueError("Unexpected OpenAI-compatible response format.")

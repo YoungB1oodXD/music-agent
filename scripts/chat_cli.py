@@ -361,12 +361,17 @@ def _build_mock_llm() -> "BaseLLMClient":
 
 
 def _check_qwen_prerequisites() -> None:
-    api_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
-    if not api_key:
+    """检查 Qwen 模式运行所需的环境变量和依赖"""
+    # API Key 优先级：DASHSCOPE_API_KEY_BAILIAN（百炼普通接口）> DASHSCOPE_API_KEY（Coding Plan）
+    bailian_key = os.getenv("DASHSCOPE_API_KEY_BAILIAN", "").strip()
+    coding_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
+    if not bailian_key and not coding_key:
         raise SystemExit(
-            "Missing env var DASHSCOPE_API_KEY. Set it before using --llm qwen."
+            "Missing env var DASHSCOPE_API_KEY_BAILIAN (百炼普通接口，优先) "
+            + "or DASHSCOPE_API_KEY (Coding Plan，回退). Set it before using --llm qwen."
         )
 
+    # 检查 openai 依赖
     try:
         import openai
     except ImportError:
@@ -450,6 +455,7 @@ def main(argv: list[str] | None = None) -> int:
     state = SessionState(
         session_id=session_id,
         user_id=None,
+        llm_status=None,
         current_mood=None,
         current_genre=None,
         current_scene=None,
@@ -458,6 +464,8 @@ def main(argv: list[str] | None = None) -> int:
 
     def run_turn(user_text: str) -> str:
         assistant_text = orchestrator.handle_turn(user_text, state)
+        if model == "qwen" and state.llm_status == "fallback":
+            print("[WARN] LLM request failed, fallback to local recommendation pipeline.")
         _write_jsonl(
             transcript_path,
             {
@@ -466,6 +474,7 @@ def main(argv: list[str] | None = None) -> int:
                 "model": model,
                 "user_text": user_text,
                 "assistant_text": assistant_text,
+                "llm_status": state.llm_status,
             },
         )
         return assistant_text

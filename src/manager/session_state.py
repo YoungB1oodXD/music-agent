@@ -74,6 +74,12 @@ class SessionState(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now, description="会话创建时间")
     updated_at: datetime = Field(default_factory=datetime.now, description="最后更新时间")
     
+    llm_status: Optional[str] = Field(
+        default=None, 
+        description="LLM 请求状态（live: 在线调用, fallback: 本地兜底）"
+    )
+
+    
     # ===== 当前上下文状态 =====
     current_mood: Optional[str] = Field(
         None,

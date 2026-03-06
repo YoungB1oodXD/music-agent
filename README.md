@@ -191,7 +191,23 @@ for r in semantic_results:
     print(f"基于 {r['title']} 推荐: {cf_results['recommendations']}")
 ```
 
+### 🤖 智能对话 (Chat CLI)
+
+通过自然语言与 Music Agent 对话，获取个性化推荐。支持 Mock 模式（无需 API Key）和 Qwen 模式（基于通义千问）。
+
+```bash
+# Mock 模式：快速测试对话逻辑
+python scripts/chat_cli.py --llm mock
+
+# Qwen 模式：使用通义千问大模型
+python scripts/chat_cli.py --llm qwen
+
+# 单次执行模式
+python scripts/chat_cli.py --llm qwen --once "推荐点适合学习的歌"
+```
+
 ---
+
 
 ## 📊 模型参数
 
@@ -236,7 +252,21 @@ python scripts/eval_model.py
 # 禁用 BLAS 多线程（Windows 兼容性）
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
+
+# DashScope (通义千问) 配置
+# API Key 优先级：显式参数 > DASHSCOPE_API_KEY_BAILIAN > DASHSCOPE_API_KEY
+export DASHSCOPE_API_KEY_BAILIAN="your_bailian_api_key" # 优先使用（百炼普通 Key）
+export DASHSCOPE_API_KEY="your_api_key"                 # 备选（如 Coding Plan Key）
+
+# 可选：覆盖 OpenAI-compatible Base URL
+# - 百炼普通接口（默认）：https://dashscope.aliyuncs.com/compatible-mode/v1
+# - Coding Plan：https://coding.dashscope.aliyuncs.com/v1
+export DASHSCOPE_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+# 可选：覆盖模型名（默认 qwen3.5-plus）
+export DASHSCOPE_MODEL="qwen3.5-plus"
 ```
+
 
 ---
 

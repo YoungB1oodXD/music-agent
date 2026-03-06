@@ -102,6 +102,7 @@ class Orchestrator:
         self.system_prompt: str = prompt_path.read_text(encoding="utf-8").strip()
 
     def handle_turn(self, user_text: str, state: SessionState) -> str:
+        state.llm_status = "live"
         text = user_text.strip()
         if not text:
             reply = "请告诉我你想听什么类型的音乐，我可以马上帮你找。"
@@ -181,7 +182,7 @@ class Orchestrator:
                 if normalized.get(_SLOT_QUERY_TEXT):
                     return normalized
         except Exception:
-            pass
+            state.llm_status = "fallback"
 
         return self._deterministic_intent_slots(user_text, state)
 
@@ -633,6 +634,7 @@ class Orchestrator:
                 result[_FINAL_FOLLOWUP] = followup
             return result
         except Exception:
+            state.llm_status = "fallback"
             return {
                 _FINAL_ASSISTANT_TEXT: "",
                 _FINAL_RECOMMENDATIONS: seed_recommendations,
