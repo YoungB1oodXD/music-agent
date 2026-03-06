@@ -466,6 +466,12 @@ def main(argv: list[str] | None = None) -> int:
         assistant_text = orchestrator.handle_turn(user_text, state)
         if model == "qwen" and state.llm_status == "fallback":
             print("[WARN] LLM request failed, fallback to local recommendation pipeline.")
+
+        rec_count = len(state.last_recommendation.results) if state.last_recommendation else 0
+        print("[SESSION SUMMARY]")
+        print(f"llm_status={state.llm_status or 'none'}")
+        print(f"recommendation_count={rec_count}")
+
         _write_jsonl(
             transcript_path,
             {

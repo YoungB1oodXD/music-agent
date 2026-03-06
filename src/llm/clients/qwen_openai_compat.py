@@ -30,6 +30,7 @@ import importlib
 import json
 import logging
 import os
+import time
 from collections.abc import Sequence
 from typing import Protocol, cast
 
@@ -102,11 +103,14 @@ class QwenClient(BaseLLMClient):
             prefix_len = 9 if self.api_key.startswith("sk-") else 6
             api_key_prefix = self.api_key[:prefix_len]
         
-        logger.info(f"[LLM] provider=qwen")
-        logger.info(f"[LLM] base_url={self.base_url}")
-        logger.info(f"[LLM] model={self.model}")
-        logger.info(f"[LLM] api_key_present={str(api_key_present).lower()}")
-        logger.info(f"[LLM] api_key_prefix={api_key_prefix}")
+        logger.info(
+            f"[LLM INIT]\n"
+            f"provider=qwen\n"
+            f"base_url={self.base_url}\n"
+            f"model={self.model}\n"
+            f"api_key_present={str(api_key_present).lower()}\n"
+            f"api_key_prefix={api_key_prefix}"
+        )
 
     def _get_client(self) -> _OpenAIClientProtocol:
         if not self.api_key:
@@ -198,8 +202,15 @@ class QwenClient(BaseLLMClient):
                 logger.warning("tools provided; forcing stream=False for compatibility")
             payload["stream"] = False
 
+        start_time = time.perf_counter()
         try:
             completion_obj = self._get_client().chat.completions.create(**payload)
+            latency_ms = int((time.perf_counter() - start_time) * 1000)
+            logger.info(
+                f"[LLM SUCCESS]\n"
+                f"model={self.model}\n"
+                f"latency_ms={latency_ms}"
+            )
         except Exception as e:
             # 错误处理：提取关键信息并打印详细日志（用于调试 API 问题）
             status_code = getattr(e, "status_code", "N/A")
