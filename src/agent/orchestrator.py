@@ -643,23 +643,6 @@ class Orchestrator:
         if preference_suffix and preference_suffix not in effective_query_text:
             effective_query_text = f"{effective_query_text} {preference_suffix}".strip()
 
-        if intent in {_INTENT_RECOMMEND, _INTENT_REFINE}:
-            if song_name and query_text:
-                return [
-                    (
-                        "hybrid_recommend",
-                        {
-                            "query_text": effective_query_text,
-                            "seed_song_name": song_name,
-                            "top_k": top_k,
-                            "intent": intent,
-                            "exclude_ids": exclude_ids,
-                        },
-                    )
-                ]
-            if song_name:
-                return [("cf_recommend", {"song_name": song_name, "top_k": top_k, "exclude_ids": exclude_ids})]
-
         return [
             (
                 "semantic_search",

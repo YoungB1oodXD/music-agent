@@ -40,9 +40,9 @@ export const mapRecommendationsToTracks = (recommendations: any): Track[] => {
       title = parts.slice(1).join(' - ').trim();
     }
 
-    const tags = Array.isArray(rec.citations) 
-      ? rec.citations.slice(0, 3) 
-      : (Array.isArray(rec.tags) ? rec.tags.slice(0, 3) : []);
+    const tags = Array.isArray(rec.tags) 
+      ? rec.tags.slice(0, 3).filter((t: string) => !t.startsWith('doc:'))
+      : [];
 
     let matchScore = typeof rec.score === 'number' ? rec.score : (typeof rec.matchScore === 'number' ? rec.matchScore : 0);
     if (matchScore > 0 && matchScore <= 1) {

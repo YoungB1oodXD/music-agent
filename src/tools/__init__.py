@@ -9,19 +9,19 @@ def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(
         name="semantic_search",
-        description="Semantic music search based on query text",
+        description="Semantic music search based on query text (PRIMARY TOOL)",
         parameters_schema=SEMANTIC_SEARCH_SCHEMA,
         handler=semantic_search,
     )
     registry.register(
         name="cf_recommend",
-        description="Collaborative filtering recommendation based on seed song",
+        description="[EXPERIMENTAL/DISABLED] Collaborative filtering - requires Last.fm data not available in FMA-only mode",
         parameters_schema=CF_RECOMMEND_SCHEMA,
         handler=cf_recommend,
     )
     registry.register(
         name="hybrid_recommend",
-        description="Hybrid recommendation combining semantic and collaborative results",
+        description="[EXPERIMENTAL/DISABLED] Hybrid recommendation - CF component not available in FMA-only mode",
         parameters_schema=HYBRID_RECOMMEND_SCHEMA,
         handler=hybrid_recommend,
     )
