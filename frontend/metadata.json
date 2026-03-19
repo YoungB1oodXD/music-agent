@@ -1,0 +1,5 @@
+{
+  "name": "Aura - Music AI",
+  "description": "Conversational music recommendation system with LLM agent and hybrid RAG recommendations.",
+  "requestFramePermissions": []
+}

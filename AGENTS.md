@@ -1,17 +1,53 @@
 # AGENTS.md
 
-This repository is a Python-based music recommendation system with two main parts:
-- Semantic search (BGE-M3 embeddings + ChromaDB)
-- Collaborative filtering (implicit ALS)
+**Generated:** 2026-03-18
+**Stack:** Python 3.11 | FastAPI | BGE-M3 | ChromaDB | Implicit ALS
 
-The repo is not set up as a packaged library (no `pyproject.toml` / `setup.cfg`).
-Most entrypoints are standalone scripts under `scripts/` and runnable modules under `src/`.
+## OVERVIEW
 
-Notes for agents:
-- `data/`, `dataset/`, and `index/` are gitignored and may be missing locally.
-- Many commands will fail unless the required datasets/models/indices exist.
-- No dedicated lint/test runner is configured (no pytest/ruff/black config found).
-- This repo mixes Chinese/English strings and docstrings; keep user-facing messages consistent with nearby code.
+Dual-brain music recommendation system with agent orchestration. Left brain: semantic search (BGE-M3 + ChromaDB). Right brain: collaborative filtering (Implicit ALS). Runtime: LLM-powered agent with RAG pipeline and tool dispatch.
+
+## STRUCTURE
+
+```
+src/
+├── agent/        # Orchestrator — LLM-driven intent/slot extraction, tool dispatch
+├── api/          # FastAPI app — /chat, /recommend, /search endpoints
+├── llm/          # LLM clients — Qwen (OpenAI-compatible), mock client
+├── rag/          # Retrieval augmentation — context builder, retriever, sanitizer
+├── tools/        # Tool registry — CF/semantic/hybrid recommend tools
+├── manager/      # Session state management
+├── recommender/  # Collaborative filtering (Right Brain)
+└── searcher/     # Semantic search (Left Brain)
+scripts/          # Entry points — training, vectorization, CLI, API server
+tests/            # Standalone test scripts (no pytest harness)
+```
+
+## WHERE TO LOOK
+
+| Task | Location | Notes |
+|------|----------|-------|
+| Add new tool | `src/tools/` | Register in `registry.py`, create handler |
+| Modify intent routing | `src/agent/orchestrator.py` | 1193 lines — core dispatch logic |
+| Change LLM provider | `src/llm/clients/` | Base class + Qwen implementation |
+| Adjust RAG pipeline | `src/rag/` | Context builder + retriever |
+| Add API endpoint | `src/api/app.py` | FastAPI routes, session store |
+| Train models | `scripts/` | train_cf.py, vectorizer_bge.py |
+| Run chat CLI | `scripts/chat_cli.py` | --llm {mock,qwen} |
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- **DO NOT** use `as any`, `@ts-ignore` equivalents
+- **DO NOT** suppress type errors — this repo uses type hints
+- **DO NOT** delete failing tests to "pass" — tests are standalone scripts
+- **AVOID** running `scripts/run_hybrid_pipeline.py` — references missing `cleanup.py`
+
+## UNIQUE STYLES
+
+- **No package structure**: Scripts inject `sys.path.insert(0, repo_root)` before importing `src.*`
+- **Encoding headers**: Keep `# -*- coding: utf-8 -*-` for non-ASCII content
+- **Mixed language**: Chinese/English strings — match nearby code language
+- **Mock patterns**: Tests build fake handlers inline, register with `ToolRegistry`
 
 ## Environment
 

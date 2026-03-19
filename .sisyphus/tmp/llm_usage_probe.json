@@ -1,0 +1,117 @@
+{
+  "session_id": "c9158e08c265488fa583885541bca31d",
+  "chat_summaries": [
+    {
+      "chat_idx": 1,
+      "message": "我想听适合学习的轻音乐",
+      "elapsed_ms": 165803,
+      "status_code": 200,
+      "recommendations_len": 5
+    },
+    {
+      "chat_idx": 2,
+      "message": "我现在有点emo，想听安静一点的歌",
+      "elapsed_ms": 88913,
+      "status_code": 200,
+      "recommendations_len": 5
+    },
+    {
+      "chat_idx": 3,
+      "message": "来点适合夜跑的高能量音乐",
+      "elapsed_ms": 213335,
+      "status_code": 200,
+      "recommendations_len": 5
+    }
+  ],
+  "llm_calls": [
+    {
+      "chat_idx": 1,
+      "phase": "intent_slots",
+      "latency_ms_wrapper": 31558,
+      "prompt_tokens": 1088,
+      "completion_tokens": 1702,
+      "total_tokens": 2790,
+      "system_chars": 1135,
+      "history_chars": 0,
+      "user_prompt_chars": 1757
+    },
+    {
+      "chat_idx": 1,
+      "phase": "final_response",
+      "latency_ms_wrapper": 118468,
+      "prompt_tokens": 1939,
+      "completion_tokens": 4348,
+      "total_tokens": 6287,
+      "system_chars": 1135,
+      "history_chars": 0,
+      "user_prompt_chars": 3461
+    },
+    {
+      "chat_idx": 2,
+      "phase": "intent_slots",
+      "latency_ms_wrapper": 39085,
+      "prompt_tokens": 1285,
+      "completion_tokens": 2671,
+      "total_tokens": 3956,
+      "system_chars": 1135,
+      "history_chars": 89,
+      "user_prompt_chars": 2052
+    },
+    {
+      "chat_idx": 2,
+      "phase": "final_response",
+      "latency_ms_wrapper": 49024,
+      "prompt_tokens": 2044,
+      "completion_tokens": 3898,
+      "total_tokens": 5942,
+      "system_chars": 1135,
+      "history_chars": 89,
+      "user_prompt_chars": 3551
+    },
+    {
+      "chat_idx": 3,
+      "phase": "intent_slots",
+      "latency_ms_wrapper": 28215,
+      "prompt_tokens": 1467,
+      "completion_tokens": 2042,
+      "total_tokens": 3509,
+      "system_chars": 1135,
+      "history_chars": 184,
+      "user_prompt_chars": 2298
+    }
+  ],
+  "per_chat_summary": [
+    {
+      "chat_idx": 1,
+      "llm_completions": 2,
+      "phase_counts": {
+        "intent_slots": 1,
+        "final_response": 1
+      },
+      "prompt_tokens_total": 3027,
+      "completion_tokens_total": 6050,
+      "total_tokens_total": 9077
+    },
+    {
+      "chat_idx": 2,
+      "llm_completions": 2,
+      "phase_counts": {
+        "intent_slots": 1,
+        "final_response": 1
+      },
+      "prompt_tokens_total": 3329,
+      "completion_tokens_total": 6569,
+      "total_tokens_total": 9898
+    },
+    {
+      "chat_idx": 3,
+      "llm_completions": 1,
+      "phase_counts": {
+        "intent_slots": 1
+      },
+      "prompt_tokens_total": 1467,
+      "completion_tokens_total": 2042,
+      "total_tokens_total": 3509
+    }
+  ]
+}

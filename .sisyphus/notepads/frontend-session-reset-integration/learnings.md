@@ -1,0 +1,5 @@
+- Session fetch returns { ok: true, session_id: string, state: unknown } on 200, and { ok: false, notFound: true } on 404 without throwing.
+- Reset session accepts { session_id } and returns { ok: boolean } from the backend.
+- mapSessionSummaryToSessionContext converts backend session state summary into UI SessionContext chips, mapping mood/scene/genre and preference profile (energy/vocals). 
+- Reset session behavior: calls backend POST /api/reset_session, clears messages/tracks/context in frontend, but preserves sessionId for UI stability.
+- Session sync occurs automatically via useEffect whenever sessionId changes from null to a valid string, ensuring the Sidebar context matches the backend state.

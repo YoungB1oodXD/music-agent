@@ -5,6 +5,10 @@ __pycache__/
 *.pyd
 .Python
 *.so
+*.egg-info/
+dist/
+build/
+*.egg
 
 # Jupyter
 .ipynb_checkpoints/
@@ -16,19 +20,39 @@ index/
 
 # 环境
 .env
+.env.local
+.env.*.local
 .venv/
 env/
 venv/
+
+# Node.js / 前端
+node_modules/
+.npm
+.eslintcache
+.parcel-cache
 
 # IDE
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # 日志
 *.log
 logs/
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# Sisyphus 工作目录
+.sisyphus/evidence/
+.sisyphus/plans/

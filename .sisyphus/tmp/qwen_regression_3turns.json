@@ -1,0 +1,138 @@
+﻿{
+    "session_id":  "046adf2187b44d6ca4909f9ea0ff701d",
+    "turns":  [
+                  {
+                      "message":  "我想听适合学习的轻音乐",
+                      "elapsed_ms":  119942,
+                      "session_id":  "046adf2187b44d6ca4909f9ea0ff701d",
+                      "recommendations_len":  5,
+                      "recommendations_top3":  [
+                                                   {
+                                                       "id":  "124501",
+                                                       "name":  "Please Exist - Murmur",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.30 æ¨è (æµæ´¾ï¼Rock)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.3040844798088074",
+                                                                         "semantic_search.genre=Rock"
+                                                                     ]
+                                                   },
+                                                   {
+                                                       "id":  "134966",
+                                                       "name":  "RoccoW - Try A Music",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.30 æ¨è",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.2979181408882141"
+                                                                     ]
+                                                   },
+                                                   {
+                                                       "id":  "104653",
+                                                       "name":  "another cultural landslide - a little theological advice",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.28 æ¨è",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.27976518869400024"
+                                                                     ]
+                                                   }
+                                               ],
+                      "state":  {
+                                    "mood":  null,
+                                    "scene":  null,
+                                    "genre":  null,
+                                    "preferred_energy":  null,
+                                    "preferred_vocals":  null
+                                }
+                  },
+                  {
+                      "message":  "我现在有点emo，想听安静一点的歌",
+                      "elapsed_ms":  103503,
+                      "session_id":  "046adf2187b44d6ca4909f9ea0ff701d",
+                      "recommendations_len":  5,
+                      "recommendations_top3":  [
+                                                   {
+                                                       "id":  "10737",
+                                                       "name":  "From Bacteria To Boys - Emo Hope",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.31 æ¨è (æµæ´¾ï¼Jazz)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.31093722581863403",
+                                                                         "semantic_search.genre=Jazz"
+                                                                     ]
+                                                   },
+                                                   {
+                                                       "id":  "70201",
+                                                       "name":  "Pow Wows - E.I.O.",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.30 æ¨è (æµæ´¾ï¼Rock)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.3036583662033081",
+                                                                         "semantic_search.genre=Rock"
+                                                                     ]
+                                                   },
+                                                   {
+                                                       "id":  "62666",
+                                                       "name":  "et_ - Cosmo",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.30 æ¨è (æµæ´¾ï¼Electronic)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.3024170994758606",
+                                                                         "semantic_search.genre=Electronic"
+                                                                     ]
+                                                   }
+                                               ],
+                      "state":  {
+                                    "mood":  "emo",
+                                    "scene":  null,
+                                    "genre":  null,
+                                    "preferred_energy":  null,
+                                    "preferred_vocals":  null
+                                }
+                  },
+                  {
+                      "message":  "来点适合夜跑的高能量音乐",
+                      "elapsed_ms":  121098,
+                      "session_id":  "046adf2187b44d6ca4909f9ea0ff701d",
+                      "recommendations_len":  5,
+                      "recommendations_top3":  [
+                                                   {
+                                                       "id":  "10737",
+                                                       "name":  "From Bacteria To Boys - Emo Hope",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.31 æ¨è (æµæ´¾: Jazz)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.31093722581863403",
+                                                                         "semantic_search.genre=Jazz"
+                                                                     ]
+                                                   },
+                                                   {
+                                                       "id":  "70201",
+                                                       "name":  "Pow Wows - E.I.O.",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.30 æ¨è (æµæ´¾: Rock)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.3036583662033081",
+                                                                         "semantic_search.genre=Rock"
+                                                                     ]
+                                                   },
+                                                   {
+                                                       "id":  "62666",
+                                                       "name":  "et_ - Cosmo",
+                                                       "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.30 æ¨è (æµæ´¾: Electronic)",
+                                                       "citations":  [
+                                                                         "tool_results",
+                                                                         "semantic_search.similarity=0.3024170994758606",
+                                                                         "semantic_search.genre=Electronic"
+                                                                     ]
+                                                   }
+                                               ],
+                      "state":  {
+                                    "mood":  "emo",
+                                    "scene":  null,
+                                    "genre":  null,
+                                    "preferred_energy":  null,
+                                    "preferred_vocals":  null
+                                }
+                  }
+              ]
+}

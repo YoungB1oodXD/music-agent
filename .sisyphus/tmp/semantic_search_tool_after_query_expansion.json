@@ -1,0 +1,254 @@
+{
+  "queries": [
+    {
+      "query": "我想听适合学习的轻音乐",
+      "count": 9,
+      "results": [
+        {
+          "id": "fma_142459",
+          "title": "calm song",
+          "artist": "transient",
+          "genre": "Electronic",
+          "track_id": "142459",
+          "similarity": 0.3633110523223877,
+          "distance": 0.6366889476776123
+        },
+        {
+          "id": "fma_21220",
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "21220",
+          "similarity": 0.33756130933761597,
+          "distance": 0.662438690662384
+        },
+        {
+          "id": "fma_47347",
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "47347",
+          "similarity": 0.33756130933761597,
+          "distance": 0.662438690662384
+        },
+        {
+          "id": "fma_83278",
+          "title": "Slow Learner",
+          "artist": "No Monster Club",
+          "genre": "",
+          "track_id": "83278",
+          "similarity": 0.3297814726829529,
+          "distance": 0.6702185273170471
+        },
+        {
+          "id": "fma_22163",
+          "title": "Transitional Interference",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "22163",
+          "similarity": 0.3242926597595215,
+          "distance": 0.6757073402404785
+        },
+        {
+          "id": "fma_11954",
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "Rock",
+          "track_id": "11954",
+          "similarity": 0.3222165107727051,
+          "distance": 0.6777834892272949
+        },
+        {
+          "id": "fma_31307",
+          "title": "Little Conversation",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "31307",
+          "similarity": 0.31820571422576904,
+          "distance": 0.681794285774231
+        },
+        {
+          "id": "fma_120503",
+          "title": "Quiet",
+          "artist": "Quiet Music for Tiny Robots",
+          "genre": "",
+          "track_id": "120503",
+          "similarity": 0.3181074857711792,
+          "distance": 0.6818925142288208
+        },
+        {
+          "id": "fma_120488",
+          "title": "Buffering",
+          "artist": "Quiet Music for Tiny Robots",
+          "genre": "",
+          "track_id": "120488",
+          "similarity": 0.311585009098053,
+          "distance": 0.688414990901947
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.3633110523223877,
+          "max": 0.3633110523223877
+        },
+        "top5": {
+          "min": 0.3242926597595215,
+          "max": 0.3633110523223877
+        },
+        "top10": {
+          "min": 0.311585009098053,
+          "max": 0.3633110523223877
+        }
+      }
+    },
+    {
+      "query": "我现在有点emo，想听安静一点的歌",
+      "count": 10,
+      "results": [
+        {
+          "id": "fma_142459",
+          "title": "calm song",
+          "artist": "transient",
+          "genre": "Electronic",
+          "track_id": "142459",
+          "similarity": 0.44808143377304077,
+          "distance": 0.5519185662269592
+        },
+        {
+          "id": "fma_119369",
+          "title": "calm",
+          "artist": "Erick Gallun",
+          "genre": "Experimental",
+          "track_id": "119369",
+          "similarity": 0.38855040073394775,
+          "distance": 0.6114495992660522
+        },
+        {
+          "id": "fma_138577",
+          "title": "cold",
+          "artist": "quietest",
+          "genre": "",
+          "track_id": "138577",
+          "similarity": 0.38813316822052,
+          "distance": 0.61186683177948
+        },
+        {
+          "id": "fma_123291",
+          "title": "be calm",
+          "artist": "Breatherholes",
+          "genre": "",
+          "track_id": "123291",
+          "similarity": 0.37856435775756836,
+          "distance": 0.6214356422424316
+        },
+        {
+          "id": "fma_138574",
+          "title": "quiet morning",
+          "artist": "quietest",
+          "genre": "",
+          "track_id": "138574",
+          "similarity": 0.36532700061798096,
+          "distance": 0.634672999382019
+        },
+        {
+          "id": "fma_138575",
+          "title": "hiatus",
+          "artist": "quietest",
+          "genre": "",
+          "track_id": "138575",
+          "similarity": 0.3622070550918579,
+          "distance": 0.6377929449081421
+        },
+        {
+          "id": "fma_111092",
+          "title": "Calmant",
+          "artist": "Kevin MacLeod",
+          "genre": "",
+          "track_id": "111092",
+          "similarity": 0.35696321725845337,
+          "distance": 0.6430367827415466
+        },
+        {
+          "id": "fma_120503",
+          "title": "Quiet",
+          "artist": "Quiet Music for Tiny Robots",
+          "genre": "",
+          "track_id": "120503",
+          "similarity": 0.3553953170776367,
+          "distance": 0.6446046829223633
+        },
+        {
+          "id": "fma_137464",
+          "title": "quietest 01",
+          "artist": "transient",
+          "genre": "",
+          "track_id": "137464",
+          "similarity": 0.35046517848968506,
+          "distance": 0.6495348215103149
+        },
+        {
+          "id": "fma_45578",
+          "title": "quiet ok",
+          "artist": "Gablé",
+          "genre": "",
+          "track_id": "45578",
+          "similarity": 0.3487383723258972,
+          "distance": 0.6512616276741028
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.44808143377304077,
+          "max": 0.44808143377304077
+        },
+        "top5": {
+          "min": 0.36532700061798096,
+          "max": 0.44808143377304077
+        },
+        "top10": {
+          "min": 0.3487383723258972,
+          "max": 0.44808143377304077
+        }
+      }
+    },
+    {
+      "query": "来点适合夜跑的高能量音乐",
+      "count": 2,
+      "results": [
+        {
+          "id": "fma_66311",
+          "title": "Night Runner",
+          "artist": "Honeydrum",
+          "genre": "",
+          "track_id": "66311",
+          "similarity": 0.30501675605773926,
+          "distance": 0.6949832439422607
+        },
+        {
+          "id": "fma_90760",
+          "title": "Run In The Night",
+          "artist": "The Good Lawdz",
+          "genre": "",
+          "track_id": "90760",
+          "similarity": 0.3035010099411011,
+          "distance": 0.6964989900588989
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.30501675605773926,
+          "max": 0.30501675605773926
+        },
+        "top5": {
+          "min": 0.3035010099411011,
+          "max": 0.30501675605773926
+        },
+        "top10": {
+          "min": 0.3035010099411011,
+          "max": 0.30501675605773926
+        }
+      }
+    }
+  ],
+  "error": null
+}

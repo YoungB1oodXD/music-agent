@@ -1,0 +1,162 @@
+{
+  "metadata": {
+    "llm_mode": "qwen",
+    "timestamp": "2026-03-12 15:48:56"
+  },
+  "chats": [
+    {
+      "chat_idx": 1,
+      "query": "我想听适合学习的轻音乐",
+      "status_code": 200,
+      "elapsed_ms": 88893,
+      "assistant_text_prefix": "为您找到了一些适合学习场景的音乐。这些曲目是根据语义相似度匹配的，其中第一首标注为摇滚风格，您可以试听看看是否符合您的预期。\n您觉得这些曲目的风格合适吗？需要更安静或更轻快一些吗？",
+      "top_5_recs": [
+        {
+          "id": "11954",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "21220",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "47347",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "31307",
+          "name": "Learning Music - Little Conversation"
+        },
+        {
+          "id": "83278",
+          "name": "No Monster Club - Slow Learner"
+        }
+      ]
+    },
+    {
+      "chat_idx": 2,
+      "query": "我现在有点emo，想听安静一点的歌",
+      "status_code": 200,
+      "elapsed_ms": 18254,
+      "assistant_text_prefix": "为您找到了一些适合安静心情的音乐，这些曲目在语义上与您的需求高度匹配。第一首带有电子元素，其他多为实验或氛围风格，整体节奏舒缓。您觉得这样的风格合适吗？需要更柔和或加入自然音效吗？\n需要调整音乐的能量",
+      "top_5_recs": [
+        {
+          "id": "142459",
+          "name": "transient - calm song"
+        },
+        {
+          "id": "120503",
+          "name": "Quiet Music for Tiny Robots - Quiet"
+        },
+        {
+          "id": "119369",
+          "name": "Erick Gallun - calm"
+        },
+        {
+          "id": "137464",
+          "name": "transient - quietest 01"
+        },
+        {
+          "id": "123291",
+          "name": "Breatherholes - be calm"
+        }
+      ]
+    },
+    {
+      "chat_idx": 3,
+      "query": "来点适合夜跑的高能量音乐",
+      "status_code": 200,
+      "elapsed_ms": 119518,
+      "assistant_text_prefix": "为您找到了一些适合夜跑的高能量音乐。这些曲目是根据语义相似度匹配的，其中包含电子和实验风格，节奏感较强。您觉得这些曲目的风格合适吗？需要更安静或更轻快一些吗？\n需要调整音乐的能量强度或添加特定元素吗？",
+      "top_5_recs": [
+        {
+          "id": "66311",
+          "name": "Honeydrum - Night Runner"
+        },
+        {
+          "id": "76445",
+          "name": "sirqueue - Night of the Imminent Walking Bears"
+        },
+        {
+          "id": "63099",
+          "name": "Great Black Waters - Midnight Run"
+        },
+        {
+          "id": "64601",
+          "name": "Buildings and Mountains - Start Running"
+        },
+        {
+          "id": "90760",
+          "name": "The Good Lawdz - Run In The Night"
+        }
+      ]
+    }
+  ],
+  "llm_calls": [
+    {
+      "chat_idx": 1,
+      "phase": "final_response",
+      "latency_ms": 75346,
+      "prompt_tokens": 1758,
+      "completion_tokens": 3973,
+      "total_tokens": 5731
+    },
+    {
+      "chat_idx": 2,
+      "phase": "final_response",
+      "latency_ms": 16936,
+      "prompt_tokens": 1868,
+      "completion_tokens": 877,
+      "total_tokens": 2745
+    },
+    {
+      "chat_idx": 3,
+      "phase": "final_response",
+      "latency_ms": 118266,
+      "prompt_tokens": 1958,
+      "completion_tokens": 6301,
+      "total_tokens": 8259
+    }
+  ],
+  "per_chat_summary": [
+    {
+      "chat_idx": 1,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1758,
+      "completion_tokens_total": 3973,
+      "total_tokens_total": 5731
+    },
+    {
+      "chat_idx": 2,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1868,
+      "completion_tokens_total": 877,
+      "total_tokens_total": 2745
+    },
+    {
+      "chat_idx": 3,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1958,
+      "completion_tokens_total": 6301,
+      "total_tokens_total": 8259
+    }
+  ],
+  "citation_stats": {
+    "semantic_search.similarity": {
+      "count": 15,
+      "min": 0.2759,
+      "p50": 0.3075,
+      "p95": 0.4036,
+      "max": 0.4036
+    }
+  }
+}

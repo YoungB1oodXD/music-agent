@@ -1,0 +1,139 @@
+{
+  "seed_song": "Adelitas Way - Dirty Little Thing",
+  "queries": {
+    "我想听适合学习的轻音乐": {
+      "semantic": {
+        "ok": true,
+        "count": 20,
+        "raw_min": 0.19287937879562378,
+        "raw_max": 0.2593557834625244
+      },
+      "cf": {
+        "ok": true,
+        "count": 20,
+        "raw_min": 1.3166971679634543e-10,
+        "raw_max": 1.5305771927653922e-10
+      },
+      "hybrid": {
+        "ok": true,
+        "count": 10,
+        "score_min": 0.39992540518160247,
+        "score_max": 0.6,
+        "semantic_in_output_min": 0.0,
+        "semantic_in_output_max": 0.2593557834625244,
+        "cf_in_output_min": 1.5304713052444185e-10,
+        "cf_in_output_max": 1.5305771927653922e-10,
+        "sources_sample": [
+          [
+            "semantic"
+          ],
+          [
+            "semantic"
+          ],
+          [
+            "semantic"
+          ]
+        ]
+      }
+    },
+    "我现在有点emo，想听安静一点的歌": {
+      "semantic": {
+        "ok": true,
+        "count": 20,
+        "raw_min": 0.20008111000061035,
+        "raw_max": 0.29501521587371826
+      },
+      "cf": {
+        "ok": true,
+        "count": 20,
+        "raw_min": 1.3166971679634543e-10,
+        "raw_max": 1.5305771927653922e-10
+      },
+      "hybrid": {
+        "ok": true,
+        "count": 10,
+        "score_min": 0.39950569934230934,
+        "score_max": 0.6,
+        "semantic_in_output_min": 0.0,
+        "semantic_in_output_max": 0.29501521587371826,
+        "cf_in_output_min": 1.529875531813829e-10,
+        "cf_in_output_max": 1.5305771927653922e-10,
+        "sources_sample": [
+          [
+            "semantic"
+          ],
+          [
+            "semantic"
+          ],
+          [
+            "cf"
+          ]
+        ]
+      }
+    },
+    "来点适合夜跑的高能量音乐": {
+      "semantic": {
+        "ok": true,
+        "count": 20,
+        "raw_min": 0.24823200702667236,
+        "raw_max": 0.3597527742385864
+      },
+      "cf": {
+        "ok": true,
+        "count": 20,
+        "raw_min": 1.3166971679634543e-10,
+        "raw_max": 1.5305771927653922e-10
+      },
+      "hybrid": {
+        "ok": true,
+        "count": 10,
+        "score_min": 0.39950569934230934,
+        "score_max": 0.6,
+        "semantic_in_output_min": 0.0,
+        "semantic_in_output_max": 0.3597527742385864,
+        "cf_in_output_min": 1.529875531813829e-10,
+        "cf_in_output_max": 1.5305771927653922e-10,
+        "sources_sample": [
+          [
+            "semantic"
+          ],
+          [
+            "semantic"
+          ],
+          [
+            "cf"
+          ]
+        ]
+      }
+    }
+  },
+  "normalization_test": {
+    "semantic_0_3_to_0_5": {
+      "normalized_min": 0.0,
+      "normalized_max": 1.0
+    },
+    "cf_very_small_1e9_range": {
+      "normalized_min": 0.0,
+      "normalized_max": 1.0
+    },
+    "cf_negative_range": {
+      "normalized_min": 0.0,
+      "normalized_max": 1.0
+    }
+  },
+  "cold_start_test": {
+    "query": "我想听适合学习的轻音乐",
+    "count": 10,
+    "sources_sample": [
+      [
+        "semantic"
+      ],
+      [
+        "semantic"
+      ],
+      [
+        "semantic"
+      ]
+    ]
+  }
+}

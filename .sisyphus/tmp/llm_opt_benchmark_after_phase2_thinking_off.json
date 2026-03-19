@@ -1,0 +1,160 @@
+{
+  "metadata": {
+    "llm_mode": "qwen",
+    "timestamp": "2026-03-12 17:00:56"
+  },
+  "chats": [
+    {
+      "chat_idx": 1,
+      "query": "我想听适合学习的轻音乐",
+      "status_code": 200,
+      "elapsed_ms": 23127,
+      "assistant_text_prefix": "为您找到几首适合学习时聆听的轻音乐，希望能帮助您集中注意力。\n您觉得这些歌曲的风格合适吗？或者想要更安静一点的纯音乐？",
+      "top_5_recs": [
+        {
+          "id": "11954",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "21220",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "47347",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "31307",
+          "name": "Learning Music - Little Conversation"
+        },
+        {
+          "id": "83278",
+          "name": "No Monster Club - Slow Learner"
+        }
+      ]
+    },
+    {
+      "chat_idx": 2,
+      "query": "我现在有点emo，想听安静一点的歌",
+      "status_code": 200,
+      "elapsed_ms": 9693,
+      "assistant_text_prefix": "为您精选了几首安静的轻音乐，希望能帮助您在学习时保持专注和平静。\n这些曲目符合您的预期吗？或者您希望尝试完全没有节奏感的纯环境音？",
+      "top_5_recs": [
+        {
+          "id": "142459",
+          "name": "transient - calm song"
+        },
+        {
+          "id": "120503",
+          "name": "Quiet Music for Tiny Robots - Quiet"
+        },
+        {
+          "id": "119369",
+          "name": "Erick Gallun - calm"
+        },
+        {
+          "id": "137464",
+          "name": "transient - quietest 01"
+        }
+      ]
+    },
+    {
+      "chat_idx": 3,
+      "query": "来点适合夜跑的高能量音乐",
+      "status_code": 200,
+      "elapsed_ms": 5296,
+      "assistant_text_prefix": "理解您此刻的心情，为您挑选了几首安静舒缓的纯音乐，希望能陪伴您度过这段时光。\n这些曲目是否让您感觉放松了一些，还是您希望尝试加入一点自然白噪音的背景音乐？",
+      "top_5_recs": [
+        {
+          "id": "66311",
+          "name": "Honeydrum - Night Runner"
+        }
+      ]
+    }
+  ],
+  "llm_calls": [
+    {
+      "chat_idx": 1,
+      "phase": "final_response",
+      "latency_ms": 13822,
+      "prompt_tokens": 1126,
+      "completion_tokens": 349,
+      "total_tokens": 1475,
+      "system_chars": 1135,
+      "history_chars": 0,
+      "user_prompt_chars": 1620
+    },
+    {
+      "chat_idx": 2,
+      "phase": "final_response",
+      "latency_ms": 9326,
+      "prompt_tokens": 1142,
+      "completion_tokens": 356,
+      "total_tokens": 1498,
+      "system_chars": 1135,
+      "history_chars": 70,
+      "user_prompt_chars": 1434
+    },
+    {
+      "chat_idx": 3,
+      "phase": "final_response",
+      "latency_ms": 4945,
+      "prompt_tokens": 897,
+      "completion_tokens": 160,
+      "total_tokens": 1057,
+      "system_chars": 1135,
+      "history_chars": 152,
+      "user_prompt_chars": 691
+    }
+  ],
+  "per_chat_summary": [
+    {
+      "chat_idx": 1,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1126,
+      "completion_tokens_total": 349,
+      "total_tokens_total": 1475,
+      "system_chars_total": 1135,
+      "history_chars_total": 0,
+      "user_prompt_chars_total": 1620
+    },
+    {
+      "chat_idx": 2,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1142,
+      "completion_tokens_total": 356,
+      "total_tokens_total": 1498,
+      "system_chars_total": 1135,
+      "history_chars_total": 70,
+      "user_prompt_chars_total": 1434
+    },
+    {
+      "chat_idx": 3,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 897,
+      "completion_tokens_total": 160,
+      "total_tokens_total": 1057,
+      "system_chars_total": 1135,
+      "history_chars_total": 152,
+      "user_prompt_chars_total": 691
+    }
+  ],
+  "citation_stats": {
+    "semantic_search.similarity": {
+      "count": 6,
+      "min": 0.3004,
+      "p50": 0.3185,
+      "p95": 0.3199,
+      "max": 0.3199
+    }
+  }
+}

@@ -46,11 +46,23 @@ Deliver a working multi-turn conversational recommender “agent loop” that:
 - Plan artifact requested by user:
   - Create `docs/开发计划书.md` as a human-facing version of this plan (executor task).
 
+## Milestone Boundary
+### Milestone 1: Agent Core & Basic Integration (DONE)
+- **Agent Core**: 实现了基于 Orchestrator 的核心调度循环。
+- **Basic SessionState**: 支持基础的槽位提取与 Pydantic 模型驱动的状态更新。
+- **Weak Multi-turn Demo**: 实现了基础的上下文携带（如：从“推荐点学习的歌”到“再来点类似的”），但缺乏深度的对话历史推理。
+
+### Milestone 2: Enhanced Multi-turn Dialogue State Management (TODO)
+- **Dialog History as Core Context**: 将完整的对话历史作为推理的核心上下文，而非仅依赖槽位。
+- **Stronger Context Carry-over**: 支持跨多轮的复杂意图继承与修正。
+- **Preference Refinement**: 支持“换一批”、“不要太吵”、“来点纯音乐”等细粒度偏好微调指令。
+- **Multi-turn Reasoning**: 超越简单的槽位填充，实现基于历史偏好的深度推理。
+
 ### Definition of Done (verifiable)
 - `python -m compileall src scripts tests` exits 0.
 - `python tests/simulate_session.py` exits 0.
 - `python scripts/chat_cli.py --llm mock --once "推荐点适合学习的歌"` exits 0 and prints a recommendation list.
-- With `DASHSCOPE_API_KEY` set: `python scripts/chat_cli.py --llm qwen --once "我有点emo，想听点治愈的歌"` exits 0.
+- With `DASHSCOPE_API_KEY_BAILIAN` set (preferred) OR `DASHSCOPE_API_KEY` set (fallback): `python scripts/chat_cli.py --llm qwen --once "我有点emo，想听点治愈的歌"` exits 0.
 
 ### Must Have
 - Provider-agnostic `LLMClient` interface + Qwen OpenAI-compatible implementation.
@@ -121,7 +133,7 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - External (official): `https://help.aliyun.com/zh/model-studio/qwen-function-calling` — tool/function calling flow
 
   **Acceptance Criteria**:
-  - [ ] `python -m compileall src` exits 0
+  - [x] `python -m compileall src` exits 0
 
   **QA Scenarios**:
   ```
@@ -165,7 +177,7 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - Pattern: `src/manager/session_state.py` — fields for mood/scene, history summary
 
   **Acceptance Criteria**:
-  - [ ] `python tests/llm_schema_smoke.py` exits 0
+  - [x] `python tests/llm_schema_smoke.py` exits 0
 
   **QA Scenarios**:
   ```
@@ -245,8 +257,8 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - State: `src/manager/session_state.py:SessionState`
 
   **Acceptance Criteria**:
-  - [ ] `python tests/tool_registry_unit.py` exits 0
-  - [ ] `python tests/tool_smoke.py` exits 0
+  - [x] `python tests/tool_registry_unit.py` exits 0
+  - [x] `python tests/tool_smoke.py` exits 0
 
   **QA Scenarios**:
   ```
@@ -330,8 +342,8 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - External: https://docs.trychroma.com/docs/querying-collections/query-and-get
 
   **Acceptance Criteria**:
-  - [ ] `python tests/rag_sanitize_smoke.py` exits 0
-  - [ ] `python tests/rag_context_cap.py` exits 0
+  - [x] `python tests/rag_sanitize_smoke.py` exits 0
+  - [x] `python tests/rag_context_cap.py` exits 0
 
   **QA Scenarios**:
   ```
@@ -417,8 +429,8 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - Tool calling flow: `https://help.aliyun.com/zh/model-studio/qwen-function-calling`.
 
   **Acceptance Criteria**:
-  - [ ] `python tests/agent_orchestrator_smoke.py` exits 0
-  - [ ] `python tests/agent_refine_turn.py` exits 0
+  - [x] `python tests/agent_orchestrator_smoke.py` exits 0
+  - [x] `python tests/agent_refine_turn.py` exits 0
 
   **QA Scenarios**:
   ```
@@ -510,8 +522,8 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - Existing demo pattern: `scripts/progress_showcase.py`.
 
   **Acceptance Criteria**:
-  - [ ] `python scripts/chat_cli.py --llm mock --once "推荐点适合学习的歌"` exits 0
-  - [ ] A transcript file exists under `data/sessions/`
+  - [x] `python scripts/chat_cli.py --llm mock --once "推荐点适合学习的歌"` exits 0
+  - [x] A transcript file exists under `data/sessions/`
 
   **QA Scenarios**:
   ```
@@ -557,7 +569,7 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - Demo script guidance: `docs/开题答辩演示指南.md`.
 
   **Acceptance Criteria**:
-  - [ ] `python demo_safe.py` exits 0
+  - [x] `python demo_safe.py` exits 0
 
   **QA Scenarios**:
   ```
@@ -599,7 +611,7 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
   - Requirements: `docs/2200310720+李航颖+任务书-新.docx`.
 
   **Acceptance Criteria**:
-  - [ ] `docs/开发计划书.md` exists and includes run commands for CLI + demo
+  - [x] `docs/开发计划书.md` exists and includes run commands for CLI + demo
 
   **QA Scenarios**:
   ```
@@ -623,6 +635,28 @@ Wave 3 (Surfaces): CLI + demo scripts + replay/verification + docs alignment.
 - [x] F2. Code Quality Review — unspecified-high (compileall passes, tests pass)
 - [x] F3. Scripted QA Run — unspecified-high (all smoke tests pass)
 - [x] F4. Scope Fidelity Check — deep (no scope creep observed)
+
+## Next Milestone Proposal: Enhanced Multi-turn Dialogue State Management
+
+### Why Next
+当前系统虽然实现了基础的多轮对话，但主要依赖于显式的槽位提取（Slots Extraction）。对于模糊的微调指令（如“换一批”）或基于历史偏好的隐式推理支持较弱。为了达到论文/课题预期的“深度交互”目标，需要强化对话状态管理。
+
+### Current Gaps
+- **缺乏细粒度控制**：无法直接处理“不要太吵”这类涉及音频特征（Energy/Loudness）或风格过滤的负向反馈。
+- **历史利用率低**：对话历史主要用于展示，未充分参与 LLM 的下一步决策推理。
+- **意图切换生硬**：在用户突然切换话题或进行复杂修正时，状态机可能出现槽位冲突。
+
+### Next Goals
+- **实现对话历史感知推理**：将最近 5-10 轮对话的摘要与原始文本直接注入 LLM 推理上下文。
+- **支持偏好微调指令集**：
+  - “换一批”：自动增加 `offset` 或排除已推荐列表。
+  - “不要太吵/温柔点”：映射到检索参数的过滤条件。
+  - “来点纯音乐”：增加 `instrumental` 标签过滤。
+- **强化状态机鲁棒性**：引入意图冲突检测，支持更自然的上下文清除与重置。
+
+### Tests/Verification Commands
+- `python tests/test_multi_turn_refinement.py` (New): 模拟“推荐 -> 换一批 -> 不要太吵”的连续交互。
+- `python scripts/chat_cli.py --llm qwen --test-scenario refinement`: 运行预定义的微调测试场景。
 
 ## Commit Strategy
 - Use small, atomic commits per TODO (messages provided above).

@@ -1,0 +1,579 @@
+{
+  "seed_song": "Adelitas Way - Dirty Little Thing",
+  "evaluations": [
+    {
+      "query": "我想听适合学习的轻音乐",
+      "category": "learning",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 4,
+          "notes": "avg_sim=0.228, unique=8/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.120, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 4,
+          "notes": "avg_sim=0.228, unique=8/10"
+        }
+      }
+    },
+    {
+      "query": "适合专注工作的背景音乐",
+      "category": "learning",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.171, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.017, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.017, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "安静的钢琴曲",
+      "category": "learning",
+      "semantic_only": {
+        "count": 4,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.194, unique=4/4"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.022, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.078, unique=5/10"
+        }
+      }
+    },
+    {
+      "query": "我现在有点emo，想听安静一点的歌",
+      "category": "emo",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.235, unique=9/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.056, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.235, unique=9/10"
+        }
+      }
+    },
+    {
+      "query": "心情不好，想听治愈的歌",
+      "category": "emo",
+      "semantic_only": {
+        "count": 4,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.192, unique=4/4"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.040, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.077, unique=5/10"
+        }
+      }
+    },
+    {
+      "query": "悲伤的夜晚想听歌",
+      "category": "emo",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.235, unique=9/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.079, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.235, unique=9/10"
+        }
+      }
+    },
+    {
+      "query": "来点适合夜跑的高能量音乐",
+      "category": "running",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 4,
+          "diversity": 5,
+          "notes": "avg_sim=0.299, unique=10/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.070, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 4,
+          "diversity": 5,
+          "notes": "avg_sim=0.299, unique=10/10"
+        }
+      }
+    },
+    {
+      "query": "健身时听的动感音乐",
+      "category": "running",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 4,
+          "diversity": 5,
+          "notes": "avg_sim=0.271, unique=10/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.089, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 4,
+          "diversity": 5,
+          "notes": "avg_sim=0.271, unique=10/10"
+        }
+      }
+    },
+    {
+      "query": "晨跑适合的歌",
+      "category": "running",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 2,
+          "diversity": 5,
+          "notes": "avg_sim=0.215, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.021, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.021, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "我想听摇滚乐",
+      "category": "genre",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.179, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.018, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.018, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "推荐一些电子音乐",
+      "category": "genre",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 4,
+          "diversity": 5,
+          "notes": "avg_sim=0.257, unique=10/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.032, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 4,
+          "diversity": 5,
+          "notes": "avg_sim=0.257, unique=10/10"
+        }
+      }
+    },
+    {
+      "query": "想听爵士乐",
+      "category": "genre",
+      "semantic_only": {
+        "count": 5,
+        "eval": {
+          "relevance": 2,
+          "diversity": 5,
+          "notes": "avg_sim=0.212, unique=5/5"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.026, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 3,
+          "notes": "avg_sim=0.106, unique=6/10"
+        }
+      }
+    },
+    {
+      "query": "民谣风格的歌",
+      "category": "genre",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.168, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.017, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.017, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "随便推荐点好听的歌",
+      "category": "vague",
+      "semantic_only": {
+        "count": 6,
+        "eval": {
+          "relevance": 2,
+          "diversity": 4,
+          "notes": "avg_sim=0.202, unique=5/6"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.065, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 3,
+          "notes": "avg_sim=0.121, unique=6/10"
+        }
+      }
+    },
+    {
+      "query": "最近很火的歌",
+      "category": "vague",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.136, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.014, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.014, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "适合下雨天听的歌",
+      "category": "vague",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.244, unique=9/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.105, unique=5/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.244, unique=9/10"
+        }
+      }
+    },
+    {
+      "query": "回忆过去的歌",
+      "category": "vague",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.188, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.019, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.019, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "适合约会的浪漫歌曲",
+      "category": "vague",
+      "semantic_only": {
+        "count": 1,
+        "eval": {
+          "relevance": 1,
+          "diversity": 5,
+          "notes": "avg_sim=0.183, unique=1/1"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.018, unique=3/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 1,
+          "notes": "avg_sim=0.018, unique=3/10"
+        }
+      }
+    },
+    {
+      "query": "开车时听的歌",
+      "category": "vague",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 4,
+          "notes": "avg_sim=0.244, unique=8/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.105, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 4,
+          "notes": "avg_sim=0.244, unique=8/10"
+        }
+      }
+    },
+    {
+      "query": "周末放松的音乐",
+      "category": "vague",
+      "semantic_only": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.236, unique=9/10"
+        }
+      },
+      "hybrid_fixed": {
+        "count": 10,
+        "eval": {
+          "relevance": 1,
+          "diversity": 2,
+          "notes": "avg_sim=0.078, unique=4/10"
+        }
+      },
+      "hybrid_gated": {
+        "count": 10,
+        "eval": {
+          "relevance": 3,
+          "diversity": 5,
+          "notes": "avg_sim=0.236, unique=9/10"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "semantic_only": {
+      "relevance": 2.2,
+      "diversity": 4.85
+    },
+    "hybrid_fixed": {
+      "relevance": 1.0,
+      "diversity": 1.45
+    },
+    "hybrid_gated": {
+      "relevance": 2.05,
+      "diversity": 3.0
+    }
+  }
+}

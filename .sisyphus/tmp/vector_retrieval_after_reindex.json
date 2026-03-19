@@ -1,0 +1,302 @@
+{
+  "queries": [
+    {
+      "query": "我想听适合学习的轻音乐",
+      "results": [
+        {
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "Rock",
+          "similarity": 0.2404271364212036,
+          "distance": 0.7595728635787964,
+          "document": "Music track. Title: Short Tempered. Artist: Learning Music. Title: Short Tempered. Artist: Learning Music. Genre: Rock. 标题: Short Tempered | 歌手: Learning Music | 风格: Rock"
+        },
+        {
+          "title": "Try a little tendernez",
+          "artist": "U Can Unlearn Guitar",
+          "genre": "",
+          "similarity": 0.20277565717697144,
+          "distance": 0.7972243428230286,
+          "document": "Music track. Title: Try a little tendernez. Artist: U Can Unlearn Guitar. Title: Try a little tendernez. Artist: U Can Unlearn Guitar. 标题: Try a little tendernez | 歌手: U Can Unlearn Guitar"
+        },
+        {
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.1992376446723938,
+          "distance": 0.8007623553276062,
+          "document": "Music track. Title: Short Tempered. Artist: Learning Music. Title: Short Tempered. Artist: Learning Music. 标题: Short Tempered | 歌手: Learning Music"
+        },
+        {
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.1992376446723938,
+          "distance": 0.8007623553276062,
+          "document": "Music track. Title: Short Tempered. Artist: Learning Music. Title: Short Tempered. Artist: Learning Music. 标题: Short Tempered | 歌手: Learning Music"
+        },
+        {
+          "title": "Belajar",
+          "artist": "Belajar Membunuh",
+          "genre": "Rock",
+          "similarity": 0.19559919834136963,
+          "distance": 0.8044008016586304,
+          "document": "Music track. Title: Belajar. Artist: Belajar Membunuh. Title: Belajar. Artist: Belajar Membunuh. Genre: Rock. 标题: Belajar | 歌手: Belajar Membunuh | 风格: Rock"
+        },
+        {
+          "title": "Learning Curve",
+          "artist": "Anitek",
+          "genre": "Electronic",
+          "similarity": 0.18751859664916992,
+          "distance": 0.8124814033508301,
+          "document": "Music track. Title: Learning Curve. Artist: Anitek. Title: Learning Curve. Artist: Anitek. Genre: Electronic. 标题: Learning Curve | 歌手: Anitek | 风格: Electronic"
+        },
+        {
+          "title": "Early Morning Existential Crisis",
+          "artist": "Learning Music",
+          "genre": "Rock",
+          "similarity": 0.18573379516601562,
+          "distance": 0.8142662048339844,
+          "document": "Music track. Title: Early Morning Existential Crisis. Artist: Learning Music. Title: Early Morning Existential Crisis. Artist: Learning Music. Genre: Rock. 标题: Early Morning Existential Crisis | 歌手: Learning Music | 风格: Rock"
+        },
+        {
+          "title": "Slow Learner",
+          "artist": "No Monster Club",
+          "genre": "",
+          "similarity": 0.18556803464889526,
+          "distance": 0.8144319653511047,
+          "document": "Music track. Title: Slow Learner. Artist: No Monster Club. Title: Slow Learner. Artist: No Monster Club. 标题: Slow Learner | 歌手: No Monster Club"
+        },
+        {
+          "title": "Okay Oak A Oh Kae",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.18509972095489502,
+          "distance": 0.814900279045105,
+          "document": "Music track. Title: Okay Oak A Oh Kae. Artist: Learning Music. Title: Okay Oak A Oh Kae. Artist: Learning Music. 标题: Okay Oak A Oh Kae | 歌手: Learning Music"
+        },
+        {
+          "title": "Little Conversation",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.18410885334014893,
+          "distance": 0.8158911466598511,
+          "document": "Music track. Title: Little Conversation. Artist: Learning Music. Title: Little Conversation. Artist: Learning Music. 标题: Little Conversation | 歌手: Learning Music"
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.2404271364212036,
+          "max": 0.2404271364212036
+        },
+        "top5": {
+          "min": 0.19559919834136963,
+          "max": 0.2404271364212036
+        },
+        "top10": {
+          "min": 0.18410885334014893,
+          "max": 0.2404271364212036
+        }
+      }
+    },
+    {
+      "query": "我现在有点emo，想听安静一点的歌",
+      "results": [
+        {
+          "title": "calm song",
+          "artist": "transient",
+          "genre": "Electronic",
+          "similarity": 0.257903516292572,
+          "distance": 0.742096483707428,
+          "document": "Music track. Title: calm song. Artist: transient. Title: calm song. Artist: transient. Genre: Electronic. 标题: calm song | 歌手: transient | 风格: Electronic"
+        },
+        {
+          "title": "calm",
+          "artist": "Erick Gallun",
+          "genre": "Experimental",
+          "similarity": 0.22622966766357422,
+          "distance": 0.7737703323364258,
+          "document": "Music track. Title: calm. Artist: Erick Gallun. Title: calm. Artist: Erick Gallun. Genre: Experimental. 标题: calm | 歌手: Erick Gallun | 风格: Experimental"
+        },
+        {
+          "title": "calm (for chris whitley)",
+          "artist": "guitarrorisms",
+          "genre": "Experimental",
+          "similarity": 0.21916192770004272,
+          "distance": 0.7808380722999573,
+          "document": "Music track. Title: calm (for chris whitley). Artist: guitarrorisms. Title: calm (for chris whitley). Artist: guitarrorisms. Genre: Experimental. 标题: calm (for chris whitley) | 歌手: guitarrorisms | 风格: Experimental"
+        },
+        {
+          "title": "Stillness",
+          "artist": "Vio/Mire",
+          "genre": "Folk",
+          "similarity": 0.21442162990570068,
+          "distance": 0.7855783700942993,
+          "document": "Music track. Title: Stillness. Artist: Vio/Mire. Title: Stillness. Artist: Vio/Mire. Genre: Folk. 标题: Stillness | 歌手: Vio/Mire | 风格: Folk"
+        },
+        {
+          "title": "A slow downer",
+          "artist": "Eggblood",
+          "genre": "Experimental",
+          "similarity": 0.21319139003753662,
+          "distance": 0.7868086099624634,
+          "document": "Music track. Title: A slow downer. Artist: Eggblood. Title: A slow downer. Artist: Eggblood. Genre: Experimental. 标题: A slow downer | 歌手: Eggblood | 风格: Experimental"
+        },
+        {
+          "title": "mute this moment",
+          "artist": "iampervert",
+          "genre": "Electronic",
+          "similarity": 0.20008111000061035,
+          "distance": 0.7999188899993896,
+          "document": "Music track. Title: mute this moment. Artist: iampervert. Title: mute this moment. Artist: iampervert. Genre: Electronic. 标题: mute this moment | 歌手: iampervert | 风格: Electronic"
+        },
+        {
+          "title": "Slow It Down",
+          "artist": "Nate Maingard",
+          "genre": "Folk",
+          "similarity": 0.19349145889282227,
+          "distance": 0.8065085411071777,
+          "document": "Music track. Title: Slow It Down. Artist: Nate Maingard. Title: Slow It Down. Artist: Nate Maingard. Genre: Folk. 标题: Slow It Down | 歌手: Nate Maingard | 风格: Folk"
+        },
+        {
+          "title": "The Peaceful Atom",
+          "artist": "Ant Neely",
+          "genre": "Electronic",
+          "similarity": 0.1894426941871643,
+          "distance": 0.8105573058128357,
+          "document": "Music track. Title: The Peaceful Atom. Artist: Ant Neely. Title: The Peaceful Atom. Artist: Ant Neely. Genre: Electronic. 标题: The Peaceful Atom | 歌手: Ant Neely | 风格: Electronic"
+        },
+        {
+          "title": "be calm",
+          "artist": "Breatherholes",
+          "genre": "",
+          "similarity": 0.18885868787765503,
+          "distance": 0.811141312122345,
+          "document": "Music track. Title: be calm. Artist: Breatherholes. Title: be calm. Artist: Breatherholes. 标题: be calm | 歌手: Breatherholes"
+        },
+        {
+          "title": "Slow Ghost",
+          "artist": "stockfinster.",
+          "genre": "Electronic",
+          "similarity": 0.18343514204025269,
+          "distance": 0.8165648579597473,
+          "document": "Music track. Title: Slow Ghost. Artist: stockfinster.. Title: Slow Ghost. Artist: stockfinster.. Genre: Electronic. 标题: Slow Ghost | 歌手: stockfinster. | 风格: Electronic"
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.257903516292572,
+          "max": 0.257903516292572
+        },
+        "top5": {
+          "min": 0.21319139003753662,
+          "max": 0.257903516292572
+        },
+        "top10": {
+          "min": 0.18343514204025269,
+          "max": 0.257903516292572
+        }
+      }
+    },
+    {
+      "query": "来点适合夜跑的高能量音乐",
+      "results": [
+        {
+          "title": "Run In The Night",
+          "artist": "The Good Lawdz",
+          "genre": "",
+          "similarity": 0.21245348453521729,
+          "distance": 0.7875465154647827,
+          "document": "Music track. Title: Run In The Night. Artist: The Good Lawdz. Title: Run In The Night. Artist: The Good Lawdz. 标题: Run In The Night | 歌手: The Good Lawdz"
+        },
+        {
+          "title": "Night Runner",
+          "artist": "Honeydrum",
+          "genre": "",
+          "similarity": 0.20721638202667236,
+          "distance": 0.7927836179733276,
+          "document": "Music track. Title: Night Runner. Artist: Honeydrum. Title: Night Runner. Artist: Honeydrum. 标题: Night Runner | 歌手: Honeydrum"
+        },
+        {
+          "title": "Midnight Run",
+          "artist": "Great Black Waters",
+          "genre": "Rock",
+          "similarity": 0.20107775926589966,
+          "distance": 0.7989222407341003,
+          "document": "Music track. Title: Midnight Run. Artist: Great Black Waters. Title: Midnight Run. Artist: Great Black Waters. Genre: Rock. 标题: Midnight Run | 歌手: Great Black Waters | 风格: Rock"
+        },
+        {
+          "title": "Better To Run",
+          "artist": "pawspaws",
+          "genre": "",
+          "similarity": 0.19112157821655273,
+          "distance": 0.8088784217834473,
+          "document": "Music track. Title: Better To Run. Artist: pawspaws. Title: Better To Run. Artist: pawspaws. 标题: Better To Run | 歌手: pawspaws"
+        },
+        {
+          "title": "Marathon",
+          "artist": "Csum and Tobetozero",
+          "genre": "Electronic",
+          "similarity": 0.18718057870864868,
+          "distance": 0.8128194212913513,
+          "document": "Music track. Title: Marathon. Artist: Csum and Tobetozero. Title: Marathon. Artist: Csum and Tobetozero. Genre: Electronic. 标题: Marathon | 歌手: Csum and Tobetozero | 风格: Electronic"
+        },
+        {
+          "title": "Columbus Nightwalkers",
+          "artist": "Estrogen Highs",
+          "genre": "Rock",
+          "similarity": 0.18407994508743286,
+          "distance": 0.8159200549125671,
+          "document": "Music track. Title: Columbus Nightwalkers. Artist: Estrogen Highs. Title: Columbus Nightwalkers. Artist: Estrogen Highs. Genre: Rock. 标题: Columbus Nightwalkers | 歌手: Estrogen Highs | 风格: Rock"
+        },
+        {
+          "title": "Midnight Rudy",
+          "artist": "COOLRUNNINGS",
+          "genre": "",
+          "similarity": 0.18233197927474976,
+          "distance": 0.8176680207252502,
+          "document": "Music track. Title: Midnight Rudy. Artist: COOLRUNNINGS. Title: Midnight Rudy. Artist: COOLRUNNINGS. 标题: Midnight Rudy | 歌手: COOLRUNNINGS"
+        },
+        {
+          "title": "Night of the Imminent Walking Bears",
+          "artist": "sirqueue",
+          "genre": "Electronic",
+          "similarity": 0.17051810026168823,
+          "distance": 0.8294818997383118,
+          "document": "Music track. Title: Night of the Imminent Walking Bears. Artist: sirqueue. Title: Night of the Imminent Walking Bears. Artist: sirqueue. Genre: Electronic. 标题: Night of the Imminent Walking Bears | 歌手: sirqueue | 风格: Electronic"
+        },
+        {
+          "title": "Galactic coursing (1 x Spectrum, 5 channels)",
+          "artist": "Mister Beep",
+          "genre": "Electronic",
+          "similarity": 0.1671433448791504,
+          "distance": 0.8328566551208496,
+          "document": "Music track. Title: Galactic coursing (1 x Spectrum, 5 channels). Artist: Mister Beep. Title: Galactic coursing (1 x Spectrum, 5 channels). Artist: Mister Beep. Genre: Electronic. 标题: Galactic coursing (1 x Spectrum, 5 channels) | 歌手: Mister Beep | 风格: Electronic"
+        },
+        {
+          "title": "Start Running",
+          "artist": "Buildings and Mountains",
+          "genre": "Experimental",
+          "similarity": 0.1650916337966919,
+          "distance": 0.8349083662033081,
+          "document": "Music track. Title: Start Running. Artist: Buildings and Mountains. Title: Start Running. Artist: Buildings and Mountains. Genre: Experimental. 标题: Start Running | 歌手: Buildings and Mountains | 风格: Experimental"
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.21245348453521729,
+          "max": 0.21245348453521729
+        },
+        "top5": {
+          "min": 0.18718057870864868,
+          "max": 0.21245348453521729
+        },
+        "top10": {
+          "min": 0.1650916337966919,
+          "max": 0.21245348453521729
+        }
+      }
+    }
+  ],
+  "error": null
+}

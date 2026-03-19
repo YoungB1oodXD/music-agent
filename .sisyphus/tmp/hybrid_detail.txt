@@ -1,0 +1,21 @@
+Detailed hybrid results:
+0: Learning Music - Short Tempered
+   sem=0.2593557834625244, cf=None, score=0.6000, sources=['semantic']
+1: transient - calm song
+   sem=0.23933017253875732, cf=None, score=0.4485, sources=['semantic']
+2: Learning Music - Transitional Interference
+   sem=0.23600465059280396, cf=None, score=0.4233, sources=['semantic']
+3: Learning Music - Short Tempered
+   sem=0.23330122232437134, cf=None, score=0.4029, sources=['semantic']
+4: Learning Music - Short Tempered
+   sem=0.23330122232437134, cf=None, score=0.4029, sources=['semantic']
+5: Sean Kingston - Fire Burning
+   sem=None, cf=1.5305771927653922e-10, score=0.4000, sources=['cf']
+6: Sean Kingston - Fire Burning
+   sem=None, cf=1.5305599843085105e-10, score=0.4000, sources=['cf']
+7: Sean Kingston - Fire Burning
+   sem=None, cf=1.5305524903030943e-10, score=0.4000, sources=['cf']
+8: Sean Kingston - Fire Burning
+   sem=None, cf=1.5304786604719567e-10, score=0.3999, sources=['cf']
+9: Sean Kingston - Fire Burning
+   sem=None, cf=1.5304713052444185e-10, score=0.3999, sources=['cf']

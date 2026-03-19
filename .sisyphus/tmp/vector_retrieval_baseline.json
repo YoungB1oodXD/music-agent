@@ -1,0 +1,302 @@
+{
+  "queries": [
+    {
+      "query": "我想听适合学习的轻音乐",
+      "results": [
+        {
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "Rock",
+          "similarity": 0.3198819160461426,
+          "distance": 0.6801180839538574,
+          "document": "标题: Short Tempered | 歌手: Learning Music | 风格: Rock"
+        },
+        {
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.3185393810272217,
+          "distance": 0.6814606189727783,
+          "document": "标题: Short Tempered | 歌手: Learning Music"
+        },
+        {
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.3185393810272217,
+          "distance": 0.6814606189727783,
+          "document": "标题: Short Tempered | 歌手: Learning Music"
+        },
+        {
+          "title": "Little Conversation",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.3107144236564636,
+          "distance": 0.6892855763435364,
+          "document": "标题: Little Conversation | 歌手: Learning Music"
+        },
+        {
+          "title": "Slow Learner",
+          "artist": "No Monster Club",
+          "genre": "",
+          "similarity": 0.3074709177017212,
+          "distance": 0.6925290822982788,
+          "document": "标题: Slow Learner | 歌手: No Monster Club"
+        },
+        {
+          "title": "The Hour Passes",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.2650625705718994,
+          "distance": 0.7349374294281006,
+          "document": "标题: The Hour Passes | 歌手: Learning Music"
+        },
+        {
+          "title": "Buffering",
+          "artist": "Quiet Music for Tiny Robots",
+          "genre": "",
+          "similarity": 0.25645285844802856,
+          "distance": 0.7435471415519714,
+          "document": "标题: Buffering | 歌手: Quiet Music for Tiny Robots"
+        },
+        {
+          "title": "What's Hip For Now",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.25179147720336914,
+          "distance": 0.7482085227966309,
+          "document": "标题: What's Hip For Now | 歌手: Learning Music"
+        },
+        {
+          "title": "Transitional Interference",
+          "artist": "Learning Music",
+          "genre": "",
+          "similarity": 0.25102096796035767,
+          "distance": 0.7489790320396423,
+          "document": "标题: Transitional Interference | 歌手: Learning Music"
+        },
+        {
+          "title": "A Learning Experience",
+          "artist": "Optional",
+          "genre": "",
+          "similarity": 0.24722236394882202,
+          "distance": 0.752777636051178,
+          "document": "标题: A Learning Experience | 歌手: Optional"
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.3198819160461426,
+          "max": 0.3198819160461426
+        },
+        "top5": {
+          "min": 0.3074709177017212,
+          "max": 0.3198819160461426
+        },
+        "top10": {
+          "min": 0.24722236394882202,
+          "max": 0.3198819160461426
+        }
+      }
+    },
+    {
+      "query": "我现在有点emo，想听安静一点的歌",
+      "results": [
+        {
+          "title": "calm song",
+          "artist": "transient",
+          "genre": "Electronic",
+          "similarity": 0.40414881706237793,
+          "distance": 0.5958511829376221,
+          "document": "标题: calm song | 歌手: transient | 风格: Electronic"
+        },
+        {
+          "title": "calm",
+          "artist": "Erick Gallun",
+          "genre": "Experimental",
+          "similarity": 0.3388921022415161,
+          "distance": 0.6611078977584839,
+          "document": "标题: calm | 歌手: Erick Gallun | 风格: Experimental"
+        },
+        {
+          "title": "quietest 01",
+          "artist": "transient",
+          "genre": "",
+          "similarity": 0.3215816020965576,
+          "distance": 0.6784183979034424,
+          "document": "标题: quietest 01 | 歌手: transient"
+        },
+        {
+          "title": "Quiet",
+          "artist": "Quiet Music for Tiny Robots",
+          "genre": "",
+          "similarity": 0.3201366662979126,
+          "distance": 0.6798633337020874,
+          "document": "标题: Quiet | 歌手: Quiet Music for Tiny Robots"
+        },
+        {
+          "title": "be calm",
+          "artist": "Breatherholes",
+          "genre": "",
+          "similarity": 0.31894582509994507,
+          "distance": 0.6810541749000549,
+          "document": "标题: be calm | 歌手: Breatherholes"
+        },
+        {
+          "title": "hiatus",
+          "artist": "quietest",
+          "genre": "",
+          "similarity": 0.3162453770637512,
+          "distance": 0.6837546229362488,
+          "document": "标题: hiatus | 歌手: quietest"
+        },
+        {
+          "title": "calm (for chris whitley)",
+          "artist": "guitarrorisms",
+          "genre": "Experimental",
+          "similarity": 0.3118203282356262,
+          "distance": 0.6881796717643738,
+          "document": "标题: calm (for chris whitley) | 歌手: guitarrorisms | 风格: Experimental"
+        },
+        {
+          "title": "Buffering",
+          "artist": "Quiet Music for Tiny Robots",
+          "genre": "",
+          "similarity": 0.3016396760940552,
+          "distance": 0.6983603239059448,
+          "document": "标题: Buffering | 歌手: Quiet Music for Tiny Robots"
+        },
+        {
+          "title": "Please, Shut Your Face Noise",
+          "artist": "Thegntlmn",
+          "genre": "",
+          "similarity": 0.2966708540916443,
+          "distance": 0.7033291459083557,
+          "document": "标题: Please, Shut Your Face Noise | 歌手: Thegntlmn"
+        },
+        {
+          "title": "quietest 02",
+          "artist": "transient",
+          "genre": "",
+          "similarity": 0.2965201139450073,
+          "distance": 0.7034798860549927,
+          "document": "标题: quietest 02 | 歌手: transient"
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.40414881706237793,
+          "max": 0.40414881706237793
+        },
+        "top5": {
+          "min": 0.31894582509994507,
+          "max": 0.40414881706237793
+        },
+        "top10": {
+          "min": 0.2965201139450073,
+          "max": 0.40414881706237793
+        }
+      }
+    },
+    {
+      "query": "来点适合夜跑的高能量音乐",
+      "results": [
+        {
+          "title": "Night Runner",
+          "artist": "Honeydrum",
+          "genre": "",
+          "similarity": 0.318473756313324,
+          "distance": 0.681526243686676,
+          "document": "标题: Night Runner | 歌手: Honeydrum"
+        },
+        {
+          "title": "Run In The Night",
+          "artist": "The Good Lawdz",
+          "genre": "",
+          "similarity": 0.2919343113899231,
+          "distance": 0.7080656886100769,
+          "document": "标题: Run In The Night | 歌手: The Good Lawdz"
+        },
+        {
+          "title": "Midnight Rudy",
+          "artist": "COOLRUNNINGS",
+          "genre": "",
+          "similarity": 0.25931787490844727,
+          "distance": 0.7406821250915527,
+          "document": "标题: Midnight Rudy | 歌手: COOLRUNNINGS"
+        },
+        {
+          "title": "Start Running",
+          "artist": "Buildings and Mountains",
+          "genre": "Experimental",
+          "similarity": 0.2590785622596741,
+          "distance": 0.7409214377403259,
+          "document": "标题: Start Running | 歌手: Buildings and Mountains | 风格: Experimental"
+        },
+        {
+          "title": "Night Train",
+          "artist": "c4",
+          "genre": "Electronic",
+          "similarity": 0.2536695599555969,
+          "distance": 0.7463304400444031,
+          "document": "标题: Night Train | 歌手: c4 | 风格: Electronic"
+        },
+        {
+          "title": "Marathon",
+          "artist": "Csum and Tobetozero",
+          "genre": "Electronic",
+          "similarity": 0.2528975009918213,
+          "distance": 0.7471024990081787,
+          "document": "标题: Marathon | 歌手: Csum and Tobetozero | 风格: Electronic"
+        },
+        {
+          "title": "Night Lights",
+          "artist": "Bobb Bruno",
+          "genre": "Electronic",
+          "similarity": 0.23758244514465332,
+          "distance": 0.7624175548553467,
+          "document": "标题: Night Lights | 歌手: Bobb Bruno | 风格: Electronic"
+        },
+        {
+          "title": "Midnight Run",
+          "artist": "Great Black Waters",
+          "genre": "Rock",
+          "similarity": 0.23338890075683594,
+          "distance": 0.7666110992431641,
+          "document": "标题: Midnight Run | 歌手: Great Black Waters | 风格: Rock"
+        },
+        {
+          "title": "Night",
+          "artist": "pawspaws",
+          "genre": "",
+          "similarity": 0.23105472326278687,
+          "distance": 0.7689452767372131,
+          "document": "标题: Night | 歌手: pawspaws"
+        },
+        {
+          "title": "Runner",
+          "artist": "Six Umbrellas",
+          "genre": "Electronic",
+          "similarity": 0.22962021827697754,
+          "distance": 0.7703797817230225,
+          "document": "标题: Runner | 歌手: Six Umbrellas | 风格: Electronic"
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.318473756313324,
+          "max": 0.318473756313324
+        },
+        "top5": {
+          "min": 0.2536695599555969,
+          "max": 0.318473756313324
+        },
+        "top10": {
+          "min": 0.22962021827697754,
+          "max": 0.318473756313324
+        }
+      }
+    }
+  ],
+  "error": null
+}

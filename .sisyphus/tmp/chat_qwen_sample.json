@@ -1,0 +1,60 @@
+{
+  "elapsed_ms": 236064,
+  "request_message": "我想听适合学习的轻音乐",
+  "response": {
+    "session_id": "a7b3aad1b390466b83d085390f884498",
+    "assistant_text": "为您找到了一些适合学习场景的低能量纯音乐。这些曲目基于语义相似度匹配，希望能帮助您集中注意力。其中部分曲目带有电子或摇滚元素，但整体氛围较为平静。\n如果您觉得这些音乐节奏不太合适，或者想换个风格，随时告诉我哦。",
+    "recommendations": [
+      {
+        "id": "21220",
+        "name": "Learning Music - Short Tempered",
+        "reason": "基于语义相似度 0.30 匹配",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.30124276876449585"
+        ]
+      },
+      {
+        "id": "47347",
+        "name": "Learning Music - Short Tempered",
+        "reason": "基于语义相似度 0.30 匹配",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.30124276876449585"
+        ]
+      },
+      {
+        "id": "11954",
+        "name": "Learning Music - Short Tempered",
+        "reason": "基于语义相似度 0.30 匹配 (流派: Rock)",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.29812097549438477",
+          "tool_results.semantic_search.genre=Rock"
+        ]
+      },
+      {
+        "id": "142459",
+        "name": "transient - calm song",
+        "reason": "基于语义相似度 0.28 匹配 (流派: Electronic)",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.2775081396102905",
+          "tool_results.semantic_search.genre=Electronic"
+        ]
+      },
+      {
+        "id": "14672",
+        "name": "little-scale - Hello",
+        "reason": "基于语义相似度 0.27 匹配 (流派: Electronic)",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.2673984169960022",
+          "tool_results.semantic_search.genre=Electronic"
+        ]
+      }
+    ],
+    "state": {
+      "mood": null,
+      "scene": "学习",
+      "genre": null,
+      "preferred_energy": "low",
+      "preferred_vocals": "instrumental"
+    }
+  }
+}

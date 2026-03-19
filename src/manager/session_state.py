@@ -16,6 +16,29 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class RecommendationItem(BaseModel):
+    """
+    单条推荐项（富对象）
+    
+    字段说明：
+    - id: 歌曲唯一标识符
+    - name: 歌曲名称 (通常为 Artist - Title)
+    - reason: 推荐理由 (可选)
+    - citations: 引用/来源 (可选)
+    """
+    id: str = Field(..., description="歌曲 ID")
+    name: str = Field(..., description="歌曲名称")
+    reason: Optional[str] = Field(default=None, description="推荐理由")
+    citations: List[str] = Field(default_factory=list, description="引用/来源")
+
+    def strip(self, *args, **kwargs):
+        """兼容性方法：允许像字符串一样调用 strip()"""
+        return self.id.strip(*args, **kwargs)
+
+    def __str__(self):
+        return self.id
+
+
 class RecommendationRecord(BaseModel):
     """
     单次推荐记录
@@ -23,15 +46,16 @@ class RecommendationRecord(BaseModel):
     字段说明：
     - timestamp: 推荐时间戳
     - query: 用户查询/请求内容
-    - results: 推荐结果列表（歌曲 ID 或歌名）
+    - results: 推荐结果列表（富对象列表）
     - method: 推荐方法（semantic/collaborative/hybrid）
     - feedback: 用户反馈（可选，如 like/dislike/skip）
     """
     timestamp: datetime = Field(default_factory=datetime.now, description="推荐时间")
     query: str = Field(..., description="用户查询内容")
-    results: List[str] = Field(default_factory=list, description="推荐结果列表")
+    results: List[RecommendationItem] = Field(default_factory=list, description="推荐结果列表")
     method: str = Field(..., description="推荐方法: semantic/collaborative/hybrid")
-    feedback: Optional[str] = Field(None, description="用户反馈: like/dislike/skip")
+    feedback: Optional[str] = Field(default=None, description="用户反馈: like/dislike/skip")
+
 
 
 class DialogueTurn(BaseModel):
@@ -52,7 +76,24 @@ class DialogueTurn(BaseModel):
     entities: Dict[str, Any] = Field(default_factory=dict, description="提取的实体")
 
 
+class PreferenceProfile(BaseModel):
+    """
+    结构化用户偏好模型
+    
+    字段说明：
+    - preferred_genres: 喜欢的流派列表
+    - disliked_genres: 不喜欢的流派列表
+    - preferred_energy: 偏好的能量度 (high/medium/low/None)
+    - preferred_vocals: 偏好的声乐类型 (instrumental/vocal/none/None)
+    """
+    preferred_genres: List[str] = Field(default_factory=list, description="喜欢的流派")
+    disliked_genres: List[str] = Field(default_factory=list, description="不喜欢的流派")
+    preferred_energy: Optional[str] = Field(None, description="偏好的能量度")
+    preferred_vocals: Optional[str] = Field(None, description="偏好的声乐类型")
+
+
 class SessionState(BaseModel):
+
     """
     会话状态类（用于多轮对话管理）
     
@@ -96,13 +137,24 @@ class SessionState(BaseModel):
         description="当前偏好流派（如：Rock、Jazz等）"
     )
     
+    preference_profile: PreferenceProfile = Field(
+        default_factory=PreferenceProfile,
+        description="结构化用户偏好画像"
+    )
+    
     # ===== 对话历史 =====
     dialogue_history: List[DialogueTurn] = Field(
         default_factory=list,
         description="完整对话历史记录（用于上下文理解和LLM提示构建）"
     )
+
+    @property
+    def dialog_history(self) -> List[DialogueTurn]:
+        """dialogue_history 的别名（只读）"""
+        return self.dialogue_history
     
     # ===== 推荐历史 =====
+
     recommendation_history: List[RecommendationRecord] = Field(
         default_factory=list,
         description="历史推荐记录（用于去重和个性化）"
@@ -123,6 +175,12 @@ class SessionState(BaseModel):
         default_factory=list,
         description="用户不喜欢的歌曲列表（用于过滤）"
     )
+    
+    exclude_ids: List[str] = Field(
+        default_factory=list,
+        description="需要排除的歌曲 ID 列表（如已推荐或用户明确排除）"
+    )
+
     
     preferred_moods: List[str] = Field(
         default_factory=list,
@@ -176,26 +234,71 @@ class SessionState(BaseModel):
             self.dialogue_history.pop(0)
         
         self.updated_at = datetime.now()
+
+    def get_recent_dialogue(self, max_turns: int = 5) -> List[Dict[str, str]]:
+        """
+        获取最近的对话记录
+        
+        Args:
+            max_turns: 最大轮次
+            
+        Returns:
+            对话记录列表 [{"user": "...", "system": "..."}, ...]
+        """
+        return [
+            {"user": turn.user_input, "system": turn.system_response}
+            for turn in self.dialogue_history[-max_turns:]
+        ]
+
+    def get_state_summary(self) -> Dict[str, Any]:
+        """
+        获取当前状态摘要
+        
+        Returns:
+            状态摘要字典
+        """
+        return {
+            "mood": self.current_mood,
+            "scene": self.current_scene,
+            "genre": self.current_genre,
+            "preference_profile": self.preference_profile.model_dump(),
+            "exclude_ids": self.exclude_ids,
+            "recent_turns_count": len(self.dialogue_history)
+        }
     
-    def add_recommendation(self, query: str, results: List[str], 
+    def add_recommendation(self, query: str, results: List[Any], 
                           method: str = "hybrid"):
         """
         添加推荐记录
         
         Args:
             query: 用户查询
-            results: 推荐结果
+            results: 推荐结果 (可以是 ID 列表或 RecommendationItem 列表/字典列表)
             method: 推荐方法
         """
+        processed_results = []
+        for item in results:
+            if isinstance(item, str):
+                # 兼容旧的字符串 ID 列表
+                processed_results.append(RecommendationItem(id=item, name=item))
+            elif isinstance(item, dict):
+                processed_results.append(RecommendationItem(**item))
+            elif isinstance(item, RecommendationItem):
+                processed_results.append(item)
+            else:
+                # 兜底处理
+                processed_results.append(RecommendationItem(id=str(item), name=str(item)))
+
         record = RecommendationRecord(
             query=query,
-            results=results,
+            results=processed_results,
             method=method
         )
         
         self.recommendation_history.append(record)
         self.last_recommendation = record
         self.updated_at = datetime.now()
+
     
     def update_mood(self, mood: str):
         """
@@ -214,7 +317,7 @@ class SessionState(BaseModel):
     
     def update_scene(self, scene: str):
         """
-        更新当前场景
+更新当前场景
         
         Args:
             scene: 场景标签（应从 vocab_scenes.json 中选择）
@@ -227,26 +330,60 @@ class SessionState(BaseModel):
         
         self.updated_at = datetime.now()
     
-    def add_feedback(self, song_id: str, feedback: str):
+    def update_preference(self, energy: Optional[str] = None, vocals: Optional[str] = None) -> None:
+        """
+        动态更新结构化偏好
+        
+        Args:
+            energy: 偏好的能量度 (high/medium/low/None)
+            vocals: 偏好的声乐类型 (instrumental/vocal/none/None)
+        """
+        if energy:
+            self.preference_profile.preferred_energy = energy
+        if vocals:
+            self.preference_profile.preferred_vocals = vocals
+        
+        self.updated_at = datetime.now()
+
+    def update_genre(self, genre: str) -> None:
+        if genre and genre not in self.preference_profile.preferred_genres:
+            self.preference_profile.preferred_genres.append(genre)
+        if genre:
+            self.current_genre = genre
+        self.updated_at = datetime.now()
+
+    
+    def add_feedback(self, song_id: Any, feedback: str):
         """
         添加用户反馈
         
         Args:
-            song_id: 歌曲ID
+            song_id: 歌曲ID (可以是字符串或包含 id 的对象/字典)
             feedback: 反馈类型（like/dislike/skip）
         """
+        # 提取实际的 ID
+        actual_id = song_id
+        if isinstance(song_id, dict):
+            actual_id = song_id.get("id", "")
+        elif hasattr(song_id, "id"):
+            actual_id = getattr(song_id, "id")
+        
+        if not isinstance(actual_id, str):
+            actual_id = str(actual_id)
+
         if feedback == "like":
-            if song_id not in self.liked_songs:
-                self.liked_songs.append(song_id)
+            if actual_id not in self.liked_songs:
+                self.liked_songs.append(actual_id)
         elif feedback == "dislike":
-            if song_id not in self.disliked_songs:
-                self.disliked_songs.append(song_id)
+            if actual_id not in self.disliked_songs:
+                self.disliked_songs.append(actual_id)
         
         # 更新最后推荐的反馈
         if self.last_recommendation:
             self.last_recommendation.feedback = feedback
         
         self.updated_at = datetime.now()
+
     
     def get_context_summary(self) -> Dict[str, Any]:
         """
@@ -259,6 +396,7 @@ class SessionState(BaseModel):
             "current_mood": self.current_mood,
             "current_scene": self.current_scene,
             "current_genre": self.current_genre,
+            "preference_profile": self.preference_profile.model_dump(),
             "recent_dialogues": [
                 {
                     "user": turn.user_input,
@@ -266,10 +404,17 @@ class SessionState(BaseModel):
                 }
                 for turn in self.dialogue_history[-3:]  # 最近3轮
             ],
+            "last_recommendation": {
+                "query": self.last_recommendation.query,
+                "results_count": len(self.last_recommendation.results),
+                "feedback": self.last_recommendation.feedback
+            } if self.last_recommendation else None,
             "liked_count": len(self.liked_songs),
             "disliked_count": len(self.disliked_songs),
+            "exclude_count": len(self.exclude_ids),
             "recommendation_count": len(self.recommendation_history)
         }
+
     
     def reset_context(self):
         """
@@ -324,17 +469,23 @@ if __name__ == "__main__":
     print("\n【步骤 3】记录推荐结果")
     session.add_recommendation(
         query="放松的Jazz音乐",
-        results=["Song A", "Song B", "Song C"],
+        results=[
+            {"id": "Song_A", "name": "Artist A - Song A", "reason": "匹配放松场景"},
+            {"id": "Song_B", "name": "Artist B - Song B", "reason": "Jazz 风格推荐"},
+            {"id": "Song_C", "name": "Artist C - Song C"}
+        ],
         method="hybrid"
     )
     
     print(f"  推荐歌曲数: {len(session.last_recommendation.results)}")
+    print(f"  第一首推荐歌曲名: {session.last_recommendation.results[0].name}")
     print(f"  推荐方法: {session.last_recommendation.method}")
     
     # 用户反馈
     print("\n【步骤 4】收集用户反馈")
-    session.add_feedback("Song A", "like")
-    session.add_feedback("Song B", "dislike")
+    session.add_feedback(session.last_recommendation.results[0], "like")
+    session.add_feedback("Song_B", "dislike")
+
     
     print(f"  喜欢的歌曲: {session.liked_songs}")
     print(f"  不喜欢的歌曲: {session.disliked_songs}")

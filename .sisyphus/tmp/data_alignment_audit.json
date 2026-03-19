@@ -1,0 +1,54 @@
+{
+  "fma": {
+    "total_tracks": 839122,
+    "sample_ids": [
+      "TRLOPCT128F92DCCC5",
+      "TRDKDSI128E0781989",
+      "TRHSTJO128F92DC1B0",
+      "TRRHPZV12903CEDF18",
+      "TRPBZCM12903CEAC88"
+    ]
+  },
+  "cf_model": {
+    "total_items_in_model": 14758,
+    "unique_track_ids_in_mapping": 14758,
+    "sample_ids": [
+      "TRHOSVR12903D1183A",
+      "TRUNZWS12903CAF8FF",
+      "TRETYHV128F9320954",
+      "TRJCACK128F148159E",
+      "TRCQEFO12903CA88BE"
+    ]
+  },
+  "overlap": {
+    "fma_tracks": 839122,
+    "cf_tracks": 14758,
+    "matched_tracks": 13118,
+    "match_rate_pct": 1.56
+  },
+  "matrix": {
+    "n_users": 752,
+    "n_items": 14758,
+    "theoretical_interactions": 11098016
+  },
+  "lastfm_source": {
+    "lastfm_train": {
+      "json_file_count": 839122,
+      "exists": true
+    },
+    "lastfm_subset": {
+      "json_file_count": 9330,
+      "exists": true
+    }
+  },
+  "sparsity_analysis": {
+    "items_with_cf_embedding": 14758,
+    "fma_tracks_total": 839122,
+    "coverage_ratio": 0.0176,
+    "note": "CF model trained on Last.fm subset, FMA tracks indexed separately - likely data source mismatch"
+  },
+  "chromadb": {
+    "total_documents": 106573,
+    "collection_name": "music_bge_collection"
+  }
+}

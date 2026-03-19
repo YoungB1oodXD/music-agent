@@ -95,6 +95,18 @@ class QwenClient(BaseLLMClient):
         self.timeout: float = timeout
         self._client: _OpenAIClientProtocol | None = None
 
+        # DashScope thinking controls
+        enable_thinking_env = os.getenv("DASHSCOPE_ENABLE_THINKING", "false").lower()
+        self.enable_thinking = enable_thinking_env in ("true", "1")
+
+        thinking_budget_env = os.getenv("DASHSCOPE_THINKING_BUDGET")
+        self.thinking_budget = 256
+        if thinking_budget_env:
+            try:
+                self.thinking_budget = int(thinking_budget_env)
+            except ValueError:
+                pass
+
         # 初始化日志：脱敏打印配置（不打印完整 Key）
         api_key_present = bool(self.api_key)
         api_key_prefix = ""
@@ -109,7 +121,9 @@ class QwenClient(BaseLLMClient):
             f"base_url={self.base_url}\n"
             f"model={self.model}\n"
             f"api_key_present={str(api_key_present).lower()}\n"
-            f"api_key_prefix={api_key_prefix}"
+            f"api_key_prefix={api_key_prefix}\n"
+            f"enable_thinking={str(self.enable_thinking).lower()}\n"
+            f"thinking_budget={self.thinking_budget}"
         )
 
     def _get_client(self) -> _OpenAIClientProtocol:
@@ -202,6 +216,13 @@ class QwenClient(BaseLLMClient):
                 logger.warning("tools provided; forcing stream=False for compatibility")
             payload["stream"] = False
 
+        extra_body: dict[str, object] = {
+            "enable_thinking": self.enable_thinking,
+        }
+        if self.enable_thinking:
+            extra_body["thinking_budget"] = self.thinking_budget
+        payload["extra_body"] = extra_body
+
         start_time = time.perf_counter()
         try:
             completion_obj = self._get_client().chat.completions.create(**payload)
@@ -292,37 +313,46 @@ class QwenClient(BaseLLMClient):
         content: str,
         temperature: float,
         max_tokens: int | None,
-    ) -> tuple[object, str]:
+    ) -> tuple[object | None, str]:
         try:
             return json.loads(content), content
         except json.JSONDecodeError:
             assistant_message: dict[str, object] = {"role": "assistant", "content": content}
-            repair_instruction: dict[str, object] = {"role": "user", "content": "repair JSON only"}
+            repair_instruction: dict[str, object] = {
+                "role": "user", 
+                "content": "The previous output is not valid JSON. Output ONLY a valid JSON object with no markdown, no code fences, no explanation. Fix all syntax errors: unclosed quotes, missing commas, unescaped characters."
+            }
             repair_messages = [
                 *request_messages,
                 assistant_message,
                 repair_instruction,
             ]
-            repair_completion = self._create_completion(
-                messages=repair_messages,
-                tools=None,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=False,
-            )
-
-            choices = self._as_list(repair_completion.get("choices"), "completion.choices")
-            if not choices:
-                raise ValueError("Model returned no choices while repairing JSON.")
-
-            repair_choice = self._as_dict(choices[0], "completion.choices[0]")
-            repair_message = self._as_dict(repair_choice.get("message") or {}, "choice.message")
-            repaired_content = str(repair_message.get("content") or "")
-
             try:
-                return json.loads(repaired_content), repaired_content
-            except json.JSONDecodeError as exc:
-                raise ValueError("JSON parsing failed after one repair attempt.") from exc
+                repair_completion = self._create_completion(
+                    messages=repair_messages,
+                    tools=None,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=False,
+                )
+
+                choices = self._as_list(repair_completion.get("choices"), "completion.choices")
+                if not choices:
+                    logger.warning("Model returned no choices while repairing JSON, returning None")
+                    return None, content
+
+                repair_choice = self._as_dict(choices[0], "completion.choices[0]")
+                repair_message = self._as_dict(repair_choice.get("message") or {}, "choice.message")
+                repaired_content = str(repair_message.get("content") or "")
+
+                try:
+                    return json.loads(repaired_content), repaired_content
+                except json.JSONDecodeError as exc:
+                    logger.warning(f"JSON parsing failed after repair attempt: {exc}")
+                    return None, content
+            except Exception as e:
+                logger.warning(f"Repair attempt failed with exception: {e}")
+                return None, content
 
     def chat(
         self,

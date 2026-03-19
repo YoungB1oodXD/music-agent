@@ -1,0 +1,953 @@
+{
+  "seed_song": "Adelitas Way - Dirty Little Thing",
+  "rubric": {
+    "relevance": {
+      "5": "Highly relevant - all results match query intent",
+      "4": "Mostly relevant - most results match, minor mismatches",
+      "3": "Moderately relevant - half match, half don't",
+      "2": "Mostly irrelevant - few results match",
+      "1": "Completely irrelevant"
+    },
+    "diversity": {
+      "5": "High diversity - different artists, genres, styles",
+      "4": "Good diversity - some repetition but varied",
+      "3": "Moderate diversity - noticeable patterns",
+      "2": "Low diversity - many duplicates or similar items",
+      "1": "No diversity - all same or near-duplicates"
+    },
+    "explanation": {
+      "5": "Clear reasons that directly explain relevance",
+      "4": "Good reasons with minor gaps",
+      "3": "Generic reasons that could apply to anything",
+      "2": "Weak or misleading reasons",
+      "1": "No meaningful reasons"
+    }
+  },
+  "evaluations": [
+    {
+      "query": "我想听适合学习的轻音乐",
+      "category": "learning",
+      "expected_keywords": [
+        "learning",
+        "calm",
+        "focus",
+        "study"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 4,
+          "diversity": 4,
+          "explanation": 3,
+          "notes": "keyword_match=7/10, avg_sim=0.228, unique_titles=8/10, unique_artists=6"
+        },
+        "top_titles": [
+          "Short Tempered",
+          "calm song",
+          "Transitional Interference",
+          "Short Tempered",
+          "Short Tempered"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=5/10, avg_sim=0.120, unique_titles=4/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Short Tempered",
+          "calm song",
+          "Transitional Interference",
+          "Short Tempered",
+          "Short Tempered"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -2,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "适合专注工作的背景音乐",
+      "category": "learning",
+      "expected_keywords": [
+        "focus",
+        "work",
+        "ambient"
+      ],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=0/1, avg_sim=0.171, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "head study"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.017, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "head study",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "安静的钢琴曲",
+      "category": "learning",
+      "expected_keywords": [
+        "piano",
+        "quiet",
+        "calm"
+      ],
+      "semantic_only": {
+        "count": 4,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=2/4, avg_sim=0.194, unique_titles=4/4, unique_artists=3"
+        },
+        "top_titles": [
+          "quiet ok",
+          "Calmly Slowly",
+          "Mournful And Slow",
+          "slow ok"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=1/10, avg_sim=0.022, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "quiet ok",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -1,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "我现在有点emo，想听安静一点的歌",
+      "category": "emo",
+      "expected_keywords": [
+        "emo",
+        "calm",
+        "sad",
+        "quiet"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 4,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=7/10, avg_sim=0.235, unique_titles=9/10, unique_artists=10"
+        },
+        "top_titles": [
+          "calm song",
+          "calm",
+          "calm (for chris whitley)",
+          "be calm",
+          "Calm"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=2/10, avg_sim=0.056, unique_titles=4/10, unique_artists=4"
+        },
+        "top_titles": [
+          "calm song",
+          "calm",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "心情不好，想听治愈的歌",
+      "category": "emo",
+      "expected_keywords": [
+        "healing",
+        "calm",
+        "comfort"
+      ],
+      "semantic_only": {
+        "count": 4,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=0/4, avg_sim=0.192, unique_titles=4/4, unique_artists=4"
+        },
+        "top_titles": [
+          "A Brief Moment Of Clarity In Depression",
+          "Bad Times Good Times",
+          "help me heal",
+          "Good Mood, Bad Mood"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.040, unique_titles=4/10, unique_artists=4"
+        },
+        "top_titles": [
+          "A Brief Moment Of Clarity In Depression",
+          "Bad Times Good Times",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "悲伤的夜晚想听歌",
+      "category": "emo",
+      "expected_keywords": [
+        "sad",
+        "night",
+        "slow"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 4,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=8/10, avg_sim=0.235, unique_titles=9/10, unique_artists=8"
+        },
+        "top_titles": [
+          "Lonely Night pt2",
+          "a night lost",
+          "Lonely Night",
+          "Long Lonely Nights",
+          "Weeping Night"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=3/10, avg_sim=0.079, unique_titles=4/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Lonely Night pt2",
+          "a night lost",
+          "Lonely Night",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "来点适合夜跑的高能量音乐",
+      "category": "running",
+      "expected_keywords": [
+        "run",
+        "energy",
+        "night",
+        "fast"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 5,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=10/10, avg_sim=0.299, unique_titles=10/10, unique_artists=10"
+        },
+        "top_titles": [
+          "Run In The Night",
+          "Night Runner",
+          "Better To Run",
+          "Morning Run",
+          "Midnight Run"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=2/10, avg_sim=0.070, unique_titles=4/10, unique_artists=4"
+        },
+        "top_titles": [
+          "Run In The Night",
+          "Night Runner",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -3,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "健身时听的动感音乐",
+      "category": "running",
+      "expected_keywords": [
+        "energy",
+        "workout",
+        "upbeat"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.271, unique_titles=10/10, unique_artists=10"
+        },
+        "top_titles": [
+          "Start Running",
+          "Jogging",
+          "Run",
+          "Running free",
+          "Better To Run"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.089, unique_titles=4/10, unique_artists=4"
+        },
+        "top_titles": [
+          "Start Running",
+          "Jogging",
+          "Run",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "晨跑适合的歌",
+      "category": "running",
+      "expected_keywords": [
+        "morning",
+        "run",
+        "energy"
+      ],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 3,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=1/1, avg_sim=0.215, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "Morning Run"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=1/10, avg_sim=0.021, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Morning Run",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "我想听摇滚乐",
+      "category": "genre",
+      "expected_keywords": [
+        "rock"
+      ],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=1/1, avg_sim=0.179, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "We Wanna Rock"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=1/10, avg_sim=0.018, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "We Wanna Rock",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -1,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "推荐一些电子音乐",
+      "category": "genre",
+      "expected_keywords": [
+        "electronic",
+        "electro"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 5,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=10/10, avg_sim=0.257, unique_titles=10/10, unique_artists=10"
+        },
+        "top_titles": [
+          "Electronic Noises",
+          "Chip Sonata",
+          "This",
+          "Electronic Mind",
+          "r735"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=1/10, avg_sim=0.032, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Electronic Noises",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -4,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "想听爵士乐",
+      "category": "genre",
+      "expected_keywords": [
+        "jazz"
+      ],
+      "semantic_only": {
+        "count": 5,
+        "evaluation": {
+          "relevance": 3,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=5/5, avg_sim=0.212, unique_titles=5/5, unique_artists=4"
+        },
+        "top_titles": [
+          "When I Hear That Jazz Band Play",
+          "Listen to the sound of theroom",
+          "écouter systématiquement son coeur",
+          "demander à la poussière",
+          "Boogie Blues"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=1/10, avg_sim=0.026, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "When I Hear That Jazz Band Play",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "民谣风格的歌",
+      "category": "genre",
+      "expected_keywords": [
+        "folk"
+      ],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=1/1, avg_sim=0.168, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "New Roots"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=1/10, avg_sim=0.017, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "New Roots",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -1,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "随便推荐点好听的歌",
+      "category": "vague",
+      "expected_keywords": [],
+      "semantic_only": {
+        "count": 6,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 4,
+          "explanation": 3,
+          "notes": "keyword_match=0/6, avg_sim=0.202, unique_titles=5/6, unique_artists=5"
+        },
+        "top_titles": [
+          "Hello, My Good Brain",
+          "A Happy Little Song",
+          "A Happy Little Song",
+          "A Good Lullaby",
+          "California/Good Times"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.065, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Hello, My Good Brain",
+          "A Happy Little Song",
+          "A Happy Little Song",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "最近很火的歌",
+      "category": "vague",
+      "expected_keywords": [],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=0/1, avg_sim=0.136, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "Modern Love"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.014, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Modern Love",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "适合下雨天听的歌",
+      "category": "vague",
+      "expected_keywords": [
+        "rain",
+        "slow",
+        "calm"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 4,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=9/10, avg_sim=0.244, unique_titles=9/10, unique_artists=10"
+        },
+        "top_titles": [
+          "Rain Down And Fall Away",
+          "pioggia che cade",
+          "It's Raining",
+          "A Little Rain Must Fall",
+          "rain"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=3/10, avg_sim=0.105, unique_titles=5/10, unique_artists=5"
+        },
+        "top_titles": [
+          "Rain Down And Fall Away",
+          "pioggia che cade",
+          "It's Raining",
+          "A Little Rain Must Fall",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -3,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "回忆过去的歌",
+      "category": "vague",
+      "expected_keywords": [
+        "memory",
+        "nostalgia",
+        "old"
+      ],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=0/1, avg_sim=0.188, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "Remembering Past Everything"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.019, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Remembering Past Everything",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "适合约会的浪漫歌曲",
+      "category": "vague",
+      "expected_keywords": [
+        "romantic",
+        "love",
+        "date"
+      ],
+      "semantic_only": {
+        "count": 1,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=0/1, avg_sim=0.183, unique_titles=1/1, unique_artists=1"
+        },
+        "top_titles": [
+          "Valentines Day Directions for the Lonely"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 1,
+          "diversity": 1,
+          "explanation": 3,
+          "notes": "keyword_match=0/10, avg_sim=0.018, unique_titles=3/10, unique_artists=3"
+        },
+        "top_titles": [
+          "Valentines Day Directions for the Lonely",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -4,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "开车时听的歌",
+      "category": "vague",
+      "expected_keywords": [
+        "drive",
+        "road",
+        "travel"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 4,
+          "explanation": 3,
+          "notes": "keyword_match=3/10, avg_sim=0.244, unique_titles=8/10, unique_artists=10"
+        },
+        "top_titles": [
+          "Feel Like Going For A Drive",
+          "Driving",
+          "Driving Just To Drive",
+          "Driving",
+          "Driving"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=2/10, avg_sim=0.105, unique_titles=4/10, unique_artists=5"
+        },
+        "top_titles": [
+          "Feel Like Going For A Drive",
+          "Driving",
+          "Driving Just To Drive",
+          "Driving",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": 0,
+        "diversity": -2,
+        "explanation": 0
+      }
+    },
+    {
+      "query": "周末放松的音乐",
+      "category": "vague",
+      "expected_keywords": [
+        "relax",
+        "weekend",
+        "chill"
+      ],
+      "semantic_only": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 4,
+          "diversity": 5,
+          "explanation": 3,
+          "notes": "keyword_match=9/10, avg_sim=0.236, unique_titles=9/10, unique_artists=10"
+        },
+        "top_titles": [
+          "Start to relax",
+          "Relaxing",
+          "Rest/Relaxation",
+          "Relax With Classics",
+          "Relax"
+        ]
+      },
+      "hybrid": {
+        "count": 10,
+        "evaluation": {
+          "relevance": 2,
+          "diversity": 2,
+          "explanation": 3,
+          "notes": "keyword_match=3/10, avg_sim=0.078, unique_titles=4/10, unique_artists=4"
+        },
+        "top_titles": [
+          "Start to relax",
+          "Relaxing",
+          "Rest/Relaxation",
+          "Fire Burning",
+          "Fire Burning"
+        ]
+      },
+      "improvement": {
+        "relevance": -2,
+        "diversity": -3,
+        "explanation": 0
+      }
+    }
+  ],
+  "summary": {
+    "total_queries": 20,
+    "semantic_only_avg": {
+      "relevance": 2.55,
+      "diversity": 4.85
+    },
+    "hybrid_avg": {
+      "relevance": 1.35,
+      "diversity": 1.45
+    },
+    "improvement": {
+      "relevance": -1.2,
+      "diversity": -3.4
+    },
+    "categories": {
+      "learning": {
+        "count": 3,
+        "semantic_avg_relevance": 2.33,
+        "hybrid_avg_relevance": 1.33,
+        "improvement": -1.0
+      },
+      "emo": {
+        "count": 3,
+        "semantic_avg_relevance": 3.0,
+        "hybrid_avg_relevance": 1.67,
+        "improvement": -1.33
+      },
+      "running": {
+        "count": 3,
+        "semantic_avg_relevance": 3.0,
+        "hybrid_avg_relevance": 1.33,
+        "improvement": -1.67
+      },
+      "genre": {
+        "count": 4,
+        "semantic_avg_relevance": 3.0,
+        "hybrid_avg_relevance": 1.0,
+        "improvement": -2.0
+      },
+      "vague": {
+        "count": 7,
+        "semantic_avg_relevance": 2.0,
+        "hybrid_avg_relevance": 1.43,
+        "improvement": -0.57
+      }
+    }
+  }
+}

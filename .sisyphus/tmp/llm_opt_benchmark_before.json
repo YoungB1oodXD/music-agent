@@ -1,0 +1,189 @@
+{
+  "metadata": {
+    "llm_mode": "qwen",
+    "timestamp": "2026-03-12 15:16:31"
+  },
+  "chats": [
+    {
+      "chat_idx": 1,
+      "query": "我想听适合学习的轻音乐",
+      "status_code": 200,
+      "elapsed_ms": 159543,
+      "assistant_text_prefix": "您好！为您精选了几首适合学习时聆听的低能量轻音乐。这些曲目是基于语义相似度分析筛选出来的，希望能帮助您营造专注、平静的学习氛围。\n您希望接下来的推荐完全是纯器乐，还是可以接受少量人声呢？",
+      "top_5_recs": [
+        {
+          "id": "13700",
+          "name": "Low LiFi - Tiny lights"
+        },
+        {
+          "id": "83278",
+          "name": "No Monster Club - Slow Learner"
+        },
+        {
+          "id": "21220",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "47347",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "11954",
+          "name": "Learning Music - Short Tempered"
+        }
+      ]
+    },
+    {
+      "chat_idx": 2,
+      "query": "我现在有点emo，想听安静一点的歌",
+      "status_code": 200,
+      "elapsed_ms": 140500,
+      "assistant_text_prefix": "您好！为您精选了几首低能量的安静曲目，非常适合学习时聆听。这些音乐基于语义相似度匹配，希望能帮助您保持专注。\n您希望接下来的推荐完全是纯器乐，还是可以接受少量人声呢？",
+      "top_5_recs": [
+        {
+          "id": "142459",
+          "name": "transient - calm song"
+        },
+        {
+          "id": "85338",
+          "name": "Silence Is Sexy - Low"
+        },
+        {
+          "id": "99535",
+          "name": "e:4c - slow format"
+        },
+        {
+          "id": "138575",
+          "name": "quietest - hiatus"
+        },
+        {
+          "id": "79436",
+          "name": "Eggblood - A slow downer"
+        }
+      ]
+    },
+    {
+      "chat_idx": 3,
+      "query": "来点适合夜跑的高能量音乐",
+      "status_code": 200,
+      "elapsed_ms": 132169,
+      "assistant_text_prefix": "为您精选了几首高能量的电子音乐，非常适合夜跑或需要活力的场景。这些曲目是基于语义相似度筛选出来的，希望能为您带来动力。\n您希望降低能量等级，还是保持这种活力风格？",
+      "top_5_recs": [
+        {
+          "id": "61551",
+          "name": "30[eks] - High Q"
+        },
+        {
+          "id": "70957",
+          "name": "Jota_a_ene - high smoke"
+        },
+        {
+          "id": "66311",
+          "name": "Honeydrum - Night Runner"
+        },
+        {
+          "id": "40649",
+          "name": "c4 - Night Train"
+        },
+        {
+          "id": "39605",
+          "name": "UltraCat - Disco High"
+        }
+      ]
+    }
+  ],
+  "llm_calls": [
+    {
+      "chat_idx": 1,
+      "phase": "intent_slots",
+      "latency_ms": 53630,
+      "prompt_tokens": 1088,
+      "completion_tokens": 1595,
+      "total_tokens": 2683
+    },
+    {
+      "chat_idx": 1,
+      "phase": "final_response",
+      "latency_ms": 92382,
+      "prompt_tokens": 1939,
+      "completion_tokens": 4918,
+      "total_tokens": 6857
+    },
+    {
+      "chat_idx": 2,
+      "phase": "intent_slots",
+      "latency_ms": 68319,
+      "prompt_tokens": 1309,
+      "completion_tokens": 3420,
+      "total_tokens": 4729
+    },
+    {
+      "chat_idx": 2,
+      "phase": "final_response",
+      "latency_ms": 71175,
+      "prompt_tokens": 2036,
+      "completion_tokens": 3916,
+      "total_tokens": 5952
+    },
+    {
+      "chat_idx": 3,
+      "phase": "intent_slots",
+      "latency_ms": 30644,
+      "prompt_tokens": 1503,
+      "completion_tokens": 1607,
+      "total_tokens": 3110
+    },
+    {
+      "chat_idx": 3,
+      "phase": "final_response",
+      "latency_ms": 100377,
+      "prompt_tokens": 2127,
+      "completion_tokens": 4796,
+      "total_tokens": 6923
+    }
+  ],
+  "per_chat_summary": [
+    {
+      "chat_idx": 1,
+      "llm_completions": 2,
+      "phase_counts": {
+        "intent_slots": 1,
+        "final_response": 1
+      },
+      "prompt_tokens_total": 3027,
+      "completion_tokens_total": 6513,
+      "total_tokens_total": 9540
+    },
+    {
+      "chat_idx": 2,
+      "llm_completions": 2,
+      "phase_counts": {
+        "intent_slots": 1,
+        "final_response": 1
+      },
+      "prompt_tokens_total": 3345,
+      "completion_tokens_total": 7336,
+      "total_tokens_total": 10681
+    },
+    {
+      "chat_idx": 3,
+      "llm_completions": 2,
+      "phase_counts": {
+        "intent_slots": 1,
+        "final_response": 1
+      },
+      "prompt_tokens_total": 3630,
+      "completion_tokens_total": 6403,
+      "total_tokens_total": 10033
+    }
+  ],
+  "citation_stats": {
+    "semantic_search.similarity": {
+      "count": 15,
+      "min": 0.2925,
+      "p50": 0.319,
+      "p95": 0.4084,
+      "max": 0.4084
+    }
+  }
+}

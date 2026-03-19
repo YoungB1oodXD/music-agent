@@ -1,0 +1,64 @@
+﻿{
+    "elapsed_ms":  65041,
+    "request_message":  "基于歌曲 Adelitas Way - Dirty Little Thing 推荐一些适合学习的轻音乐",
+    "response":  {
+                     "session_id":  "e5ece264d5a2484da0a9eff2218c9f88",
+                     "assistant_text":  "ä¸ºæ¨æç´¢äº \u0027Adelitas Way Dirty Little Thing\u0027ï¼è½ç¶æªæ¾å°å®å\u0085¨ä¸è´çåæ²ï¼ä½æ ¹æ®è¯­ä¹ç¸ä¼¼åº¦ï¼æä¸ºæ¨æéäºå é¦é£æ ¼ç¸è¿çææ»æ­æ²ãå\u0085¶ä¸­ \u0027Dirty Little Thing\u0027 ç± Mighty Fine æ¼å±ï¼ç¸ä¼¼åº¦æé«ã\næ¨å¸æè°æ´ä¸ä¸é³ä¹çè½éæï¼è¿æ¯ç»§ç»­æ¢ç´¢æ´å¤ææ»é£æ ¼ï¼",
+                     "recommendations":  [
+                                             {
+                                                 "id":  "55447",
+                                                 "name":  "Mighty Fine - Dirty Little Thing",
+                                                 "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.19 æ¨è (æµæ´¾ï¼Rock)",
+                                                 "citations":  [
+                                                                   "tool_results",
+                                                                   "semantic_search.similarity=0.19334077835083008",
+                                                                   "semantic_search.genre=Rock"
+                                                               ]
+                                             },
+                                             {
+                                                 "id":  "97421",
+                                                 "name":  "Little Debbie - Swallow Debbie",
+                                                 "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.15 æ¨è",
+                                                 "citations":  [
+                                                                   "tool_results",
+                                                                   "semantic_search.similarity=0.14765775203704834"
+                                                               ]
+                                             },
+                                             {
+                                                 "id":  "111761",
+                                                 "name":  "Sleaford Mods - A Little Ditty",
+                                                 "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.15 æ¨è",
+                                                 "citations":  [
+                                                                   "tool_results",
+                                                                   "semantic_search.similarity=0.145538330078125"
+                                                               ]
+                                             },
+                                             {
+                                                 "id":  "97422",
+                                                 "name":  "Little Debbie - Speedway",
+                                                 "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.14 æ¨è",
+                                                 "citations":  [
+                                                                   "tool_results",
+                                                                   "semantic_search.similarity=0.14131665229797363"
+                                                               ]
+                                             },
+                                             {
+                                                 "id":  "36399",
+                                                 "name":  "Lovely Little Girls - Creeping Things Dig Slowly",
+                                                 "reason":  "åºäºè¯­ä¹ç¸ä¼¼åº¦ 0.13 æ¨è (æµæ´¾ï¼Rock)",
+                                                 "citations":  [
+                                                                   "tool_results",
+                                                                   "semantic_search.similarity=0.12824022769927979",
+                                                                   "semantic_search.genre=Rock"
+                                                               ]
+                                             }
+                                         ],
+                     "state":  {
+                                   "mood":  null,
+                                   "scene":  null,
+                                   "genre":  null,
+                                   "preferred_energy":  null,
+                                   "preferred_vocals":  null
+                               }
+                 }
+}

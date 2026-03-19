@@ -62,6 +62,7 @@ def _build_mock_registry() -> "ToolRegistry":
     def semantic_search(args: dict[str, object]) -> dict[str, object]:
         query_text = str(args["query_text"])
         top_k = int(cast(int | float | str, args["top_k"]))
+        exclude_ids = set(cast(list[str], args.get("exclude_ids") or []))
 
         seed = _mock_sha_seed(query_text)
         catalog: list[tuple[str, str, str, str]] = [
@@ -75,9 +76,12 @@ def _build_mock_registry() -> "ToolRegistry":
         ]
 
         data: list[dict[str, object]] = []
-        for idx in range(max(1, min(20, top_k))):
+        for idx in range(40):
             title, artist, genre, tag = catalog[idx % len(catalog)]
             track_id = f"mock_{seed}_{idx + 1:02d}"
+            if track_id in exclude_ids:
+                continue
+
             distance = 0.02 * idx
             data.append(
                 {
@@ -90,17 +94,23 @@ def _build_mock_registry() -> "ToolRegistry":
                     "distance": distance,
                 }
             )
+            if len(data) >= top_k:
+                break
 
         return {"ok": True, "data": data}
 
     def cf_recommend(args: dict[str, object]) -> dict[str, object]:
         song_name = str(args["song_name"])
         top_k = int(cast(int | float | str, args["top_k"]))
+        exclude_ids = set(cast(list[str], args.get("exclude_ids") or []))
 
         seed = _mock_sha_seed(song_name)
         recommendations: list[dict[str, object]] = []
-        for idx in range(max(1, min(20, top_k))):
+        for idx in range(40):
             rec_id = f"mock_cf_{seed}_{idx + 1:02d}"
+            if rec_id in exclude_ids:
+                continue
+
             recommendations.append(
                 {
                     "id": rec_id,
@@ -108,6 +118,8 @@ def _build_mock_registry() -> "ToolRegistry":
                     "score": round(1.0 - 0.03 * idx, 4),
                 }
             )
+            if len(recommendations) >= top_k:
+                break
 
         return {
             "ok": True,
@@ -120,10 +132,11 @@ def _build_mock_registry() -> "ToolRegistry":
     def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
         query_text = str(args["query_text"])
         top_k = int(cast(int | float | str, args["top_k"]))
+        exclude_ids = cast(list[str], args.get("exclude_ids") or [])
         seed_song_name_obj = args.get("seed_song_name")
         seed_song_name = str(seed_song_name_obj) if seed_song_name_obj is not None else ""
 
-        sem = semantic_search({"query_text": query_text, "top_k": top_k})
+        sem = semantic_search({"query_text": query_text, "top_k": top_k, "exclude_ids": exclude_ids})
         if sem.get("ok") is not True:
             return {"ok": False, "data": [], "error": "mock semantic_search failed"}
 
@@ -157,12 +170,20 @@ def _build_mock_registry() -> "ToolRegistry":
 
     semantic_schema: dict[str, object] = {
         "type": "object",
-        "properties": {"query_text": {"type": "string"}, "top_k": {"type": "integer"}},
+        "properties": {
+            "query_text": {"type": "string"},
+            "top_k": {"type": "integer"},
+            "exclude_ids": {"type": "array", "items": {"type": "string"}},
+        },
         "required": ["query_text", "top_k"],
     }
     cf_schema: dict[str, object] = {
         "type": "object",
-        "properties": {"song_name": {"type": "string"}, "top_k": {"type": "integer"}},
+        "properties": {
+            "song_name": {"type": "string"},
+            "top_k": {"type": "integer"},
+            "exclude_ids": {"type": "array", "items": {"type": "string"}},
+        },
         "required": ["song_name", "top_k"],
     }
     hybrid_schema: dict[str, object] = {
@@ -173,6 +194,7 @@ def _build_mock_registry() -> "ToolRegistry":
             "top_k": {"type": "integer"},
             "w_sem": {"type": "number"},
             "w_cf": {"type": "number"},
+            "exclude_ids": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["query_text", "top_k"],
     }
@@ -463,7 +485,34 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     def run_turn(user_text: str) -> str:
+        # Capture state before
+        prev_mood = state.current_mood
+        prev_scene = state.current_scene
+        prev_genre = state.current_genre
+        prev_energy = state.preference_profile.preferred_energy
+        prev_vocals = state.preference_profile.preferred_vocals
+        prev_exclude_len = len(state.exclude_ids)
+
         assistant_text = orchestrator.handle_turn(user_text, state)
+
+        # Check for changes
+        changes = []
+        if state.current_mood != prev_mood:
+            changes.append(f"current_mood={state.current_mood}")
+        if state.current_scene != prev_scene:
+            changes.append(f"current_scene={state.current_scene}")
+        if state.current_genre != prev_genre:
+            changes.append(f"current_genre={state.current_genre}")
+        if state.preference_profile.preferred_energy != prev_energy:
+            changes.append(f"preferred_energy={state.preference_profile.preferred_energy}")
+        if state.preference_profile.preferred_vocals != prev_vocals:
+            changes.append(f"preferred_vocals={state.preference_profile.preferred_vocals}")
+        if len(state.exclude_ids) != prev_exclude_len:
+            changes.append(f"len(exclude_ids)={len(state.exclude_ids)}")
+
+        if changes:
+            print(f"[STATE UPDATE] {' '.join(changes)}")
+
         if model == "qwen" and state.llm_status == "fallback":
             print("[WARN] LLM request failed, fallback to local recommendation pipeline.")
 
@@ -502,6 +551,10 @@ def main(argv: list[str] | None = None) -> int:
             continue
         if text.lower() in {"exit", "quit"}:
             return 0
+        if text.lower() == "context":
+            print("[SESSION CONTEXT]")
+            print(json.dumps(state.get_state_summary(), ensure_ascii=False, indent=2))
+            continue
 
         assistant = run_turn(user_text)
         print(assistant)

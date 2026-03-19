@@ -1,0 +1,38 @@
+2026-03-13 13:08:24,935 - src.searcher.music_searcher - INFO - \u2139\ufe0f  使用 CPU 进行向量编码
+2026-03-13 13:08:24,935 - src.searcher.music_searcher - INFO - \U0001f4e6 加载向量模型: BAAI/bge-m3
+2026-03-13 13:08:24,936 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: BAAI/bge-m3
+2026-03-13 13:08:32,131 - src.searcher.music_searcher - INFO -    模型加载成功
+2026-03-13 13:08:32,131 - src.searcher.music_searcher - INFO -  \U0001f4e6 连接向量库: chroma_bge_m3
+2026-03-13 13:08:32,147 - chromadb.telemetry.product.posthog - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2026-03-13 13:08:32,285 - src.searcher.music_searcher - INFO -    集合: music_bge_collection
+2026-03-13 13:08:33,106 - src.searcher.music_searcher - INFO -    文档数: 106573
+2026-03-13 13:08:33,106 - src.searcher.music_searcher - INFO - \u2705 MusicSearcher 初始化完成
+2026-03-13 13:08:33,106 - src.searcher.music_searcher - INFO -    - 向量模型: BAAI/bge-m3
+2026-03-13 13:08:33,126 - src.searcher.music_searcher - INFO -    - 向量库文档数: 106573
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  1.40it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  1.40it/s]
+Batches:   0%|          | 0/1 [00:00<?, ?it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  4.22it/s]Batches: 100%|██████████| 1/1 [00:00<00:00,  4.22it/s]
+2026-03-13 13:08:35,008 - src.recommender.music_recommender - INFO - \U0001f528 构建歌曲反向索引...
+2026-03-13 13:08:35,131 - src.recommender.music_recommender - INFO - \u2705 MusicRecommender 初始化完成
+2026-03-13 13:08:35,131 - src.recommender.music_recommender - INFO -    - 模型物品数: 14758
+2026-03-13 13:08:35,132 - src.recommender.music_recommender - INFO -    - 元数据条目: 839122
+Detailed hybrid results:
+0: Learning Music - Short Tempered
+   sem=0.2593557834625244, cf=None, score=0.6000, sources=['semantic']
+1: transient - calm song
+   sem=0.23933017253875732, cf=None, score=0.4485, sources=['semantic']
+2: Learning Music - Transitional Interference
+   sem=0.23600465059280396, cf=None, score=0.4233, sources=['semantic']
+3: Learning Music - Short Tempered
+   sem=0.23330122232437134, cf=None, score=0.4029, sources=['semantic']
+4: Learning Music - Short Tempered
+   sem=0.23330122232437134, cf=None, score=0.4029, sources=['semantic']
+5: Sean Kingston - Fire Burning
+   sem=None, cf=1.5305771927653922e-10, score=0.4000, sources=['cf']
+6: Sean Kingston - Fire Burning
+   sem=None, cf=1.5305599843085105e-10, score=0.4000, sources=['cf']
+7: Sean Kingston - Fire Burning
+   sem=None, cf=1.5305524903030943e-10, score=0.4000, sources=['cf']
+8: Sean Kingston - Fire Burning
+   sem=None, cf=1.5304786604719567e-10, score=0.3999, sources=['cf']
+9: Sean Kingston - Fire Burning
+   sem=None, cf=1.5304713052444185e-10, score=0.3999, sources=['cf']

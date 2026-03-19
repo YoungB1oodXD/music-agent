@@ -1,0 +1,60 @@
+{
+  "elapsed_ms": 249234,
+  "request_message": "基于歌曲 \"Adelitas Way - Dirty Little Thing\" 推荐一些适合学习的轻音乐",
+  "response": {
+    "session_id": "3bce7575f88f414da41be5897697804c",
+    "assistant_text": "您好！根据您“适合学习的轻音乐”的需求，我为您筛选了以下几首曲目。这些推荐基于语义搜索的相似度匹配，希望能帮助您营造专注的学习氛围。\n您觉得这些曲目的风格合适吗？如果需要更安静或换一种流派，请随时告诉我。",
+    "recommendations": [
+      {
+        "id": "21220",
+        "name": "Learning Music - Short Tempered",
+        "reason": "基于语义相似度 0.30 匹配推荐",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.30124276876449585"
+        ]
+      },
+      {
+        "id": "47347",
+        "name": "Learning Music - Short Tempered",
+        "reason": "基于语义相似度 0.30 匹配推荐",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.30124276876449585"
+        ]
+      },
+      {
+        "id": "11954",
+        "name": "Learning Music - Short Tempered",
+        "reason": "基于语义相似度 0.298 匹配推荐 (流派：Rock)",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.29812097549438477",
+          "tool_results.semantic_search.genre=Rock"
+        ]
+      },
+      {
+        "id": "142459",
+        "name": "transient - calm song",
+        "reason": "基于语义相似度 0.278 匹配推荐 (流派：Electronic)",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.2775081396102905",
+          "tool_results.semantic_search.genre=Electronic"
+        ]
+      },
+      {
+        "id": "14672",
+        "name": "little-scale - Hello",
+        "reason": "基于语义相似度 0.267 匹配推荐 (流派：Electronic)",
+        "citations": [
+          "tool_results.semantic_search.similarity=0.2673984169960022",
+          "tool_results.semantic_search.genre=Electronic"
+        ]
+      }
+    ],
+    "state": {
+      "mood": null,
+      "scene": "学习",
+      "genre": null,
+      "preferred_energy": "low",
+      "preferred_vocals": "instrumental"
+    }
+  }
+}

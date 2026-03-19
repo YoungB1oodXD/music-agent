@@ -1,0 +1,169 @@
+{
+  "metadata": {
+    "llm_mode": "qwen",
+    "timestamp": "2026-03-12 15:35:54"
+  },
+  "chats": [
+    {
+      "chat_idx": 1,
+      "query": "我想听适合学习的轻音乐",
+      "status_code": 200,
+      "elapsed_ms": 98010,
+      "assistant_text_prefix": "为您找到了一些与“学习”主题相关的曲目。不过检索结果显示部分曲目流派可能偏向 Rock，不完全符合“轻音乐”的预期，建议您试听筛选。如果需要更安静的音乐，我可以为您调整。\n您希望调整一下音乐的能量感，",
+      "top_5_recs": [
+        {
+          "id": "11954",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "21220",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "47347",
+          "name": "Learning Music - Short Tempered"
+        },
+        {
+          "id": "31307",
+          "name": "Learning Music - Little Conversation"
+        },
+        {
+          "id": "83278",
+          "name": "No Monster Club - Slow Learner"
+        }
+      ]
+    },
+    {
+      "chat_idx": 2,
+      "query": "我现在有点emo，想听安静一点的歌",
+      "status_code": 200,
+      "elapsed_ms": 131634,
+      "assistant_text_prefix": "理解您现在的心情，这里为您挑选了几首安静、舒缓的曲目，希望能陪伴您度过这段时光。这些歌曲是根据与您描述的'emo'和'安静'需求的语义相似度筛选的，其中第一首与检索到的电子音乐流派信息吻合。\n您希望尝",
+      "top_5_recs": [
+        {
+          "id": "142459",
+          "name": "transient - calm song"
+        },
+        {
+          "id": "79436",
+          "name": "Eggblood - A slow downer"
+        },
+        {
+          "id": "91234",
+          "name": "Lonely Faction - in a low tone"
+        },
+        {
+          "id": "85338",
+          "name": "Silence Is Sexy - Low"
+        },
+        {
+          "id": "86979",
+          "name": "Eletrólise - Slow Impact"
+        }
+      ]
+    },
+    {
+      "chat_idx": 3,
+      "query": "来点适合夜跑的高能量音乐",
+      "status_code": 200,
+      "elapsed_ms": 84005,
+      "assistant_text_prefix": "为您找到了一些与“夜跑”主题相关的曲目。这些歌曲是根据语义相似度筛选的，其中部分曲目具有电子音乐元素，希望能为您的运动增添动力。您可以试听看看是否符合您的预期。\n您希望尝试更多类似风格的音乐，还是调整",
+      "top_5_recs": [
+        {
+          "id": "61551",
+          "name": "30[eks] - High Q"
+        },
+        {
+          "id": "70957",
+          "name": "Jota_a_ene - high smoke"
+        },
+        {
+          "id": "40649",
+          "name": "c4 - Night Train"
+        },
+        {
+          "id": "90760",
+          "name": "The Good Lawdz - Run In The Night"
+        },
+        {
+          "id": "66311",
+          "name": "Honeydrum - Night Runner"
+        }
+      ]
+    }
+  ],
+  "llm_calls": [
+    {
+      "chat_idx": 1,
+      "phase": "final_response",
+      "latency_ms": 85886,
+      "prompt_tokens": 1758,
+      "completion_tokens": 4439,
+      "total_tokens": 6197
+    },
+    {
+      "chat_idx": 2,
+      "phase": "final_response",
+      "latency_ms": 130660,
+      "prompt_tokens": 1878,
+      "completion_tokens": 7415,
+      "total_tokens": 9293
+    },
+    {
+      "chat_idx": 3,
+      "phase": "final_response",
+      "latency_ms": 82925,
+      "prompt_tokens": 1972,
+      "completion_tokens": 4779,
+      "total_tokens": 6751
+    }
+  ],
+  "per_chat_summary": [
+    {
+      "chat_idx": 1,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1758,
+      "completion_tokens_total": 4439,
+      "total_tokens_total": 6197
+    },
+    {
+      "chat_idx": 2,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1878,
+      "completion_tokens_total": 7415,
+      "total_tokens_total": 9293
+    },
+    {
+      "chat_idx": 3,
+      "llm_completions": 1,
+      "phase_counts": {
+        "final_response": 1
+      },
+      "prompt_tokens_total": 1972,
+      "completion_tokens_total": 4779,
+      "total_tokens_total": 6751
+    }
+  ],
+  "citation_stats": {
+    "tool_results.semantic_search.similarity": {
+      "count": 5,
+      "min": 0.3075,
+      "p50": 0.3185,
+      "p95": 0.3199,
+      "max": 0.3199
+    },
+    "semantic_search.similarity": {
+      "count": 10,
+      "min": 0.2846,
+      "p50": 0.3425,
+      "p95": 0.4231,
+      "max": 0.4231
+    }
+  }
+}

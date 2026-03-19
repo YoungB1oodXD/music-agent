@@ -5,9 +5,11 @@
 基于清洗后的数据构建语义向量索引
 """
 
+import argparse
 import logging
 from pathlib import Path
 import shutil
+from typing import Any
 
 import pandas as pd
 import torch
@@ -16,7 +18,6 @@ from sentence_transformers import SentenceTransformer
 
 try:
     import chromadb
-    from chromadb.config import Settings
 except ImportError:
     chromadb = None
 
@@ -46,8 +47,8 @@ class BGEVectorizer:
     def __init__(self, model_name: str = MODEL_NAME, batch_size: int = BATCH_SIZE):
         self.model_name = model_name
         self.batch_size = batch_size
-        self.device = None
-        self.model = None
+        self.device: str | None = None
+        self.model: SentenceTransformer | None = None
         
         logger.info(f"初始化 BGE-M3 向量化器")
         logger.info(f"  模型: {model_name}")
@@ -85,8 +86,11 @@ class BGEVectorizer:
             logger.error(f"❌ 模型加载失败: {e}")
             raise
     
-    def encode_batch(self, texts: list) -> list:
+    def encode_batch(self, texts: list[str]) -> list[list[float]] | None:
         """批量编码文本"""
+        if self.model is None:
+            raise RuntimeError("模型未加载，无法编码")
+
         try:
             with torch.no_grad():
                 embeddings = self.model.encode(
@@ -105,17 +109,27 @@ class BGEVectorizer:
 class ChromaDBBuilder:
     """ChromaDB 向量库构建器"""
     
-    def __init__(self, persist_dir: Path, collection_name: str = COLLECTION_NAME):
+    def __init__(
+        self,
+        persist_dir: Path,
+        collection_name: str = COLLECTION_NAME,
+        resume: bool = False,
+    ):
         self.persist_dir = persist_dir
         self.collection_name = collection_name
-        self.client = None
-        self.collection = None
+        self.resume = resume
+        self.client: Any | None = None
+        self.collection: Any | None = None
         
         logger.info(f"初始化 ChromaDB 构建器")
         logger.info(f"  存储路径: {persist_dir}")
         logger.info(f"  集合名: {collection_name}")
+        logger.info(f"  Resume 模式: {resume}")
         
-        self._clean_old_database()
+        if not self.resume:
+            self._clean_old_database()
+        else:
+            logger.info("Resume 模式启用：保留现有向量库（不删除）")
         self._init_database()
     
     def _clean_old_database(self):
@@ -142,12 +156,27 @@ class ChromaDBBuilder:
             self.client = chromadb.PersistentClient(
                 path=str(self.persist_dir)
             )
-            
-            # 创建集合
-            self.collection = self.client.create_collection(
-                name=self.collection_name,
-                metadata={"description": "BGE-M3 Music Embeddings"}
-            )
+
+            if self.resume:
+                try:
+                    self.collection = self.client.get_collection(
+                        name=self.collection_name
+                    )
+                    logger.info("✓ 已打开已有集合")
+                except Exception:
+                    self.collection = self.client.create_collection(
+                        name=self.collection_name,
+                        metadata={"description": "BGE-M3 Music Embeddings"}
+                    )
+                    logger.info("✓ 未找到已有集合，已创建新集合")
+            else:
+                self.collection = self.client.create_collection(
+                    name=self.collection_name,
+                    metadata={"description": "BGE-M3 Music Embeddings"}
+                )
+
+            if self.collection is None:
+                raise RuntimeError("Chroma collection 初始化失败")
             
             logger.info("✓ ChromaDB 初始化成功")
             
@@ -155,15 +184,31 @@ class ChromaDBBuilder:
             logger.error(f"❌ ChromaDB 初始化失败: {e}")
             raise
     
-    def add_vectors(self, df: pd.DataFrame, vectorizer: BGEVectorizer):
+    def add_vectors(self, df: pd.DataFrame, vectorizer: BGEVectorizer, start_idx: int = 0):
         """批量添加向量到数据库"""
-        logger.info(f"开始向量化并存储 {len(df)} 条记录...")
+        if self.collection is None:
+            raise RuntimeError("Chroma collection 未初始化")
+
+        if start_idx < 0:
+            raise ValueError(f"start_idx 必须 >= 0，当前: {start_idx}")
+
+        total_rows = len(df)
+        if start_idx >= total_rows:
+            logger.warning(
+                f"start_idx ({start_idx}) >= 总行数 ({total_rows})，无需继续向量化"
+            )
+            return
+
+        logger.info(f"开始向量化并存储 {total_rows} 条记录...")
+        logger.info(f"  start_idx: {start_idx}")
+        logger.info(f"  剩余待处理: {total_rows - start_idx}")
         
-        total_batches = (len(df) + vectorizer.batch_size - 1) // vectorizer.batch_size
+        remaining = total_rows - start_idx
+        total_batches = (remaining + vectorizer.batch_size - 1) // vectorizer.batch_size
         
-        for i in tqdm(range(0, len(df), vectorizer.batch_size), 
-                     total=total_batches, 
-                     desc="向量化"):
+        for i in tqdm(range(start_idx, total_rows, vectorizer.batch_size), 
+                      total=total_batches, 
+                      desc="向量化"):
             
             batch_df = df.iloc[i:i+vectorizer.batch_size]
             
@@ -172,15 +217,16 @@ class ChromaDBBuilder:
             ids = [f"fma_{row['track_id']}" for _, row in batch_df.iterrows()]
             
             # 元数据
-            metadatas = [
-                {
-                    'title': row['title'],
-                    'artist': row['artist'],
-                    'genre': row.get('genre', ''),
-                    'track_id': row['track_id']
-                }
-                for _, row in batch_df.iterrows()
-            ]
+            metadatas: list[dict[str, str | int]] = []
+            for _, row in batch_df.iterrows():
+                metadatas.append(
+                    {
+                        'title': str(row['title']),
+                        'artist': str(row['artist']),
+                        'genre': str(row.get('genre', '')),
+                        'track_id': int(row['track_id']),
+                    }
+                )
             
             # 编码
             embeddings = vectorizer.encode_batch(texts)
@@ -207,6 +253,23 @@ class ChromaDBBuilder:
 
 def main():
     """主流程"""
+    parser = argparse.ArgumentParser(description="BGE-M3 + ChromaDB 向量库构建")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="从现有 index/chroma_bge_m3 状态继续构建（不删除目录）",
+    )
+    parser.add_argument(
+        "--start-idx",
+        type=int,
+        default=None,
+        help="强制从指定行号开始处理（覆盖 resume 推导的 offset）",
+    )
+    args = parser.parse_args()
+
+    resume: bool = bool(getattr(args, "resume", False))
+    start_idx_override: int | None = getattr(args, "start_idx", None)
+
     logger.info("\n" + "=" * 80)
     logger.info("🧬 BGE-M3 向量库构建流程")
     logger.info("=" * 80 + "\n")
@@ -237,10 +300,31 @@ def main():
     vectorizer = BGEVectorizer(MODEL_NAME, BATCH_SIZE)
     
     # 4. 初始化 ChromaDB
-    chroma_builder = ChromaDBBuilder(OUTPUT_DIR, COLLECTION_NAME)
+    chroma_builder = ChromaDBBuilder(OUTPUT_DIR, COLLECTION_NAME, resume=resume)
+
+    if chroma_builder.collection is None:
+        logger.error("❌ Chroma collection 未初始化")
+        return None
+
+    collection = chroma_builder.collection
+
+    existing_count = int(collection.count()) if resume else 0
+    start_idx = start_idx_override if start_idx_override is not None else (existing_count if resume else 0)
+    total_rows = len(df)
+
+    logger.info("Resume/Offset 配置:")
+    logger.info(f"  resume: {resume}")
+    logger.info(f"  existing_count: {existing_count}")
+    logger.info(f"  start_idx: {start_idx}")
+    logger.info(f"  total_rows: {total_rows}")
+
+    if resume and start_idx_override is not None and start_idx_override < existing_count:
+        logger.warning(
+            "--start-idx 小于现有 collection.count()，可能导致重复写入（请确认是否需要）"
+        )
     
     # 5. 向量化并存储
-    chroma_builder.add_vectors(df, vectorizer)
+    chroma_builder.add_vectors(df, vectorizer, start_idx=start_idx)
     
     # 6. 总结
     logger.info("\n" + "=" * 80)
@@ -248,7 +332,7 @@ def main():
     logger.info("=" * 80)
     logger.info(f"  输出路径: {OUTPUT_DIR}")
     logger.info(f"  集合名: {COLLECTION_NAME}")
-    logger.info(f"  文档数: {chroma_builder.collection.count()}")
+    logger.info(f"  文档数: {collection.count()}")
     logger.info(f"  模型: {MODEL_NAME}")
     logger.info(f"  向量维度: 384")
     logger.info("=" * 80 + "\n")

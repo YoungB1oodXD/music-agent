@@ -1,0 +1,8 @@
+{
+    "timestamp": "2026-03-13T00:34:14.416577",
+    "final_count": 106573,
+    "audit_results": {
+        "vector_retrieval_audit": 3221225794,
+        "semantic_search_audit": 3221225794
+    }
+}

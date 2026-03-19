@@ -1,0 +1,5 @@
+"## Learnings"  
+"- Windows consoles using GBK/CP936 often crash when printing Unicode characters (like emojis) if not handled properly." 
+"- A robust 'TeeOutput' implementation should handle 'UnicodeEncodeError' per stream and use 'errors=\"replace\"' to degrade gracefully on the console while preserving full content in other streams (like a file or buffer)."  
+"- Using 'typing.Protocol' helps define the expected interface for stream-like objects."  
+"- Separate 'flush()' calls in their own 'try-except' blocks prevent one stream's failure from affecting others."  

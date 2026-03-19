@@ -1,0 +1,76 @@
+{
+  "rows": 106573,
+  "rows_with_tags": 3,
+  "tags_rate": 2.8149718971972264e-05,
+  "tag_value_types_head200": {
+    "ndarray": 200
+  },
+  "examples": [
+    {
+      "track_id": "6448",
+      "title": "Please Listen To My Demo",
+      "artist": "EPMD",
+      "genre": "Hip-Hop",
+      "tags": [
+        "hip hop",
+        "rap",
+        "Hip-Hop",
+        "old school",
+        "EPMD",
+        "1980s Hip-Hop",
+        "Favorite songs ever",
+        "1980s",
+        "Rap about rap",
+        "morris day",
+        "Certified classic",
+        "STRICTLY FOR THE UNDERGOUND",
+        "DA REAL UNDERGROUND OLD SKOOL HIP HOP",
+        "TRUE musical HIP HOP",
+        "da real old skool Hip Hop",
+        "retecool",
+        "old fly shit",
+        "The Good Old Nineties Rapshit",
+        "ik voel me weer 16",
+        "oh Fa Sho",
+        "Hip-HopRap",
+        "Jazzy Bully",
+        "kaudogg",
+        "masterful production",
+        "dusted",
+        "NY SHiT",
+        "old-school rap",
+        "True Hip Hop",
+        "classic hip-hop",
+        "Classic Hip Hop",
+        "old school hip-hop",
+        "hardcore rap",
+        "Dope",
+        "underground hip hop",
+        "underground rap",
+        "east coast rap",
+        "beats",
+        "classic",
+        "easy"
+      ]
+    },
+    {
+      "track_id": "10160",
+      "title": "It Killed Mom",
+      "artist": "Thee Oh Sees",
+      "genre": "Rock",
+      "tags": [
+        "title is a full sentence"
+      ]
+    },
+    {
+      "track_id": "133388",
+      "title": "Better Be Good",
+      "artist": "The Real Kids",
+      "genre": "Rock",
+      "tags": [
+        "70s",
+        "power pop"
+      ]
+    }
+  ]
+}

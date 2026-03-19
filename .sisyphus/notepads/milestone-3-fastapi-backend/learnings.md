@@ -1,0 +1,7 @@
+- Added `fastapi>=0.100.0` and `uvicorn>=0.23.0` to `requirements.txt` to support the Milestone 3 backend.
+- Verified installation with `python -c "import fastapi, uvicorn; print('ok')"`.
+- Confirmed `fastapi` and `uvicorn` are active in `requirements.txt` and verified their availability in the environment.
+- Implemented `SessionStore` in `src/api/session_store.py` using `uuid.uuid4().hex` for session ID generation and `threading.Lock` for thread-safety.
+- FastAPI API reads LLM mode from MUSIC_AGENT_LLM_MODE.
+- Default mode is mock for offline-safe startup; qwen is optional.
+- Created `scripts/run_api.py` to start the FastAPI backend with `uvicorn`.

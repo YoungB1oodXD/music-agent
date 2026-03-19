@@ -1,0 +1,335 @@
+{
+  "queries": [
+    {
+      "query": "我想听适合学习的轻音乐",
+      "count": 10,
+      "results": [
+        {
+          "id": "fma_11954",
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "Rock",
+          "track_id": "11954",
+          "similarity": 0.2593557834625244,
+          "distance": 0.7406442165374756
+        },
+        {
+          "id": "fma_142459",
+          "title": "calm song",
+          "artist": "transient",
+          "genre": "Electronic",
+          "track_id": 142459,
+          "similarity": 0.23933017253875732,
+          "distance": 0.7606698274612427
+        },
+        {
+          "id": "fma_22163",
+          "title": "Transitional Interference",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "22163",
+          "similarity": 0.23600465059280396,
+          "distance": 0.763995349407196
+        },
+        {
+          "id": "fma_21220",
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "21220",
+          "similarity": 0.23330122232437134,
+          "distance": 0.7666987776756287
+        },
+        {
+          "id": "fma_47347",
+          "title": "Short Tempered",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "47347",
+          "similarity": 0.23330122232437134,
+          "distance": 0.7666987776756287
+        },
+        {
+          "id": "fma_41806",
+          "title": "Belajar",
+          "artist": "Belajar Membunuh",
+          "genre": "Rock",
+          "track_id": "41806",
+          "similarity": 0.22436296939849854,
+          "distance": 0.7756370306015015
+        },
+        {
+          "id": "fma_77415",
+          "title": "Impromptu Lesson",
+          "artist": "theAudiologist",
+          "genre": "Electronic",
+          "track_id": 77415,
+          "similarity": 0.22298896312713623,
+          "distance": 0.7770110368728638
+        },
+        {
+          "id": "fma_114375",
+          "title": "Calmness",
+          "artist": "Madoka",
+          "genre": "Instrumental",
+          "track_id": 114375,
+          "similarity": 0.2122732400894165,
+          "distance": 0.7877267599105835
+        },
+        {
+          "id": "fma_120475",
+          "title": "Tidings of Comfort (Instrumental)",
+          "artist": "Tidings of Comfort",
+          "genre": "Easy Listening",
+          "track_id": 120475,
+          "similarity": 0.21176385879516602,
+          "distance": 0.788236141204834
+        },
+        {
+          "id": "fma_31307",
+          "title": "Little Conversation",
+          "artist": "Learning Music",
+          "genre": "",
+          "track_id": "31307",
+          "similarity": 0.21010041236877441,
+          "distance": 0.7898995876312256
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.2593557834625244,
+          "max": 0.2593557834625244
+        },
+        "top5": {
+          "min": 0.23330122232437134,
+          "max": 0.2593557834625244
+        },
+        "top10": {
+          "min": 0.21010041236877441,
+          "max": 0.2593557834625244
+        }
+      }
+    },
+    {
+      "query": "我现在有点emo，想听安静一点的歌",
+      "count": 10,
+      "results": [
+        {
+          "id": "fma_142459",
+          "title": "calm song",
+          "artist": "transient",
+          "genre": "Electronic",
+          "track_id": 142459,
+          "similarity": 0.29501521587371826,
+          "distance": 0.7049847841262817
+        },
+        {
+          "id": "fma_119369",
+          "title": "calm",
+          "artist": "Erick Gallun",
+          "genre": "Experimental",
+          "track_id": 119369,
+          "similarity": 0.26079171895980835,
+          "distance": 0.7392082810401917
+        },
+        {
+          "id": "fma_15095",
+          "title": "calm (for chris whitley)",
+          "artist": "guitarrorisms",
+          "genre": "Experimental",
+          "track_id": "15095",
+          "similarity": 0.24625766277313232,
+          "distance": 0.7537423372268677
+        },
+        {
+          "id": "fma_123291",
+          "title": "be calm",
+          "artist": "Breatherholes",
+          "genre": "",
+          "track_id": 123291,
+          "similarity": 0.2299560308456421,
+          "distance": 0.7700439691543579
+        },
+        {
+          "id": "fma_109308",
+          "title": "Calm",
+          "artist": "Custodian of Records",
+          "genre": "",
+          "track_id": 109308,
+          "similarity": 0.22469496726989746,
+          "distance": 0.7753050327301025
+        },
+        {
+          "id": "fma_126484",
+          "title": "Slow It Down",
+          "artist": "Nate Maingard",
+          "genre": "Folk",
+          "track_id": 126484,
+          "similarity": 0.22066724300384521,
+          "distance": 0.7793327569961548
+        },
+        {
+          "id": "fma_21712",
+          "title": "Mournful And Slow",
+          "artist": "Paleo",
+          "genre": "",
+          "track_id": "21712",
+          "similarity": 0.21914535760879517,
+          "distance": 0.7808546423912048
+        },
+        {
+          "id": "fma_79436",
+          "title": "A slow downer",
+          "artist": "Eggblood",
+          "genre": "Experimental",
+          "track_id": 79436,
+          "similarity": 0.21692967414855957,
+          "distance": 0.7830703258514404
+        },
+        {
+          "id": "fma_111092",
+          "title": "Calmant",
+          "artist": "Kevin MacLeod",
+          "genre": "",
+          "track_id": 111092,
+          "similarity": 0.21686148643493652,
+          "distance": 0.7831385135650635
+        },
+        {
+          "id": "fma_152323",
+          "title": "Calm Dub",
+          "artist": "Kai Nobuko",
+          "genre": "Electronic",
+          "track_id": 152323,
+          "similarity": 0.21551084518432617,
+          "distance": 0.7844891548156738
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.29501521587371826,
+          "max": 0.29501521587371826
+        },
+        "top5": {
+          "min": 0.22469496726989746,
+          "max": 0.29501521587371826
+        },
+        "top10": {
+          "min": 0.21551084518432617,
+          "max": 0.29501521587371826
+        }
+      }
+    },
+    {
+      "query": "来点适合夜跑的高能量音乐",
+      "count": 10,
+      "results": [
+        {
+          "id": "fma_90760",
+          "title": "Run In The Night",
+          "artist": "The Good Lawdz",
+          "genre": "",
+          "track_id": 90760,
+          "similarity": 0.3597527742385864,
+          "distance": 0.6402472257614136
+        },
+        {
+          "id": "fma_66311",
+          "title": "Night Runner",
+          "artist": "Honeydrum",
+          "genre": "",
+          "track_id": 66311,
+          "similarity": 0.34350788593292236,
+          "distance": 0.6564921140670776
+        },
+        {
+          "id": "fma_80439",
+          "title": "Better To Run",
+          "artist": "pawspaws",
+          "genre": "",
+          "track_id": 80439,
+          "similarity": 0.3085469603538513,
+          "distance": 0.6914530396461487
+        },
+        {
+          "id": "fma_121487",
+          "title": "Morning Run",
+          "artist": "Ray Rude",
+          "genre": "",
+          "track_id": 121487,
+          "similarity": 0.29688864946365356,
+          "distance": 0.7031113505363464
+        },
+        {
+          "id": "fma_63099",
+          "title": "Midnight Run",
+          "artist": "Great Black Waters",
+          "genre": "Rock",
+          "track_id": 63099,
+          "similarity": 0.28971725702285767,
+          "distance": 0.7102827429771423
+        },
+        {
+          "id": "fma_51019",
+          "title": "Midnight Rudy",
+          "artist": "COOLRUNNINGS",
+          "genre": "",
+          "track_id": "51019",
+          "similarity": 0.2860953211784363,
+          "distance": 0.7139046788215637
+        },
+        {
+          "id": "fma_124912",
+          "title": "Runner",
+          "artist": "Six Umbrellas",
+          "genre": "Electronic",
+          "track_id": 124912,
+          "similarity": 0.2853924036026001,
+          "distance": 0.7146075963973999
+        },
+        {
+          "id": "fma_87314",
+          "title": "Running Bear",
+          "artist": "The Moto-Gators",
+          "genre": "Rock",
+          "track_id": 87314,
+          "similarity": 0.27980124950408936,
+          "distance": 0.7201987504959106
+        },
+        {
+          "id": "fma_149460",
+          "title": "Run Dusty Run",
+          "artist": "The Long Ryders",
+          "genre": "",
+          "track_id": 149460,
+          "similarity": 0.27555859088897705,
+          "distance": 0.724441409111023
+        },
+        {
+          "id": "fma_64601",
+          "title": "Start Running",
+          "artist": "Buildings and Mountains",
+          "genre": "Experimental",
+          "track_id": 64601,
+          "similarity": 0.26957398653030396,
+          "distance": 0.730426013469696
+        }
+      ],
+      "metrics": {
+        "top1": {
+          "min": 0.3597527742385864,
+          "max": 0.3597527742385864
+        },
+        "top5": {
+          "min": 0.28971725702285767,
+          "max": 0.3597527742385864
+        },
+        "top10": {
+          "min": 0.26957398653030396,
+          "max": 0.3597527742385864
+        }
+      }
+    }
+  ],
+  "error": null
+}

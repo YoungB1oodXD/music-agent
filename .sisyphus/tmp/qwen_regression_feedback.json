@@ -1,0 +1,24 @@
+﻿{
+    "message":  "我想听适合学习的轻音乐",
+    "session_id":  "6fbcac347bae4f8baa72eb30f31061e2",
+    "first_id":  "20918",
+    "elapsed_ms_first":  211950,
+    "elapsed_ms_dislike":  172383,
+    "elapsed_ms_refresh":  163403,
+    "refresh_ids":  [
+                        "16765",
+                        "57160",
+                        "21368",
+                        "54721",
+                        "72413"
+                    ],
+    "excluded":  true,
+    "r3_recs_len":  5,
+    "state_after_refresh":  {
+                                "mood":  null,
+                                "scene":  null,
+                                "genre":  null,
+                                "preferred_energy":  null,
+                                "preferred_vocals":  null
+                            }
+}

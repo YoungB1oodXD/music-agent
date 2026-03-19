@@ -6,26 +6,16 @@
 """
 
 import json
+import importlib.util
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 import re
 
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-# 尝试使用更快的 RapidFuzz，回退到 fuzzywuzzy
-try:
-    from rapidfuzz import fuzz as rapid_fuzz
-    FUZZ_MODULE = 'rapidfuzz'
-except ImportError:
-    rapid_fuzz = None
-    FUZZ_MODULE = 'fuzzywuzzy'
-    try:
-        from fuzzywuzzy import fuzz
-    except ImportError:
-        fuzz = None
+FUZZ_MODULE = 'rapidfuzz' if importlib.util.find_spec('rapidfuzz') else 'fuzzywuzzy'
 
 # 配置日志
 logging.basicConfig(
@@ -51,7 +41,7 @@ class SmartDataLoader:
         self.raw_data_root = raw_data_root
         logger.info(f"初始化智能数据加载器: {raw_data_root}")
     
-    def find_fma_tracks(self) -> Optional[Path]:
+    def find_fma_tracks(self) -> Path | None:
         """
         递归查找 FMA tracks.csv 文件
         """
@@ -77,7 +67,7 @@ class SmartDataLoader:
         logger.info(f"✓ 找到 tracks.csv: {matches[0]}")
         return matches[0]
     
-    def find_fma_features(self) -> Optional[Path]:
+    def find_fma_features(self) -> Path | None:
         """
         递归查找 FMA features.csv 文件
         """
@@ -96,7 +86,7 @@ class SmartDataLoader:
         logger.info(f"✓ 找到 features.csv: {matches[0]}")
         return matches[0]
     
-    def find_lastfm_tags(self) -> List[Path]:
+    def find_lastfm_tags(self) -> list[Path]:
         """
         递归查找 Last.fm 标签 JSON 文件
         """
@@ -126,8 +116,8 @@ class SmartDataLoader:
 
 class FMAProcessor:
     """FMA 数据处理器"""
-    
-    def load_tracks(self, tracks_path: Path) -> pd.DataFrame:
+
+    def load_tracks(self, tracks_path: Path):
         """加载 FMA tracks.csv"""
         logger.info(f"加载 FMA tracks: {tracks_path}")
         
@@ -135,13 +125,20 @@ class FMAProcessor:
             # FMA tracks.csv 通常是多级表头
             df = pd.read_csv(tracks_path, index_col=0, header=[0, 1])
             logger.info(f"  原始形状: {df.shape}")
-            
+
+            def _get_series(df_in: pd.DataFrame, multi_key: tuple[str, str], single_key: str):
+                if isinstance(df_in.columns, pd.MultiIndex) and multi_key in df_in.columns:
+                    return df_in[multi_key]
+                if single_key in df_in.columns:
+                    return df_in[single_key]
+                return pd.Series(["" for _ in range(len(df_in))], index=df_in.index)
+
             # 提取需要的列
             tracks_clean = pd.DataFrame({
                 'track_id': df.index.astype(str),
-                'title': df.get(('track', 'title'), df.get('title', '')).fillna(''),
-                'artist': df.get(('artist', 'name'), df.get('artist', '')).fillna(''),
-                'genre': df.get(('track', 'genre_top'), df.get('genre', '')).fillna(''),
+                'title': _get_series(df, ('track', 'title'), 'title').fillna('').astype(str),
+                'artist': _get_series(df, ('artist', 'name'), 'artist').fillna('').astype(str),
+                'genre': _get_series(df, ('track', 'genre_top'), 'genre').fillna('').astype(str),
             })
             
             tracks_clean = tracks_clean[tracks_clean['title'] != '']
@@ -162,8 +159,12 @@ class FMAProcessor:
 
 class LastFMProcessor:
     """Last.fm 数据处理器"""
-    
-    def load_tags_from_json(self, json_files: List[Path], max_files: int = None) -> Dict:
+
+    def load_tags_from_json(
+        self,
+        json_files: list[Path],
+        max_files: int | None = None,
+    ) -> dict[str, dict[str, object]]:
         """
         从 JSON 文件加载 Last.fm 标签
         JSON 格式参考: {"track_id": "xxx", "artist": "xxx", "title": "xxx", "tags": [[tag, count], ...]}
@@ -173,7 +174,7 @@ class LastFMProcessor:
         if max_files:
             json_files = json_files[:max_files]
         
-        tags_dict = {}
+        tags_dict: dict[str, dict[str, object]] = {}
         loaded_count = 0
         
         for json_file in tqdm(json_files, desc="加载 JSON"):
@@ -222,7 +223,7 @@ class DataMerger:
         text = re.sub(r'\s+', ' ', text).strip()
         return text
     
-    def merge_data(self, fma_tracks: pd.DataFrame, lastfm_tags: Dict) -> pd.DataFrame:
+    def merge_data(self, fma_tracks, lastfm_tags: dict[str, dict[str, object]]):
         """
         融合 FMA 和 Last.fm 数据
         使用二阶段策略：
@@ -258,8 +259,21 @@ class DataMerger:
         matched_exact = 0
         
         for idx, row in tqdm(fma_tracks.iterrows(), total=len(fma_tracks), desc="精确匹配"):
-            title_clean = self.normalize_text(row['title'])
-            artist_clean = self.normalize_text(row['artist'])
+            title_val = row.get('title', '')
+            artist_val = row.get('artist', '')
+            if not isinstance(title_val, str):
+                if title_val is None or (isinstance(title_val, float) and np.isnan(title_val)):
+                    title_val = ''
+                else:
+                    title_val = str(title_val)
+            if not isinstance(artist_val, str):
+                if artist_val is None or (isinstance(artist_val, float) and np.isnan(artist_val)):
+                    artist_val = ''
+                else:
+                    artist_val = str(artist_val)
+
+            title_clean = self.normalize_text(title_val)
+            artist_clean = self.normalize_text(artist_val)
             lookup_key = f"{title_clean}|||{artist_clean}"
             
             if lookup_key in lastfm_lookup:
@@ -271,29 +285,111 @@ class DataMerger:
         logger.info(f"  精确匹配成功: {matched_exact}/{len(fma_tracks)} ({matched_exact/len(fma_tracks)*100:.2f}%)")
         
         return fma_tracks
+
+    @staticmethod
+    def _clean_tags(tags: object) -> list[str]:
+        if tags is None:
+            return []
+
+        if isinstance(tags, str):
+            candidates = [tags]
+        elif isinstance(tags, (list, tuple, set, np.ndarray, pd.Series)):
+            candidates = list(tags)
+        else:
+            return []
+
+        cleaned: list[str] = []
+        seen = set()
+        for t in candidates:
+            if not isinstance(t, str):
+                continue
+            s = t.replace('_', ' ').strip()
+            s = re.sub(r"\s+", " ", s)
+            s = s.lower()
+            if not s:
+                continue
+            if s in seen:
+                continue
+            seen.add(s)
+            cleaned.append(s)
+        return cleaned
+
+    @staticmethod
+    def _clamp_text(text: str, max_chars: int) -> str:
+        if not text:
+            return ""
+        if max_chars <= 0:
+            return ""
+        if len(text) <= max_chars:
+            return text
+
+        clamped = text[:max_chars]
+        return clamped.rstrip(" |.,;\n\t")
     
     def build_rich_text(self, df: pd.DataFrame) -> pd.DataFrame:
         """构建 BGE-M3 Rich Text"""
         logger.info("构建 rich_text 字段...")
-        
-        def create_rich_text(row):
-            parts = []
-            if row.get('title'):
-                parts.append(f"标题: {row['title']}")
-            if row.get('artist'):
-                parts.append(f"歌手: {row['artist']}")
-            if row.get('genre'):
-                parts.append(f"风格: {row['genre']}")
-            if row.get('tags') and len(row['tags']) > 0:
-                tags_str = ', '.join(row['tags'][:5])  # 取前5个标签
-                parts.append(f"标签: {tags_str}")
-            
-            return " | ".join(parts) if parts else ""
+
+        def _safe_text(val: object) -> str:
+            if val is None:
+                return ""
+            try:
+                if isinstance(val, float) and np.isnan(val):
+                    return ""
+                if not isinstance(val, (list, tuple, set, dict)):
+                    na = pd.isna(val)
+                    if isinstance(na, (bool, np.bool_)) and na:
+                        return ""
+            except Exception:
+                pass
+            return str(val).strip()
+
+        def create_rich_text(row) -> str:
+            title = _safe_text(row.get('title'))
+            artist = _safe_text(row.get('artist'))
+            genre = _safe_text(row.get('genre'))
+
+            tags_list = self._clean_tags(row.get('tags'))
+            tags_list = tags_list[:10]
+            tags_str = ", ".join(tags_list)
+
+            en_parts: list[str] = ["Music track."]
+            if title:
+                en_parts.append(f"Title: {title}.")
+            if artist:
+                en_parts.append(f"Artist: {artist}.")
+            if title:
+                en_parts.append(f"Title: {title}.")
+            if artist:
+                en_parts.append(f"Artist: {artist}.")
+            if genre:
+                en_parts.append(f"Genre: {genre}.")
+            if tags_str:
+                en_parts.append(f"Tags: {tags_str}.")
+
+            zh_parts: list[str] = []
+            if title:
+                zh_parts.append(f"标题: {title}")
+            if artist:
+                zh_parts.append(f"歌手: {artist}")
+            if genre:
+                zh_parts.append(f"风格: {genre}")
+            if tags_str:
+                zh_parts.append(f"标签: {tags_str}")
+
+            if not zh_parts and en_parts == ["Music track."]:
+                return ""
+
+            text = " ".join(en_parts)
+            if zh_parts:
+                text = f"{text} {' | '.join(zh_parts)}"
+
+            return self._clamp_text(text, max_chars=320)
         
         df['rich_text'] = df.apply(create_rich_text, axis=1)
         
         # 过滤空记录
-        df = df[df['rich_text'] != '']
+        df = df.loc[df['rich_text'] != ''].copy()
         logger.info(f"  生成 {len(df)} 条 rich_text")
         
         return df

@@ -15,6 +15,8 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import json
 import pickle
 import logging
+import numpy as np
+from scipy.sparse import csr_matrix
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 from collections import defaultdict
@@ -156,14 +158,22 @@ class MusicRecommender:
         target_internal_id = self.item_to_internal[target_id]
 
         try:
-            # 构造“伪用户”
-            user_items = {target_internal_id: 1.0}
+            if hasattr(self.model, "item_factors") and self.model.item_factors is not None:
+                n_items = self.model.item_factors.shape[0]
+            else:
+                n_items = max(self.internal_to_item.keys()) + 1 if self.internal_to_item else 0
+
+            user_items = csr_matrix(
+                ([1.0], ([0], [target_internal_id])),
+                shape=(1, n_items)
+            )
 
             rec_ids, scores = self.model.recommend(
                 userid=0,
                 user_items=user_items,
                 N=top_k,
-                filter_already_liked_items=True
+                filter_already_liked_items=True,
+                recalculate_user=True
             )
 
             for iid, score in zip(rec_ids, scores):

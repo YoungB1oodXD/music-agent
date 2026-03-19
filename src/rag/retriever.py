@@ -9,11 +9,7 @@ _PASSTHROUGH_FIELDS: tuple[str, ...] = (
     "artist",
     "title",
     "genre",
-    "tags",
     "similarity",
-    "distance",
-    "track_id",
-    "id",
 )
 
 
