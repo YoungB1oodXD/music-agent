@@ -7,6 +7,12 @@ os.environ['TRANSFORMERS_NO_TF'] = '1'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['KERAS_BACKEND'] = 'none'
 os.environ['TF_USE_LEGACY_KERAS'] = '1'
+os.environ['HF_HUB_OFFLINE'] = '1'
+os.environ['TRANSFORMERS_OFFLINE'] = '1'
+os.environ.pop('HTTP_PROXY', None)
+os.environ.pop('HTTPS_PROXY', None)
+os.environ.pop('http_proxy', None)
+os.environ.pop('https_proxy', None)
 
 import sys
 from pathlib import Path

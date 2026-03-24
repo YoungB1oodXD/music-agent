@@ -247,6 +247,11 @@ app = FastAPI(
     description="LLM mode is controlled by MUSIC_AGENT_LLM_MODE (mock by default, qwen optional).",
 )
 
+FMA_SMALL_AUDIO_DIR = Path(__file__).parent.parent.parent / "dataset" / "raw" / "fma_small"
+if FMA_SMALL_AUDIO_DIR.exists():
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/audio", StaticFiles(directory=str(FMA_SMALL_AUDIO_DIR)), name="audio")
+
 
 class ChatRequest(BaseModel):
     session_id: str | None = None
@@ -266,6 +271,10 @@ class RecommendationObject(BaseModel):
     name: str
     reason: str | None = None
     citations: list[str] = Field(default_factory=list)
+    is_playable: bool | None = None
+    audio_url: str | None = None
+    score: float | None = None
+    display_score: int | None = None
 
 
 class DebugInfo(BaseModel):

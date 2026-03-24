@@ -1,11 +1,11 @@
 # AGENTS.md
 
-**Generated:** 2026-03-18
+**Generated:** 2026-03-24
 **Stack:** Python 3.11 | FastAPI | BGE-M3 | ChromaDB | Implicit ALS
 
 ## OVERVIEW
 
-Dual-brain music recommendation system with agent orchestration. Left brain: semantic search (BGE-M3 + ChromaDB). Right brain: collaborative filtering (Implicit ALS). Runtime: LLM-powered agent with RAG pipeline and tool dispatch.
+Dual-brain music recommendation system with LLM-powered agent orchestration. Left brain: semantic search (BGE-M3 + ChromaDB). Right brain: collaborative filtering (Implicit ALS). Runtime: intent extraction → slot filling → tool dispatch → response synthesis.
 
 ## STRUCTURE
 
@@ -28,191 +28,144 @@ tests/            # Standalone test scripts (no pytest harness)
 | Task | Location | Notes |
 |------|----------|-------|
 | Add new tool | `src/tools/` | Register in `registry.py`, create handler |
-| Modify intent routing | `src/agent/orchestrator.py` | 1193 lines — core dispatch logic |
+| Modify intent routing | `src/agent/orchestrator.py` | Core dispatch logic |
 | Change LLM provider | `src/llm/clients/` | Base class + Qwen implementation |
 | Adjust RAG pipeline | `src/rag/` | Context builder + retriever |
 | Add API endpoint | `src/api/app.py` | FastAPI routes, session store |
 | Train models | `scripts/` | train_cf.py, vectorizer_bge.py |
-| Run chat CLI | `scripts/chat_cli.py` | --llm {mock,qwen} |
 
-## ANTI-PATTERNS (THIS PROJECT)
+## ANTI-PATTERNS (CRITICAL)
 
 - **DO NOT** use `as any`, `@ts-ignore` equivalents
 - **DO NOT** suppress type errors — this repo uses type hints
-- **DO NOT** delete failing tests to "pass" — tests are standalone scripts
-- **AVOID** running `scripts/run_hybrid_pipeline.py` — references missing `cleanup.py`
+- **DO NOT** delete failing tests to "pass"
+- **DO NOT** run `scripts/run_hybrid_pipeline.py` — references missing `cleanup.py`
+- **DO NOT** catch broadly without logging: use `except Exception` with `logger.error(..., exc_info=True)`
 
 ## UNIQUE STYLES
 
 - **No package structure**: Scripts inject `sys.path.insert(0, repo_root)` before importing `src.*`
-- **Encoding headers**: Keep `# -*- coding: utf-8 -*-` for non-ASCII content
+- **Encoding headers**: Keep `# -*- coding: utf-8 -*-` for files with non-ASCII content
 - **Mixed language**: Chinese/English strings — match nearby code language
 - **Mock patterns**: Tests build fake handlers inline, register with `ToolRegistry`
+- **BLAS pinning**: Set `OPENBLAS_NUM_THREADS=1` etc. before importing `implicit` on Windows
 
-## Environment
-
-- Python: 3.11 (per `README.md` badge)
-- Dependencies: `requirements.txt` (pip), optional conda installs mentioned in `README.md`
-
-Install:
+## ENVIRONMENT
 
 ```bash
+# Install dependencies
 python -m pip install -r requirements.txt
+
+# Windows BLAS thread pinning (required for implicit)
+export OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
+
+# DashScope API keys (priority: BAILIAN > default)
+export DASHSCOPE_API_KEY_BAILIAN="your_key"  # Preferred
+export DASHSCOPE_API_KEY="your_key"          # Fallback
 ```
 
-Windows / BLAS thread pinning (used in code):
-- Some modules set `OPENBLAS_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, `OMP_NUM_THREADS=1`.
-- Keep these environment settings before importing `implicit` on Windows.
+## BUILD / TRAIN COMMANDS
 
-## Build / Train / Run Commands
-
-There is no single build tool; the "build" is generating data artifacts and models.
-
-### Dataset layout (expected)
-- Last.fm train JSONs: `dataset/raw/lastfm_train/` (nested subdirs)
-- Last.fm subset tags: `dataset/raw/lastfm_subset/` (nested JSONs)
-- FMA metadata: `dataset/raw/fma_metadata/` (expects `tracks.csv`)
-
-### Data processing (creates parquet for embedding)
+No single build tool — "build" generates data artifacts and models.
 
 ```bash
+# 1. Process data for embedding
 python scripts/data_processor_bge.py
-```
+# → data/processed/unified_songs_bge.parquet
 
-Outputs:
-- `data/processed/unified_songs_bge.parquet`
-
-### Build metadata mapping (track_id -> "artist - title")
-
-```bash
+# 2. Build metadata mapping
 python scripts/build_metadata_from_json.py
-```
+# → dataset/processed/metadata.json
 
-Outputs:
-- `dataset/processed/metadata.json`
-
-### Train collaborative filtering model (implicit ALS)
-
-```bash
+# 3. Train collaborative filtering model
 python scripts/train_cf.py
-```
+# → data/models/implicit_model.pkl, cf_mappings.pkl
 
-Outputs:
-- `data/models/implicit_model.pkl`
-- `data/models/cf_mappings.pkl`
-
-### Build vector index (BGE-M3 embeddings -> ChromaDB)
-
-```bash
+# 4. Build vector index
 python scripts/vectorizer_bge.py
+# → index/chroma_bge_m3/
 ```
 
-Outputs:
-- `index/chroma_bge_m3/` (ChromaDB persistence)
+## LINT / TYPECHECK
 
-### Orchestrated pipeline
-There is a pipeline driver at `scripts/run_hybrid_pipeline.py`, but it references
-`cleanup.py` (missing) and prints some stale names (e.g., "LightFM").
-Treat it as experimental unless updated.
-
-## Lint / Typecheck
-
-No linter/formatter/typechecker configuration files were found in this repo.
-
-Recommended minimal "sanity" checks when making changes:
+No linter/formatter configured. Minimal sanity check:
 
 ```bash
 python -m compileall src scripts tests
 ```
 
-If you introduce a tool (ruff/black/mypy), do it as a separate, explicit change.
+## TESTS
 
-## Tests
+No pytest harness — tests are standalone scripts with `if __name__ == "__main__"` blocks.
 
-There is no pytest/unittest harness detected; tests are mostly runnable scripts.
-
-### Run all available test-like scripts
-
-```bash
-python tests/simulate_session.py
-python tests/verify_enhancement.py
-```
-
-### Run a single test / single check
-
-Use direct execution of the script/module you care about:
+### Run a single test
 
 ```bash
 python tests/verify_enhancement.py
+python tests/tool_registry_unit.py
+python tests/agent_orchestrator_smoke.py
 ```
 
-Or run a single module's built-in smoke test (uses `if __name__ == "__main__"`):
+### Run module smoke tests
 
 ```bash
 python src/recommender/music_recommender.py
 python src/searcher/music_searcher.py
-python scripts/eval_model.py
 ```
 
-Important: many of these require local artifacts:
-- `MusicSearcher` requires `index/chroma_bge_m3/` to exist.
-- `MusicRecommender` requires `data/models/*.pkl` and (optionally) `dataset/processed/metadata.json`.
+### Prerequisites
 
-## Code Style Guidelines (follow existing patterns)
+- `MusicSearcher` requires `index/chroma_bge_m3/`
+- `MusicRecommender` requires `data/models/*.pkl` and optionally `dataset/processed/metadata.json`
+
+## CODE STYLE
 
 ### Formatting
-- Indentation: 4 spaces.
-- Line length: no explicit limit configured; keep it readable (prefer < 100).
-- Files commonly include a shebang and `# -*- coding: utf-8 -*-` header.
-  Keep the encoding header if the file contains non-ASCII (many docstrings are Chinese).
+- Indentation: 4 spaces. Line length: keep readable (<100 preferred).
+- Files often have shebang + `# -*- coding: utf-8 -*-` header.
 
 ### Imports
-- Use top-level imports.
-- Group in this order, separated by blank lines:
-  1. Standard library
-  2. Third-party libraries
-  3. Local imports
+- Top-level imports, grouped: (1) stdlib, (2) third-party, (3) local.
 - Avoid wildcard imports.
 
 ### Types
-- Prefer type hints for public methods and non-trivial helpers.
-- Use `Optional[T]` and `Dict[str, Any]` as needed; match existing style.
-- Do not use `Any` to silence type issues unless the boundary truly is dynamic.
+- Use type hints for public methods and non-trivial helpers.
+- Use `Optional[T]`, `Dict[str, Any]`, `cast()` from typing.
+- Do NOT use `Any` to silence type errors.
 
 ### Naming
-- Modules/files: `snake_case.py`.
-- Classes: `PascalCase`.
-- Functions/methods: `snake_case`.
-- Constants: `UPPER_SNAKE_CASE` (see `DEFAULT_MODEL_NAME`, etc.).
+- Modules: `snake_case.py`. Classes: `PascalCase`. Functions: `snake_case`.
+- Constants: `UPPER_SNAKE_CASE`. Internal constants: `_PREFIXED_NAME`.
 
-### Paths and filesystem
-- Prefer `pathlib.Path` and compute `project_root` from `__file__` (common pattern).
-- Treat `data/`, `dataset/`, and `index/` as local-only artifacts (gitignored).
-- When reading/writing files, create parent directories with `mkdir(parents=True, exist_ok=True)`.
+### Paths
+- Use `pathlib.Path`. Compute `project_root` from `__file__`.
+- Create parent dirs: `mkdir(parents=True, exist_ok=True)`.
 
 ### Logging
-- Many modules call `logging.basicConfig(...)` at import time and use `logger = logging.getLogger(__name__)`.
-- For libraries, prefer not to reconfigure global logging; for scripts, current pattern is acceptable.
-- Log exceptions with stack traces when helpful (e.g., `logger.error(..., exc_info=True)`).
+- `logger = logging.getLogger(__name__)` at module level.
+- Scripts may call `logging.basicConfig()` at import time.
+- Log exceptions with `logger.error(..., exc_info=True)`.
 
-### Error handling
-- Prefer explicit exceptions for missing prerequisites:
-  - Missing model/index files: raise `FileNotFoundError` with a clear path.
-  - Missing optional deps: raise `ImportError` with an install hint.
-- Avoid bare `except:`; use `except Exception` if you must catch broadly.
-- Do not swallow errors silently; at minimum log debug info.
+### Error Handling
+- Missing files: raise `FileNotFoundError` with path.
+- Missing deps: raise `ImportError` with install hint.
+- Never use bare `except:`. Never swallow errors silently.
 
-### Performance / resource constraints
-- On Windows, keep BLAS/OMP threads pinned to 1 before importing `implicit`.
-- Vectorization can be GPU-intensive and long-running; avoid running it in tight loops.
+## CLI USAGE
 
-## Repo-specific conventions / gotchas
+```bash
+# Chat CLI (mock mode for testing)
+python scripts/chat_cli.py --llm mock
 
-- This repo mixes Chinese/English strings and docstrings; keep user-facing messages consistent with nearby code.
-- Some scripts have minor inconsistencies (e.g., pipeline references missing files). Prefer the direct scripts:
-  `scripts/data_processor_bge.py`, `scripts/vectorizer_bge.py`, `scripts/train_cf.py`.
+# Chat CLI (Qwen mode)
+python scripts/chat_cli.py --llm qwen --once "推荐适合学习的歌"
 
-## Cursor / Copilot rules
+# API server
+python scripts/run_api.py  # Port 8000
+```
 
-- No Cursor rules found: `.cursor/rules/` and `.cursorrules` are not present.
-- No Copilot instructions found: `.github/copilot-instructions.md` is not present.
+## REPO-SPECIFIC CONVENTIONS
+
+- Mixed Chinese/English: keep user-facing messages consistent with nearby code.
+- Some scripts reference missing files — prefer direct scripts: `train_cf.py`, `vectorizer_bge.py`, `data_processor_bge.py`.
+- Tool responses follow: `{"ok": bool, "data": Any, "error": str | None}`

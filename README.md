@@ -1,15 +1,26 @@
 # 🎵 Music Agent - 智能音乐推荐系统
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> 基于「双脑架构」的智能音乐推荐系统：结合**语义搜索**与**协同过滤**，提供精准的音乐推荐服务。
+> 基于「双脑架构」的智能音乐推荐系统：结合**语义搜索**与**协同过滤**，通过 LLM Agent 编排实现自然语言交互式推荐。
+
+---
+
+## ✨ 核心特性
+
+- 🧠 **双脑架构** - 语义搜索（BGE-M3）+ 协同过滤（Implicit ALS）
+- 🤖 **LLM Agent 编排** - 意图识别 → 槽位填充 → 工具调度 → 响应生成
+- 💬 **自然语言交互** - 支持中英文对话式推荐
+- 🎧 **试听功能** - 8000+ 歌曲可在线试听
+- 📊 **展示分数校准** - 用户友好的匹配指数显示
+- 🌐 **Web 界面** - React 前端 + FastAPI 后端
 
 ---
 
 ## 🧠 双脑架构
-
-本项目采用独特的「双脑」设计，模拟人类大脑的左右脑分工：
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -20,17 +31,12 @@
 ├─────────────────────────────┼───────────────────────────────────┤
 │  ✦ BGE-M3 向量模型           │  ✦ Implicit ALS 协同过滤           │
 │  ✦ ChromaDB 向量数据库       │  ✦ Last.fm 用户行为数据            │
-│  ✦ FMA 音乐元数据            │  ✦ 839K+ 歌曲交互数据              │
+│  ✦ FMA 音乐元数据 (106K)     │  ✦ 839K+ 歌曲交互数据              │
 ├─────────────────────────────┼───────────────────────────────────┤
 │  📝 "relaxing jazz music"   │  🎧 "喜欢这首歌的人还喜欢..."       │
-│  📝 "欢快的流行歌曲"          │  🎧 基于历史听歌行为推荐            │
+│  📝 "适合学习的轻音乐"        │  🎧 基于历史听歌行为推荐            │
 └─────────────────────────────┴───────────────────────────────────┘
 ```
-
-| 模块 | 功能 | 数据源 | 技术栈 |
-|------|------|--------|--------|
-| **Left Brain** | 语义搜索 - 理解用户自然语言描述 | FMA 数据集 (106K 歌曲) | BGE-M3, ChromaDB |
-| **Right Brain** | 协同过滤 - 学习用户行为模式 | Last.fm 数据集 (839K 交互) | Implicit ALS |
 
 ---
 
@@ -38,45 +44,56 @@
 
 ```
 music_agent/
+├── 📁 src/                         # 核心模块
+│   ├── 📁 agent/                   # LLM Agent 编排层
+│   │   └── orchestrator.py         # 意图识别、工具调度、响应生成
+│   ├── 📁 api/                     # FastAPI 应用
+│   │   └── app.py                  # /chat, /recommend, /search 端点
+│   ├── 📁 llm/                     # LLM 客户端
+│   │   └── clients/                # Qwen (OpenAI-compatible), Mock
+│   ├── 📁 rag/                     # 检索增强生成
+│   │   ├── context_builder.py      # 上下文构建
+│   │   └── retriever.py            # 相关文档检索
+│   ├── 📁 tools/                   # 工具注册
+│   │   ├── semantic_search_tool.py # 语义搜索工具
+│   │   ├── cf_recommend_tool.py    # 协同过滤工具
+│   │   └── hybrid_recommend_tool.py# 混合推荐工具
+│   ├── 📁 manager/                 # 会话状态管理
+│   ├── 📁 recommender/             # 协同过滤 (Right Brain)
+│   └── 📁 searcher/                # 语义搜索 (Left Brain)
 │
-├── 📄 README.md                    # 项目文档
-├── 📄 requirements.txt             # Python 依赖
-├── 📄 .gitignore                   # Git 忽略规则
+├── 📁 frontend/                    # React 前端
+│   ├── 📁 src/
+│   │   ├── 📁 components/          # UI 组件
+│   │   ├── 📁 contexts/            # React Context
+│   │   ├── 📁 mappers/             # 数据映射
+│   │   └── 📁 services/            # API 服务
+│   └── vite.config.ts              # Vite 配置
 │
-├── 📁 src/                         # 核心模块（可被 import）
-│   ├── recommender/                # 协同过滤推荐器 (Right Brain)
-│   │   ├── __init__.py
-│   │   └── music_recommender.py    # MusicRecommender 类
-│   └── searcher/                   # 语义搜索器 (Left Brain)
-│       ├── __init__.py
-│       └── music_searcher.py       # MusicSearcher 类
+├── 📁 scripts/                     # 入口脚本
+│   ├── run_api.py                  # 启动 API 服务
+│   ├── chat_cli.py                 # 命令行聊天
+│   ├── train_cf.py                 # 训练协同过滤模型
+│   ├── vectorizer_bge.py           # 构建向量索引
+│   └── data_processor_bge.py       # 数据预处理
 │
-├── 📁 scripts/                     # 训练与构建脚本
-│   ├── train_cf.py                 # 协同过滤模型训练
-│   ├── vectorizer_bge.py           # BGE 向量化构建
-│   ├── data_processor_bge.py       # FMA 数据清洗
-│   ├── build_metadata_from_json.py # 元数据提取
-│   ├── eval_model.py               # 模型评估
-│   └── run_hybrid_pipeline.py      # 完整流水线
+├── 📁 data/                        # 模型产物
+│   ├── models/                     # 训练好的模型
+│   └── processed/                  # 处理后的数据
 │
-├── 📁 data/                        # 模型产物（.gitignore）
-│   ├── models/
-│   │   ├── implicit_model.pkl      # 协同过滤模型
-│   │   └── cf_mappings.pkl         # ID 映射
-│   └── processed/
-│       └── unified_songs_bge.parquet
+├── 📁 dataset/                     # 原始数据
+│   └── raw/fma_small/              # FMA 音频文件 (8000+ MP3)
 │
-├── 📁 dataset/                     # 原始数据（.gitignore）
-│   ├── raw/
-│   │   └── lastfm_train/           # 839K JSON 文件
-│   └── processed/
-│       └── metadata.json           # ID → 歌名映射
-│
-├── 📁 index/                       # 向量索引（.gitignore）
+├── 📁 index/                       # 向量索引
 │   └── chroma_bge_m3/              # ChromaDB 持久化
 │
-└── 📁 docs/                        # 历史文档归档
-    └── *.md
+├── 📁 docs/                        # 文档
+│   ├── 阶段性总结报告_v2.md
+│   ├── 试听功能修复报告_20260324.md
+│   └── score_calibration_analysis.md
+│
+├── 📁 tests/                       # 测试脚本
+└── 📄 AGENTS.md                    # Agent 开发指南
 ```
 
 ---
@@ -90,126 +107,118 @@ music_agent/
 conda create -n music_agent python=3.11 -y
 conda activate music_agent
 
-# 安装依赖
+# 安装后端依赖
 pip install -r requirements.txt
 
-# 或使用 conda-forge（推荐 Windows 用户）
-conda install -c conda-forge implicit chromadb sentence-transformers
+# 安装前端依赖
+cd frontend && npm install
 ```
 
-### 2. 数据准备
-
-将原始数据放入对应目录：
-- `dataset/raw/lastfm_train/` - Last.fm 训练数据 (JSON 格式)
-- `dataset/raw/fma_metadata/` - FMA 元数据 (可选)
-
-### 3. 构建系统
+### 2. 配置环境变量
 
 ```bash
-cd scripts/
+# Windows BLAS 线程固定（推荐）
+set OPENBLAS_NUM_THREADS=1
+set MKL_NUM_THREADS=1
 
-# Step 1: 训练协同过滤模型 (Right Brain)
-python train_cf.py
+# DashScope API Key（Qwen 模式必需）
+set DASHSCOPE_API_KEY_BAILIAN=your_api_key
+# 或
+set DASHSCOPE_API_KEY=your_api_key
 
-# Step 2: 提取元数据映射
-python build_metadata_from_json.py
-
-# Step 3: 构建向量索引 (Left Brain, 需要 GPU 加速)
-python vectorizer_bge.py
+# LLM 模式选择
+set MUSIC_AGENT_LLM_MODE=qwen  # 使用 Qwen
+# set MUSIC_AGENT_LLM_MODE=mock  # 使用 Mock（无需 API Key）
 ```
+
+### 3. 启动服务
+
+```bash
+# 启动后端 API (端口 8000)
+python scripts/run_api.py
+
+# 新终端：启动前端 (端口 3000)
+cd frontend && npm run dev
+```
+
+### 4. 访问应用
+
+打开浏览器访问 http://localhost:3000
 
 ---
 
-## 💡 使用方法
+## 💡 功能演示
 
-### 🧠 Right Brain: 协同过滤推荐
+### 🤖 智能对话推荐
 
-```python
-from src.recommender import MusicRecommender
+通过自然语言与系统交互：
 
-# 初始化推荐器
-recommender = MusicRecommender()
+```
+用户：推荐一些适合学习的歌
+Agent：我为你找到 5 首适合学习的歌曲：
+       1. Quiet Pages - Paper Lanterns (匹配度: 92%)
+       2. Soft Rain Notes - Window Seat (匹配度: 89%)
+       ...
 
-# 搜索歌曲
-results = recommender.search_song("Dirty Little Thing")
-print(results)  # [('TRZNRZF...', 'Adelitas Way - Dirty Little Thing'), ...]
-
-# 获取推荐
-rec = recommender.recommend_by_song("Hate Love", top_k=5)
-print(rec['recommendations'])
-# [{'name': 'Adelitas Way - Dirty Little Thing', 'score': 0.99}, ...]
-
-# 格式化输出（适合 Agent）
-print(recommender.recommend_formatted("Survive", top_k=3))
-# 🎵 基于歌曲: Sick Puppies - Survive
-# 📋 为你推荐:
-#    1. Adelitas Way - Hate Love (相似度: 0.98)
-#    ...
+用户：我想要更欢快一点的
+Agent：好的，我为你推荐更欢快的歌曲：
+       1. Caffeine Loop - Night Library (匹配度: 91%)
+       ...
 ```
 
-### 🧠 Left Brain: 语义搜索
+### 🎧 试听功能
 
-```python
-from src.searcher import MusicSearcher
+- 推荐卡片显示「可试听」标签
+- 点击播放按钮即可在线试听
+- 支持单实例播放（自动暂停前一首）
 
-# 初始化搜索器（首次加载模型较慢）
-searcher = MusicSearcher()
+### 📊 匹配指数
 
-# 自然语言搜索
-results = searcher.search("relaxing jazz music", top_k=5)
-for r in results:
-    print(f"{r['artist']} - {r['title']} (相似度: {r['similarity']:.2f})")
-
-# 支持中文查询
-results_cn = searcher.search("欢快的流行歌曲", top_k=3)
-
-# 格式化输出
-print(searcher.search_formatted("sad piano ballad", top_k=3))
-# 🔍 搜索: "sad piano ballad"
-# 📋 找到 3 首相关音乐:
-#    1. Artist - Title [Genre] (相似度: 0.85)
-#    ...
-```
-
-### 🔀 混合推荐（双脑协作）
-
-```python
-from src.recommender import MusicRecommender
-from src.searcher import MusicSearcher
-
-# 初始化双脑
-recommender = MusicRecommender()
-searcher = MusicSearcher()
-
-# 场景：用户说「我想听类似 Coldplay 的轻松音乐」
-# Step 1: 语义搜索理解「轻松音乐」
-semantic_results = searcher.search("relaxing Coldplay style", top_k=3)
-
-# Step 2: 协同过滤找相似歌曲
-for r in semantic_results:
-    cf_results = recommender.recommend_by_song(r['title'], top_k=2)
-    print(f"基于 {r['title']} 推荐: {cf_results['recommendations']}")
-```
-
-### 🤖 智能对话 (Chat CLI)
-
-通过自然语言与 Music Agent 对话，获取个性化推荐。支持 Mock 模式（无需 API Key）和 Qwen 模式（基于通义千问）。
-
-```bash
-# Mock 模式：快速测试对话逻辑
-python scripts/chat_cli.py --llm mock
-
-# Qwen 模式：使用通义千问大模型
-python scripts/chat_cli.py --llm qwen
-
-# 单次执行模式
-python scripts/chat_cli.py --llm qwen --once "推荐点适合学习的歌"
-```
+- 每首推荐歌曲显示匹配百分比
+- 分数范围 65%~98%
+- 基于排名和原始分数校准
 
 ---
 
+## 🔧 API 接口
 
-## 📊 模型参数
+### POST /chat
+
+智能对话接口
+
+```json
+{
+  "session_id": "optional-session-id",
+  "message": "推荐适合学习的歌"
+}
+```
+
+响应：
+```json
+{
+  "session_id": "xxx",
+  "assistant_text": "我为你找到了...",
+  "recommendations": [
+    {
+      "id": "fma_123",
+      "name": "Song Name",
+      "reason": "适合学习的轻松音乐",
+      "is_playable": true,
+      "audio_url": "/audio/fma_small/000/000123.mp3",
+      "display_score": 92
+    }
+  ],
+  "state": { "mood": "calm", "scene": "study" }
+}
+```
+
+### GET /audio/{path}
+
+静态音频文件服务
+
+---
+
+## 📊 技术参数
 
 ### 协同过滤 (Implicit ALS)
 
@@ -226,8 +235,15 @@ python scripts/chat_cli.py --llm qwen --once "推荐点适合学习的歌"
 |------|-----|------|
 | model | BAAI/bge-m3 | 多语言向量模型 |
 | dimension | 1024 | 向量维度 |
-| batch_size | 16 | 批处理大小 |
 | 索引数据 | 106K | FMA 音乐元数据 |
+
+### 试听功能
+
+| 参数 | 值 |
+|------|-----|
+| 可试听歌曲数 | 8000+ |
+| 音频格式 | MP3 |
+| 数据来源 | FMA Small |
 
 ---
 
@@ -236,45 +252,84 @@ python scripts/chat_cli.py --llm qwen --once "推荐点适合学习的歌"
 ### 运行测试
 
 ```bash
-# 测试推荐器
+# 测试模块
 python src/recommender/music_recommender.py
-
-# 测试搜索器
 python src/searcher/music_searcher.py
 
-# 模型评估
-python scripts/eval_model.py
+# 测试 Agent
+python tests/agent_orchestrator_smoke.py
+python tests/tool_registry_unit.py
 ```
 
-### 环境变量
+### 构建系统
 
 ```bash
-# 禁用 BLAS 多线程（Windows 兼容性）
-export OPENBLAS_NUM_THREADS=1
-export MKL_NUM_THREADS=1
+# 1. 数据预处理
+python scripts/data_processor_bge.py
 
-# DashScope (通义千问) 配置
-# API Key 优先级：显式参数 > DASHSCOPE_API_KEY_BAILIAN > DASHSCOPE_API_KEY
-export DASHSCOPE_API_KEY_BAILIAN="your_bailian_api_key" # 优先使用（百炼普通 Key）
-export DASHSCOPE_API_KEY="your_api_key"                 # 备选（如 Coding Plan Key）
+# 2. 构建元数据映射
+python scripts/build_metadata_from_json.py
 
-# 可选：覆盖 OpenAI-compatible Base URL
-# - 百炼普通接口（默认）：https://dashscope.aliyuncs.com/compatible-mode/v1
-# - Coding Plan：https://coding.dashscope.aliyuncs.com/v1
-export DASHSCOPE_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+# 3. 训练协同过滤模型
+python scripts/train_cf.py
 
-# 可选：覆盖模型名（默认 qwen3.5-plus）
-export DASHSCOPE_MODEL="qwen3.5-plus"
+# 4. 构建向量索引
+python scripts/vectorizer_bge.py
+
+# 5. 构建音频映射
+python scripts/build_audio_mapping.py
 ```
 
+### 命令行聊天
+
+```bash
+# Mock 模式（无需 API Key）
+python scripts/chat_cli.py --llm mock
+
+# Qwen 模式
+python scripts/chat_cli.py --llm qwen
+
+# 单次执行
+python scripts/chat_cli.py --llm qwen --once "推荐适合学习的歌"
+```
+
+---
+
+## 🆕 Recent Updates
+
+### v1.1.0 (2026-03-24)
+
+#### Audio Playback Fixes
+- Fixed audio 404 errors (path prefix mismatch in `audio_mapping.json`)
+- Fixed no sound issue (Vite proxy missing `/audio` route)
+- Fixed multiple simultaneous playback (global `AudioPlayerContext` singleton)
+- Added file existence verification before marking songs as playable
+
+#### Match Score Fixes
+- Fixed match score always showing 0%
+- Added `score` field extraction from `evidence` to top-level
+- Added `display_score` calibration (65-98% range)
+- Fixed bottom match bar not syncing with score
+
+#### UI Improvements
+- Added toast notifications for playback errors
+- Added development logging for score mapping
+
+### Roadmap
+
+- [ ] Offline evaluation metrics (Precision@K, NDCG)
+- [ ] Multi-turn dialogue test suite
+- [ ] Recommendation robustness optimization
+- [ ] User preference persistence across sessions
 
 ---
 
 ## 📝 注意事项
 
-1. **Windows 用户**：建议使用 `conda-forge` 安装 `implicit`，避免 C++ 编译问题
-2. **GPU 加速**：向量化过程支持 CUDA，建议使用 GPU 加速（RTX 3060 约需 2 小时）
+1. **Windows 用户**：建议设置 `OPENBLAS_NUM_THREADS=1` 避免 implicit 库问题
+2. **GPU 加速**：向量化过程支持 CUDA，建议使用 GPU
 3. **内存要求**：加载完整模型约需 2-4 GB 内存
+4. **API Key**：Qwen 模式需要 DashScope API Key
 
 ---
 
@@ -291,3 +346,4 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [Implicit](https://github.com/benfred/implicit) - 隐式反馈推荐库
 - [ChromaDB](https://www.trychroma.com/) - 向量数据库
 - [BGE-M3](https://huggingface.co/BAAI/bge-m3) - 多语言向量模型
+- [Qwen](https://tongyi.aliyun.com/) - 通义千问大模型

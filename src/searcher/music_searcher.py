@@ -110,13 +110,21 @@ class MusicSearcher:
             logger.info("ℹ️  使用 CPU 进行向量编码")
     
     def _load_model(self):
-        """加载向量模型"""
+        """加载向量模型（离线模式）"""
         logger.info(f"📦 加载向量模型: {self.model_name}")
+        
+        local_model_path = Path.home() / ".cache" / "huggingface" / "hub" / "models--BAAI--bge-m3" / "snapshots"
+        
+        if local_model_path.exists():
+            snapshot_dirs = list(local_model_path.iterdir())
+            if snapshot_dirs:
+                model_path = snapshot_dirs[0]
+                logger.info(f"   使用本地缓存: {model_path}")
+                self.model_name = str(model_path)
         
         try:
             self.model = SentenceTransformer(self.model_name, device=self.device)
             
-            # GPU 显存优化
             if self.device == 'cuda':
                 self.model.half()
                 logger.info("   启用 float16 精度")
@@ -124,7 +132,12 @@ class MusicSearcher:
             logger.info("   模型加载成功")
             
         except Exception as e:
-            logger.error(f"❌ 模型加载失败: {e}")
+            error_msg = str(e)
+            if "proxy" in error_msg.lower() or "connection" in error_msg.lower():
+                logger.error(f"❌ 模型加载失败（网络问题）: 请确保已下载模型到本地缓存")
+                logger.error(f"   或设置 HF_HUB_OFFLINE=1 环境变量")
+            else:
+                logger.error(f"❌ 模型加载失败: {e}")
             raise
     
     def _connect_database(self):

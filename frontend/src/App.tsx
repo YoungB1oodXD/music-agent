@@ -12,6 +12,7 @@ import { sendFeedback } from './services/feedback';
 import { mapSessionSummaryToSessionContext } from './mappers/session_summary_to_context';
 import { mapChatStateToSessionContext } from './mappers/state_to_context';
 import { mapRecommendationsToTracks } from './mappers/recommendations_to_tracks';
+import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
@@ -212,17 +213,19 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
-      <Sidebar 
-        context={context} 
-        systemStatus={systemStatus} 
-        sessionId={sessionId} 
-        onResetSession={handleResetSession}
-      />
-      <main className="flex-1 flex min-w-0">
-        <ChatArea messages={messages} onSendMessage={handleSendMessage} />
-        <RecommendationPanel tracks={tracks} onFeedback={handleFeedback} />
-      </main>
-    </div>
+    <AudioPlayerProvider>
+      <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
+        <Sidebar 
+          context={context} 
+          systemStatus={systemStatus} 
+          sessionId={sessionId} 
+          onResetSession={handleResetSession}
+        />
+        <main className="flex-1 flex min-w-0">
+          <ChatArea messages={messages} onSendMessage={handleSendMessage} />
+          <RecommendationPanel tracks={tracks} onFeedback={handleFeedback} />
+        </main>
+      </div>
+    </AudioPlayerProvider>
   );
 }

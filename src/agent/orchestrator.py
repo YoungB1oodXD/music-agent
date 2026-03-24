@@ -58,6 +58,13 @@ _TOOL_RESULTS_PROMPT_TOP_K = 5
 _TOOL_RESULTS_PROMPT_MAX_SOURCES = 3
 _ENABLE_LLM_INTENT_EXTRACTION = True
 _ENABLE_PREFERENCE_PARSING = True
+_DEMO_MODE_DEFAULT = True
+_DEMO_MODE_CANDIDATE_MULTIPLIER = 8
+
+_DISPLAY_SCORE_MIN = 65
+_DISPLAY_SCORE_MAX = 98
+_DISPLAY_SCORE_TOP_POSITION = 95
+_DISPLAY_SCORE_BOTTOM_POSITION = 75
 
 _INTENT_PROPERTIES = cast(dict[str, object], INTENT_AND_SLOTS_SCHEMA.get("properties", {}))
 _FINAL_PROPERTIES = cast(dict[str, object], FINAL_RESPONSE_SCHEMA.get("properties", {}))
@@ -92,6 +99,39 @@ def _clamp_top_k(value: object, default: int = 5) -> int:
     except (TypeError, ValueError):
         return default
     return max(1, min(20, parsed))
+
+
+def _calibrate_display_score(raw_score: float | None, rank: int, total: int) -> int:
+    """
+    Calibrate raw score to user-friendly display score (0-100).
+    
+    Strategy:
+    1. Position-based base score: top=95, bottom=75
+    2. Raw score adjustment: high raw -> bonus, low raw -> penalty
+    3. Clamp to 65-98 range
+    """
+    if total <= 0:
+        return 85
+    
+    if total == 1:
+        base = 90
+    else:
+        position_range = _DISPLAY_SCORE_TOP_POSITION - _DISPLAY_SCORE_BOTTOM_POSITION
+        base = _DISPLAY_SCORE_TOP_POSITION - (rank * position_range / (total - 1))
+    
+    adjustment = 0
+    if raw_score is not None:
+        if raw_score >= 0.5:
+            adjustment = 3
+        elif raw_score >= 0.35:
+            adjustment = 0
+        elif raw_score >= 0.26:
+            adjustment = -2
+        else:
+            adjustment = -5
+    
+    display = base + adjustment
+    return int(max(_DISPLAY_SCORE_MIN, min(_DISPLAY_SCORE_MAX, display)))
 
 
 def _normalize_energy(value: object) -> str | None:
@@ -187,7 +227,7 @@ class Orchestrator:
         tool_results = self._dispatch_tools(tool_plan)
 
         rag_context = self._build_rag_context(query_text)
-        recommendations, method = self._extract_recommendations(tool_results)
+        recommendations, method = self._extract_recommendations(tool_results, top_k=top_k)
 
         final_payload = self._compose_final_payload(
             user_text=text,
@@ -643,10 +683,12 @@ class Orchestrator:
         if preference_suffix and preference_suffix not in effective_query_text:
             effective_query_text = f"{effective_query_text} {preference_suffix}".strip()
 
+        candidate_k = top_k * _DEMO_MODE_CANDIDATE_MULTIPLIER
+
         return [
             (
                 "semantic_search",
-                {"query_text": effective_query_text, "top_k": top_k, "exclude_ids": exclude_ids},
+                {"query_text": effective_query_text, "top_k": candidate_k, "exclude_ids": exclude_ids},
             )
         ]
 
@@ -763,6 +805,7 @@ class Orchestrator:
     def _extract_recommendations(
         self,
         tool_results: list[dict[str, object]],
+        top_k: int = 5,
     ) -> tuple[list[dict[str, object]], str | None]:
         method_map = {
             "semantic_search": "semantic",
@@ -785,6 +828,18 @@ class Orchestrator:
             method = method_map.get(tool_name)
             if method is None:
                 continue
+            
+            if _DEMO_MODE_DEFAULT:
+                playable = [r for r in recommendations if r.get("is_playable") is True]
+                non_playable = [r for r in recommendations if r.get("is_playable") is not True]
+                
+                if len(playable) >= top_k:
+                    recommendations = playable[:top_k]
+                else:
+                    recommendations = playable + non_playable[:max(0, top_k - len(playable))]
+            else:
+                recommendations = recommendations[:top_k]
+
             return recommendations, method
 
         return [], None
@@ -908,30 +963,29 @@ class Orchestrator:
                 continue
 
             tool_name = _as_text(row.get("_tool"))
-            reason = "与当前需求匹配"
             citations = ["tool_results"]
 
             evidence: dict[str, object] = {}
             artist = _as_text(row.get("artist"))
             genre = _as_text(row.get("genre"))
+            title = _as_text(row.get("title"))
             if artist:
                 evidence["artist"] = artist
             if genre:
                 evidence["genre"] = genre
+            if title:
+                evidence["title"] = title
 
             if tool_name == "semantic_search":
                 sim = row.get("similarity")
                 if sim is not None:
-                    reason = f"基于语义相似度 {float(cast(float, sim)):.2f} 推荐"
                     citations.append(f"semantic_search.similarity={sim}")
                     evidence["similarity"] = float(cast(float, sim))
                 if genre:
-                    reason += f" (流派: {genre})"
                     citations.append(f"semantic_search.genre={genre}")
             elif tool_name == "cf_recommend":
                 score = row.get("score")
                 if score is not None:
-                    reason = f"基于协同过滤得分 {float(cast(float, score)):.2f} 推荐"
                     citations.append(f"cf_recommend.score={score}")
                     evidence["cf_score"] = float(cast(float, score))
             elif tool_name == "hybrid_recommend":
@@ -940,7 +994,6 @@ class Orchestrator:
                 sem_sim = row.get("semantic_similarity")
                 cf_score = row.get("cf_score")
                 if score is not None:
-                    reason = f"综合推荐得分 {float(cast(float, score)):.2f}"
                     citations.append(f"hybrid_recommend.score={score}")
                     evidence["hybrid_score"] = float(cast(float, score))
                 if sem_sim is not None:
@@ -951,23 +1004,41 @@ class Orchestrator:
                 if sources_list:
                     source_names = [str(source) for source in sources_list[:_TOOL_RESULTS_PROMPT_MAX_SOURCES]]
                     joined_sources = ",".join(source_names)
-                    reason += f" (来源: {joined_sources})"
                     citations.append(f"hybrid_recommend.sources={joined_sources}")
                     evidence["sources"] = source_names
-
-            if not reason:
-                reason = "基于工具检索结果推荐"
 
             seed_row: dict[str, object] = {
                 "id": rec_id,
                 "name": name,
-                "reason": reason,
+                "reason": "",
                 "citations": citations,
             }
             if evidence:
                 seed_row["evidence"] = evidence
+            
+            # Extract score from evidence for top-level access
+            if "similarity" in evidence:
+                seed_row["score"] = evidence["similarity"]
+            elif "hybrid_score" in evidence:
+                seed_row["score"] = evidence["hybrid_score"]
+            elif "cf_score" in evidence:
+                seed_row["score"] = evidence["cf_score"]
+
+            is_playable = row.get("is_playable")
+            audio_url = row.get("audio_url")
+            if is_playable is not None:
+                seed_row["is_playable"] = is_playable
+            if audio_url is not None:
+                seed_row["audio_url"] = audio_url
 
             seed_rows.append(seed_row)
+        
+        total = len(seed_rows)
+        for idx, row in enumerate(seed_rows):
+            raw_score = row.get("score")
+            raw_float = float(cast(float, raw_score)) if isinstance(raw_score, (int, float)) else None
+            row["display_score"] = _calibrate_display_score(raw_float, idx, total)
+        
         return seed_rows
 
     def _generate_final_response(
@@ -1052,9 +1123,12 @@ class Orchestrator:
             "Rules:\n"
             "- assistant_text: brief natural language (1-2 sentences)\n"
             "- recommendations: array with id, name, reason, citations\n"
-            "- reason: explain using evidence (genre/similarity/sources)\n"
-            "- Use double quotes, no markdown, no code fences\n"
-            "- If user_context has mood/scene/genre, mention it naturally\n\n"
+            "- reason: write a NATURAL explanation (1-2 sentences) in Chinese\n"
+            "- DO NOT mention similarity score, embedding, ranking, or technical metrics\n"
+            "- Explain WHY this song fits the user's mood/scene/genre preference\n"
+            "- Use natural language like '这首歌节奏轻快，适合学习时听' NOT '基于相似度0.35推荐'\n"
+            "- If user_context has mood/scene/genre, mention it naturally\n"
+            "- Use double quotes, no markdown, no code fences\n\n"
             f"{json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}"
         )
 
@@ -1124,13 +1198,17 @@ class Orchestrator:
         enhanced_recommendations = []
         for rec in seed_recommendations:
             enhanced_rec = dict(rec)
-            if not rec.get("reason") or rec.get("reason") == "与当前需求匹配":
+            if not rec.get("reason"):
                 evidence = rec.get("evidence")
                 genre = ""
+                title = ""
+                artist = ""
                 similarity = None
                 sources = None
                 if isinstance(evidence, dict):
                     genre = str(evidence.get("genre") or "")
+                    title = str(evidence.get("title") or "")
+                    artist = str(evidence.get("artist") or "")
                     similarity = evidence.get("similarity")
                     sources = evidence.get("sources")
                 
@@ -1139,26 +1217,30 @@ class Orchestrator:
                 if user_context:
                     if user_context.get("scene"):
                         reason_parts.append(f"适合{user_context['scene']}时听")
-                    elif user_context.get("mood"):
-                        reason_parts.append(f"符合{user_context['mood']}的情绪")
-                    elif user_context.get("energy"):
-                        energy_desc = {"low": "安静放松", "medium": "节奏适中", "high": "充满活力"}
+                    if user_context.get("mood"):
+                        reason_parts.append(f"符合{user_context['mood']}的心情")
+                    if user_context.get("energy"):
+                        energy_desc = {"low": "轻松舒缓", "medium": "节奏适中", "high": "活力十足"}
                         reason_parts.append(energy_desc.get(str(user_context["energy"]), ""))
                 
                 if genre and not reason_parts:
                     reason_parts.append(f"{genre}风格")
                 
                 if sources and isinstance(sources, list):
-                    if "semantic" in sources and similarity is not None:
-                        if similarity > 0.4:
-                            reason_parts.append("与你的需求高度契合")
-                        elif similarity > 0.3:
-                            reason_parts.append("较符合你的描述")
+                    if "semantic" in sources:
+                        if similarity is not None and similarity > 0.35:
+                            reason_parts.append("很契合你的描述")
                 
                 if reason_parts:
                     enhanced_rec["reason"] = "，".join([p for p in reason_parts if p])
                 else:
-                    enhanced_rec["reason"] = "根据当前偏好为你推荐"
+                    enhanced_rec["reason"] = "根据你的需求推荐"
+            
+            if rec.get("is_playable") is not None:
+                enhanced_rec["is_playable"] = rec["is_playable"]
+            if rec.get("audio_url") is not None:
+                enhanced_rec["audio_url"] = rec["audio_url"]
+            
             enhanced_recommendations.append(enhanced_rec)
         
         return {
@@ -1192,7 +1274,10 @@ class Orchestrator:
 
             seed = allowed_by_id[rec_id]
             name = _as_text(seed.get("name"))
-            reason = _as_text(item.get("reason")) or _as_text(seed.get("reason")) or "与你的需求匹配"
+            
+            llm_reason = _as_text(item.get("reason"))
+            seed_reason = _as_text(seed.get("reason"))
+            reason = llm_reason if llm_reason and len(llm_reason) > 5 else (seed_reason if seed_reason else "根据你的需求推荐")
 
             citations_raw = _as_list(item.get("citations"))
             citations: list[str] = []
@@ -1210,14 +1295,23 @@ class Orchestrator:
             if not citations:
                 citations = ["tool_output"]
 
-            validated.append(
-                {
-                    "id": rec_id,
-                    "name": name or rec_id,
-                    "reason": reason,
-                    "citations": citations,
-                }
-            )
+            result: dict[str, object] = {
+                "id": rec_id,
+                "name": name or rec_id,
+                "reason": reason,
+                "citations": citations,
+            }
+            
+            if seed.get("is_playable") is not None:
+                result["is_playable"] = seed["is_playable"]
+            if seed.get("audio_url") is not None:
+                result["audio_url"] = seed["audio_url"]
+            if seed.get("score") is not None:
+                result["score"] = seed["score"]
+            if seed.get("display_score") is not None:
+                result["display_score"] = seed["display_score"]
+            
+            validated.append(result)
 
         if validated:
             return validated

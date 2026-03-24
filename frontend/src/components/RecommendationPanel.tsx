@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, BarChart2, ThumbsUp, ThumbsDown, RefreshCw, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Play, BarChart2, ThumbsUp, ThumbsDown, RefreshCw, CheckCircle2, AlertCircle, X, Pause, Volume2 } from 'lucide-react';
 import { Track } from '../types';
+import { useAudioPlayer } from '../contexts/AudioPlayerContext';
 
 interface ToastMessage {
   id: string;
@@ -97,6 +98,16 @@ interface TrackCardProps {
 function TrackCard({ track, index, onFeedback, showToast }: TrackCardProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [status, setStatus] = useState<'liked' | 'disliked' | 'refreshed' | 'error' | null>(null);
+  const { playTrack, isPlaying } = useAudioPlayer();
+  const playing = isPlaying(track.id);
+
+  const handlePlayClick = async () => {
+    if (!track.isPlayable || !track.audioUrl) return;
+    const result = await playTrack(track.id, track.audioUrl);
+    if (!result.success) {
+      showToast('error', `播放失败: ${result.error || '未知错误'}`);
+    }
+  };
 
   const handleAction = async (action: 'like' | 'dislike' | 'refresh') => {
     if (loading) return;
@@ -143,11 +154,22 @@ function TrackCard({ track, index, onFeedback, showToast }: TrackCardProps) {
       <div className="flex gap-4 items-start">
         <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 shadow-sm border border-gray-100">
           <img src={track.coverUrl} alt={track.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-            <div className="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition-transform">
-              <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
-            </div>
-          </div>
+          {track.isPlayable && track.audioUrl && (
+            <>
+              <div 
+                onClick={handlePlayClick}
+                className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition-transform">
+                  {playing ? (
+                    <Pause className="w-4 h-4" fill="currentColor" />
+                  ) : (
+                    <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -161,7 +183,13 @@ function TrackCard({ track, index, onFeedback, showToast }: TrackCardProps) {
             </div>
           </div>
           
-          <div className="flex gap-1.5 mt-2.5 overflow-x-auto no-scrollbar">
+          <div className="flex gap-1.5 mt-2.5 overflow-x-auto no-scrollbar items-center">
+            {track.isPlayable && (
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-medium whitespace-nowrap border border-emerald-200 flex items-center gap-1">
+                <Volume2 className="w-3 h-3" />
+                可试听
+              </span>
+            )}
             {track.tags.slice(0, 3).map(tag => (
               <span key={tag} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">
                 {tag}

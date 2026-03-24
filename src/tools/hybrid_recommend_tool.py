@@ -50,6 +50,8 @@ class HybridItem(TypedDict):
     cf_score: object
     score: float
     sources: list[str]
+    is_playable: object
+    audio_url: object
 
 
 def _to_float(value: object, default: float = 0.0) -> float:
@@ -262,6 +264,8 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
             "cf_score": None,
             "score": w_sem * sem_norm.get(item_id, 0.0),
             "sources": ["semantic"],
+            "is_playable": payload.get("is_playable"),
+            "audio_url": payload.get("audio_url"),
         }
 
     for row in cf_items:
@@ -280,6 +284,8 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
                 "cf_score": payload.get("score"),
                 "score": w_cf * cf_norm.get(item_id, 0.0),
                 "sources": ["cf"],
+                "is_playable": None,
+                "audio_url": None,
             }
         else:
             merged[item_id]["cf_score"] = payload.get("score")

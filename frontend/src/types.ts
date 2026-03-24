@@ -15,6 +15,8 @@ export interface Track {
   matchScore: number;
   duration?: string;
   reason: string;
+  isPlayable?: boolean;
+  audioUrl?: string;
 }
 
 export interface SessionContext {

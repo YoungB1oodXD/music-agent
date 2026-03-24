@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import Protocol, cast
 
 from src.searcher.music_searcher import MusicSearcher
@@ -9,18 +11,60 @@ SEMANTIC_SEARCH_SCHEMA: dict[str, object] = {
         "query_text": {"type": "string"},
         "top_k": {"type": "integer"},
         "exclude_ids": {"type": "array"},
+        "demo_mode": {"type": "boolean"},
     },
     "required": ["query_text", "top_k"],
 }
 
 
 _searcher: MusicSearcher | None = None
+_audio_mapping: dict[str, str] | None = None
 _SEMANTIC_CANDIDATE_CAP = 40
 _SEMANTIC_CANDIDATE_MULTIPLIER = 4
-# Recalibrated post-reindex (2026-03-13) to match new similarity distribution.
-# Post-reindex top1 for '学习' is ~0.259, 'emo' ~0.295.
 _MIN_SEMANTIC_SIMILARITY = 0.26
 _HARD_MIN_SEMANTIC_SIMILARITY = 0.18
+
+
+_AUDIO_STATIC_ROOT = Path(__file__).parent.parent.parent / "dataset" / "raw" / "fma_small"
+_MIN_AUDIO_FILE_SIZE = 1000
+
+
+def _get_audio_mapping() -> dict[str, str]:
+    global _audio_mapping
+    if _audio_mapping is None:
+        mapping_path = Path(__file__).parent.parent.parent / "data" / "processed" / "audio_mapping.json"
+        if mapping_path.exists():
+            with open(mapping_path, 'r', encoding='utf-8') as f:
+                _audio_mapping = json.load(f)
+        else:
+            _audio_mapping = {}
+    return _audio_mapping
+
+
+def _get_audio_info(track_id: str) -> dict[str, object]:
+    mapping = _get_audio_mapping()
+    track_id_str = str(track_id)
+    if track_id_str not in mapping:
+        return {"is_playable": False, "audio_url": None}
+    
+    raw_path = mapping[track_id_str]
+    if raw_path.startswith("fma_small/"):
+        audio_path = raw_path[len("fma_small/"):]
+    else:
+        audio_path = raw_path
+    
+    full_file_path = _AUDIO_STATIC_ROOT / audio_path
+    if not full_file_path.exists():
+        return {"is_playable": False, "audio_url": None}
+    
+    file_size = full_file_path.stat().st_size
+    if file_size < _MIN_AUDIO_FILE_SIZE:
+        return {"is_playable": False, "audio_url": None}
+    
+    return {
+        "is_playable": True,
+        "audio_url": f"/audio/{audio_path}"
+    }
 
 
 class _SearcherProtocol(Protocol):
@@ -154,15 +198,20 @@ def semantic_search(args: dict[str, object]) -> dict[str, object]:
             if comparable_ids and comparable_ids.intersection(exclude_ids):
                 continue
 
+        track_id = str(item.get("track_id", ""))
+        audio_info = _get_audio_info(track_id)
+
         data.append(
             {
                 "id": cast(object, item.get("id")),
                 "title": cast(object, item.get("title")),
                 "artist": cast(object, item.get("artist")),
                 "genre": cast(object, item.get("genre")),
-                "track_id": cast(object, item.get("track_id")),
+                "track_id": cast(object, track_id),
                 "similarity": cast(object, item.get("similarity")),
                 "distance": cast(object, item.get("distance")),
+                "is_playable": audio_info["is_playable"],
+                "audio_url": cast(object, audio_info["audio_url"]),
             }
         )
 
