@@ -8,6 +8,32 @@ interface ChatAreaProps {
   onSendMessage: (content: string) => void;
 }
 
+function AnimatedDots() {
+  return (
+    <span className="inline-flex gap-0.5">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="w-1 h-1 bg-indigo-500 rounded-full"
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function LoadingContent({ content }: { content: string }) {
+  const baseText = content.replace(/\.{1,3}$/, '');
+  
+  return (
+    <span className="inline-flex items-center gap-2">
+      {baseText}
+      <AnimatedDots />
+    </span>
+  );
+}
+
 export function ChatArea({ messages, onSendMessage }: ChatAreaProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -51,7 +77,11 @@ export function ChatArea({ messages, onSendMessage }: ChatAreaProps) {
                   ? 'bg-indigo-500 text-white rounded-tr-sm' 
                   : 'bg-white border border-gray-100 text-slate-800 rounded-tl-sm'
               }`}>
-                {msg.content}
+                {msg.role === 'agent' && msg.id.startsWith('loading-') ? (
+                  <LoadingContent content={msg.content} />
+                ) : (
+                  msg.content
+                )}
               </div>
               <span className="text-[10px] text-slate-400 mt-1.5 px-1 font-medium">
                 {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

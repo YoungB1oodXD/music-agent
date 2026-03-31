@@ -126,7 +126,7 @@ function TrackCard({ track, index, onFeedback, showToast }: TrackCardProps) {
     if (success) {
       if (action === 'like') {
         setStatus('liked');
-        showToast('success', '已记录你的喜欢，后续将避免重复推荐这首歌');
+        showToast('success', '已记录你的喜欢，后续会为你推荐更多类似的歌曲');
       } else if (action === 'dislike') {
         showToast('success', '已记录你的不喜欢，后续推荐将排除这首歌');
       } else if (action === 'refresh') {

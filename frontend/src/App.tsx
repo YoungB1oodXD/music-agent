@@ -27,6 +27,15 @@ export default function App() {
   const [systemStatus, setSystemStatus] = useState<HealthStatus | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<number>(0);
+
+  const LOADING_STAGES = [
+    '正在分析用户场景...',
+    '正在分析用户情绪...',
+    '正在分析音乐流派偏好...',
+    '正在分析能量偏好...',
+    '正在为你精选歌曲...',
+  ];
 
   useEffect(() => {
     const getHealth = async () => {
@@ -71,12 +80,30 @@ export default function App() {
     const loadingMsg: Message = {
       id: loadingMessageId,
       role: 'agent',
-      content: '正在思考...',
+      content: LOADING_STAGES[0],
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, loadingMsg]);
     setIsSending(true);
+    setLoadingStage(0);
+
+    const stageInterval = setInterval(() => {
+      setLoadingStage((prev) => {
+        if (prev >= LOADING_STAGES.length - 1) {
+          return prev;
+        }
+        const next = prev + 1;
+        setMessages(prevMsgs => 
+          prevMsgs.map(msg => 
+            msg.id === loadingMessageId 
+              ? { ...msg, content: LOADING_STAGES[next] }
+              : msg
+          )
+        );
+        return next;
+      });
+    }, 3000);
 
     try {
       const response = await sendChatMessage({
@@ -109,6 +136,7 @@ export default function App() {
       setTracks(nextTracks);
       setMessages(prev => [...prev, fallbackMsg]);
     } finally {
+      clearInterval(stageInterval);
       setMessages(prev => prev.filter(message => message.id !== loadingMessageId));
       setIsSending(false);
     }
@@ -151,10 +179,10 @@ export default function App() {
     }
 
     const isRefresh = message === '换一批';
-    const isLike = message.includes('喜欢');
     const isDislike = message.includes('不喜欢');
+    const isLike = message.includes('喜欢');
 
-    const feedbackType = isRefresh ? 'refresh' : isLike ? 'like' : isDislike ? 'dislike' : 'refresh';
+    const feedbackType = isRefresh ? 'refresh' : isDislike ? 'dislike' : isLike ? 'like' : 'refresh';
     
     const trackIdMatch = message.match(/id\s*[:：]\s*(\S+)/);
     const trackId = trackIdMatch ? trackIdMatch[1] : '';

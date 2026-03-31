@@ -662,6 +662,38 @@ class Orchestrator:
         
         return " ".join(clauses)
 
+    @staticmethod
+    def _build_liked_context(state: SessionState) -> str:
+        if not state.liked_songs:
+            return ""
+
+        liked_ids = set(state.liked_songs[-10:])
+        liked_genres: list[str] = []
+        liked_artists: list[str] = []
+
+        for record in state.recommendation_history:
+            for item in record.results:
+                if item.id in liked_ids:
+                    name = item.name or ""
+                    if " - " in name:
+                        artist_part = name.split(" - ")[0].strip()
+                        if artist_part and artist_part not in liked_artists:
+                            liked_artists.append(artist_part)
+
+                    for citation in (item.citations or []):
+                        if "genre=" in str(citation):
+                            genre_val = str(citation).split("genre=")[-1].strip()
+                            if genre_val and genre_val not in liked_genres:
+                                liked_genres.append(genre_val)
+
+        clauses: list[str] = []
+        if liked_genres:
+            clauses.append(" ".join(liked_genres[-3:]))
+        if liked_artists:
+            clauses.append("类似 " + " ".join(liked_artists[-2:]) + " 的风格")
+
+        return " ".join(clauses)
+
     def _build_tool_plan(
         self,
         intent: str,
@@ -677,11 +709,22 @@ class Orchestrator:
         if intent in {_INTENT_FEEDBACK, _INTENT_EXPLAIN}:
             return []
 
-        exclude_ids = self._merge_ids([], state.exclude_ids, cap=100)
+        # Auto-exclude last recommendation IDs to ensure "换一批" returns different results
+        last_rec_ids = []
+        if state.last_recommendation and state.last_recommendation.results:
+            last_rec_ids = [item.id for item in state.last_recommendation.results if hasattr(item, 'id')]
+        
+        exclude_ids = self._merge_ids(state.exclude_ids, last_rec_ids, cap=100)
         preference_suffix = self._build_preference_suffix(state, intent_slots)
+        liked_suffix = self._build_liked_context(state)
         effective_query_text = query_text
+        suffix_parts = []
         if preference_suffix and preference_suffix not in effective_query_text:
-            effective_query_text = f"{effective_query_text} {preference_suffix}".strip()
+            suffix_parts.append(preference_suffix)
+        if liked_suffix and liked_suffix not in effective_query_text:
+            suffix_parts.append(liked_suffix)
+        if suffix_parts:
+            effective_query_text = f"{effective_query_text} {' '.join(suffix_parts)}".strip()
 
         candidate_k = top_k * _DEMO_MODE_CANDIDATE_MULTIPLIER
 

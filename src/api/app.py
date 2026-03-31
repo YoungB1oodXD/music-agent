@@ -512,10 +512,11 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
 
                     if payload.feedback_type == "like":
                         state.add_feedback(payload.track_id, "like")
-                        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
+                        logger.info(f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}")
                     elif payload.feedback_type == "dislike":
                         state.add_feedback(payload.track_id, "dislike")
-                        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))
+                        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
+                        logger.info(f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id}")
 
                     return FeedbackResponse(
                         success=True,
@@ -530,22 +531,24 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
             LLM_DEBUG_INFO["fallback_used"] = True
 
     ack_messages = {
-        "like": "已记录你的喜欢，后续将避免重复推荐这首歌。",
+        "like": "已记录你的喜欢，后续会为你推荐更多类似的歌曲。",
         "dislike": "已记录你的不喜欢，后续推荐将排除这首歌。",
         "refresh": "已排除上一批结果，正在基于你当前偏好换一批推荐...",
     }
 
     if payload.feedback_type == "like":
         state.add_feedback(payload.track_id, "like")
-        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
+        logger.info(f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}")
     elif payload.feedback_type == "dislike":
         state.add_feedback(payload.track_id, "dislike")
-        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))
+        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
+        logger.info(f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}")
     elif payload.feedback_type == "refresh":
         # Fix: refresh should update exclude_ids with last recommendation IDs
         if state.last_recommendation and state.last_recommendation.results:
             last_ids = [item.id for item in state.last_recommendation.results if hasattr(item, 'id')]
             state.exclude_ids = list(set(state.exclude_ids + last_ids))[:100]
+        logger.info(f"[FEEDBACK] refresh session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}")
 
     return FeedbackResponse(
         success=True,
