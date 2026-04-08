@@ -8,6 +8,7 @@ import src.agent.orchestrator as orchestrator_module
 from src.agent import MockLLMClient, Orchestrator
 from src.manager.session_state import SessionState
 from src.tools.registry import ToolRegistry
+from src.tools.semantic_search_tool import _derive_explanation_fields
 
 _SEMANTIC_SCHEMA: dict[str, object] = {
     "type": "object",
@@ -50,6 +51,7 @@ def _to_int(value: object, default: int = 5) -> int:
 
 def _semantic_search_handler(args: dict[str, object]) -> dict[str, object]:
     top_k = _to_int(args.get("top_k"), default=5)
+
     row_1: dict[str, object] = {
         "id": "fma_1001",
         "track_id": "TR_1001",
@@ -74,14 +76,29 @@ def _semantic_search_handler(args: dict[str, object]) -> dict[str, object]:
         "genre": "Ambient",
         "similarity": 0.88,
     }
+
     rows: list[dict[str, object]] = [row_1, row_2, row_3][:top_k]
+
+    for row in rows:
+        genre = str(row.get("genre", ""))
+        explanation_fields = _derive_explanation_fields(genre)
+        row.update(explanation_fields)
+
     return {"ok": True, "data": rows}
 
 
 def _cf_recommend_handler(args: dict[str, object]) -> dict[str, object]:
     top_k = _to_int(args.get("top_k"), default=5)
-    rec_1: dict[str, object] = {"id": "CF_2001", "name": "Runner - City Flow", "score": 0.96}
-    rec_2: dict[str, object] = {"id": "CF_2002", "name": "Pulse - Step Forward", "score": 0.87}
+    rec_1: dict[str, object] = {
+        "id": "CF_2001",
+        "name": "Runner - City Flow",
+        "score": 0.96,
+    }
+    rec_2: dict[str, object] = {
+        "id": "CF_2002",
+        "name": "Pulse - Step Forward",
+        "score": 0.87,
+    }
     data: dict[str, object] = {
         "matched_song": {"id": "seed_1", "name": "Seed - Demo Song"},
         "recommendations": [rec_1, rec_2][:top_k],
@@ -109,7 +126,9 @@ def _hybrid_recommend_handler(args: dict[str, object]) -> dict[str, object]:
     return {"ok": True, "data": rows}
 
 
-def _fake_retrieve_semantic_docs(query_text: str, top_k: int) -> list[dict[str, object]]:
+def _fake_retrieve_semantic_docs(
+    query_text: str, top_k: int
+) -> list[dict[str, object]]:
     _ = query_text
     doc_1: dict[str, object] = {
         "doc_id": 1,
@@ -168,8 +187,10 @@ def run_test() -> None:
     orchestrator = Orchestrator(llm=MockLLMClient(), tools=build_test_registry())
 
     reply = orchestrator.handle_turn("推荐适合学习时听的轻音乐", state)
-    assert isinstance(reply, str)
-    assert bool(reply.strip())
+    assert isinstance(reply, dict)
+    assert "assistant_text" in reply
+    assert isinstance(reply["assistant_text"], str)
+    assert bool(reply["assistant_text"].strip())
     assert len(state.dialogue_history) == 1
 
     print("agent_orchestrator_smoke passed")

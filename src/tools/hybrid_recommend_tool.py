@@ -230,7 +230,10 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
         recommendations = cast(list[object], recommendations)
 
         if cf_result.get("ok") is not True and not recommendations:
-            return {"ok": False, "data": [], "error": cf_result.get("error", "CF recommendation failed")}
+            logger.info(
+                f"CF failed for seed='{seed_song_name}': {cf_result.get('error', 'unknown')}. "
+                f"Falling back to semantic-only."
+            )
 
         for rec_obj in recommendations:
             if not isinstance(rec_obj, dict):

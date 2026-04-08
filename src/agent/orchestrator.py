@@ -11,7 +11,11 @@ from pydantic import TypeAdapter, ValidationError
 logger = logging.getLogger(__name__)
 
 from src.llm.clients.base import BaseLLMClient, ChatResponse
-from src.llm.prompts.schemas import FINAL_RESPONSE_SCHEMA, INTENT_AND_SLOTS_SCHEMA, PREFERENCE_PARSE_SCHEMA
+from src.llm.prompts.schemas import (
+    FINAL_RESPONSE_SCHEMA,
+    INTENT_AND_SLOTS_SCHEMA,
+    PREFERENCE_PARSE_SCHEMA,
+)
 from src.manager.session_state import SessionState
 from src.rag.context_builder import build_rag_context
 from src.rag.retriever import retrieve_semantic_docs
@@ -66,12 +70,17 @@ _DISPLAY_SCORE_MAX = 98
 _DISPLAY_SCORE_TOP_POSITION = 95
 _DISPLAY_SCORE_BOTTOM_POSITION = 75
 
-_INTENT_PROPERTIES = cast(dict[str, object], INTENT_AND_SLOTS_SCHEMA.get("properties", {}))
+_INTENT_PROPERTIES = cast(
+    dict[str, object], INTENT_AND_SLOTS_SCHEMA.get("properties", {})
+)
 _FINAL_PROPERTIES = cast(dict[str, object], FINAL_RESPONSE_SCHEMA.get("properties", {}))
 
 if _SLOT_INTENT not in _INTENT_PROPERTIES or _SLOT_QUERY_TEXT not in _INTENT_PROPERTIES:
     raise ValueError("INTENT_AND_SLOTS_SCHEMA is missing required keys.")
-if _FINAL_ASSISTANT_TEXT not in _FINAL_PROPERTIES or _FINAL_RECOMMENDATIONS not in _FINAL_PROPERTIES:
+if (
+    _FINAL_ASSISTANT_TEXT not in _FINAL_PROPERTIES
+    or _FINAL_RECOMMENDATIONS not in _FINAL_PROPERTIES
+):
     raise ValueError("FINAL_RESPONSE_SCHEMA is missing required keys.")
 
 
@@ -104,7 +113,7 @@ def _clamp_top_k(value: object, default: int = 5) -> int:
 def _calibrate_display_score(raw_score: float | None, rank: int, total: int) -> int:
     """
     Calibrate raw score to user-friendly display score (0-100).
-    
+
     Strategy:
     1. Position-based base score: top=95, bottom=75
     2. Raw score adjustment: high raw -> bonus, low raw -> penalty
@@ -112,13 +121,13 @@ def _calibrate_display_score(raw_score: float | None, rank: int, total: int) -> 
     """
     if total <= 0:
         return 85
-    
+
     if total == 1:
         base = 90
     else:
         position_range = _DISPLAY_SCORE_TOP_POSITION - _DISPLAY_SCORE_BOTTOM_POSITION
         base = _DISPLAY_SCORE_TOP_POSITION - (rank * position_range / (total - 1))
-    
+
     adjustment = 0
     if raw_score is not None:
         if raw_score >= 0.5:
@@ -129,7 +138,7 @@ def _calibrate_display_score(raw_score: float | None, rank: int, total: int) -> 
             adjustment = -2
         else:
             adjustment = -5
-    
+
     display = base + adjustment
     return int(max(_DISPLAY_SCORE_MIN, min(_DISPLAY_SCORE_MAX, display)))
 
@@ -149,7 +158,6 @@ def _normalize_vocals(value: object) -> str | None:
 
 
 class Orchestrator:
-
     def __init__(
         self,
         llm: BaseLLMClient,
@@ -164,7 +172,10 @@ class Orchestrator:
         prompt_path = (
             Path(system_prompt_path)
             if system_prompt_path is not None
-            else Path(__file__).resolve().parent.parent / "llm" / "prompts" / "system_prompt.txt"
+            else Path(__file__).resolve().parent.parent
+            / "llm"
+            / "prompts"
+            / "system_prompt.txt"
         )
         self.system_prompt: str = prompt_path.read_text(encoding="utf-8").strip()
 
@@ -173,18 +184,35 @@ class Orchestrator:
         text = user_text.strip()
         if not text:
             reply = "请告诉我你想听什么类型的音乐，我可以马上帮你找。"
-            state.add_dialogue_turn(user_input=user_text, system_response=reply, intent=None, entities={})
-            return {"assistant_text": reply, "recommendations": []}
+            state.add_dialogue_turn(
+                user_input=user_text, system_response=reply, intent=None, entities={}
+            )
+            return {
+                "assistant_text": reply,
+                "recommendations": [],
+                "recommendation_action": "replace",
+            }
 
-        if _ENABLE_PREFERENCE_PARSING:
+        base_intent_slots = self._extract_intent_and_slots(text, state)
+        intent_slots = dict(base_intent_slots)
+        query_text = _as_text(intent_slots.get(_SLOT_QUERY_TEXT)) or text
+
+        base_intent = _as_text(intent_slots.get(_SLOT_INTENT)) or _INTENT_SEARCH
+        if _ENABLE_PREFERENCE_PARSING and base_intent not in {
+            _INTENT_FEEDBACK,
+            _INTENT_EXPLAIN,
+        }:
             preference_result = self._parse_preference_and_query(text, state)
-            intent_slots = self._convert_preference_to_intent_slots(preference_result, state)
-            query_text = _as_text(preference_result.get("retrieval_query")) or text
-        else:
-            intent_slots = self._extract_intent_and_slots(text, state)
-            query_text = _as_text(intent_slots.get(_SLOT_QUERY_TEXT)) or text
+            preference_slots = self._convert_preference_to_intent_slots(
+                preference_result, state
+            )
+            intent_slots = self._merge_intent_slots(base_intent_slots, preference_slots)
+            query_text = (
+                _as_text(preference_result.get("retrieval_query")) or query_text
+            )
 
-        intent = _as_text(intent_slots.get(_SLOT_INTENT)) or _INTENT_SEARCH
+        intent = self._resolve_dialogue_intent(text, intent_slots, state, base_intent)
+        intent_slots[_SLOT_INTENT] = intent
         top_k = _clamp_top_k(intent_slots.get(_SLOT_TOP_K), default=5)
 
         mood = _as_text(intent_slots.get(_SLOT_MOOD))
@@ -214,7 +242,11 @@ class Orchestrator:
         if energy is not None or vocals is not None:
             state.update_preference(energy=energy, vocals=vocals)
 
-        if self._is_refresh_request(text, intent_slots):
+        excluded_artist = self._extract_excluded_artist(text)
+        if excluded_artist:
+            state.add_excluded_artist(excluded_artist)
+
+        if self._is_refresh_request(text):
             refresh_ids = self._collect_recommended_ids(state, cap=100)
             state.exclude_ids = self._merge_ids(state.exclude_ids, refresh_ids, cap=100)
             if state.last_recommendation and state.last_recommendation.query:
@@ -223,11 +255,15 @@ class Orchestrator:
         if intent == _INTENT_FEEDBACK:
             self._apply_feedback(intent_slots, state)
 
-        tool_plan = self._build_tool_plan(intent, intent_slots, query_text, top_k, state)
+        tool_plan = self._build_tool_plan(
+            intent, intent_slots, query_text, top_k, state
+        )
         tool_results = self._dispatch_tools(tool_plan)
 
         rag_context = self._build_rag_context(query_text)
-        recommendations, method = self._extract_recommendations(tool_results, top_k=top_k)
+        recommendations, method = self._extract_recommendations(
+            tool_results, top_k=top_k
+        )
 
         final_payload = self._compose_final_payload(
             user_text=text,
@@ -240,7 +276,12 @@ class Orchestrator:
         )
 
         reply = _as_text(final_payload.get(_FINAL_ASSISTANT_TEXT))
-        final_recommendations = _as_list(final_payload.get(_FINAL_RECOMMENDATIONS)) or []
+        final_recommendations = (
+            _as_list(final_payload.get(_FINAL_RECOMMENDATIONS)) or []
+        )
+        recommendation_action = "replace"
+        if intent in {_INTENT_EXPLAIN, _INTENT_FEEDBACK}:
+            recommendation_action = "preserve"
 
         if final_recommendations and method is not None:
             state.add_recommendation(
@@ -259,9 +300,12 @@ class Orchestrator:
         return {
             "assistant_text": reply,
             "recommendations": final_recommendations,
+            "recommendation_action": recommendation_action,
         }
 
-    def _extract_intent_and_slots(self, user_text: str, state: SessionState) -> dict[str, object]:
+    def _extract_intent_and_slots(
+        self, user_text: str, state: SessionState
+    ) -> dict[str, object]:
         if not _ENABLE_LLM_INTENT_EXTRACTION:
             return self._deterministic_intent_slots(user_text, state)
 
@@ -295,15 +339,27 @@ class Orchestrator:
 
         return self._deterministic_intent_slots(user_text, state)
 
-    def _parse_preference_and_query(self, user_text: str, state: SessionState) -> dict[str, object]:
-        preference_prompt_path = Path(__file__).resolve().parent.parent / "llm" / "prompts" / "preference_parse_prompt.txt"
+    def _parse_preference_and_query(
+        self, user_text: str, state: SessionState
+    ) -> dict[str, object]:
+        preference_prompt_path = (
+            Path(__file__).resolve().parent.parent
+            / "llm"
+            / "prompts"
+            / "preference_parse_prompt.txt"
+        )
         preference_prompt = preference_prompt_path.read_text(encoding="utf-8").strip()
 
         previous_state = state.get_state_summary()
         conversation_history = state.get_recent_dialogue(max_turns=5)
 
-        prompt = preference_prompt.replace("{previous_state_json}", json.dumps(previous_state, ensure_ascii=False))
-        prompt = prompt.replace("{conversation_history}", json.dumps(conversation_history, ensure_ascii=False))
+        prompt = preference_prompt.replace(
+            "{previous_state_json}", json.dumps(previous_state, ensure_ascii=False)
+        )
+        prompt = prompt.replace(
+            "{conversation_history}",
+            json.dumps(conversation_history, ensure_ascii=False),
+        )
         prompt = prompt.replace("{latest_user_message}", user_text)
 
         try:
@@ -323,10 +379,14 @@ class Orchestrator:
 
         return self._deterministic_intent_slots(user_text, state)
 
-    def _convert_preference_to_intent_slots(self, preference_result: dict[str, object], state: SessionState) -> dict[str, object]:
+    def _convert_preference_to_intent_slots(
+        self, preference_result: dict[str, object], state: SessionState
+    ) -> dict[str, object]:
         result: dict[str, object] = {_SLOT_INTENT: _INTENT_RECOMMEND}
 
-        updated_state = _as_dict(preference_result.get("updated_preference_state")) or {}
+        updated_state = (
+            _as_dict(preference_result.get("updated_preference_state")) or {}
+        )
 
         scene = _as_text(updated_state.get("scene"))
         if scene:
@@ -334,7 +394,9 @@ class Orchestrator:
 
         mood_list = _as_list(updated_state.get("mood"))
         if mood_list:
-            result[_SLOT_MOOD] = ", ".join(_as_text(m) for m in mood_list if _as_text(m))
+            result[_SLOT_MOOD] = ", ".join(
+                _as_text(m) for m in mood_list if _as_text(m)
+            )
 
         energy = _as_text(updated_state.get("energy"))
         if energy:
@@ -342,21 +404,71 @@ class Orchestrator:
 
         vocal_pref = _as_text(updated_state.get("vocal_preference"))
         if vocal_pref:
-            result[_SLOT_VOCALS] = "instrumental" if "instrumental" in vocal_pref.lower() else "vocal"
+            result[_SLOT_VOCALS] = (
+                "instrumental" if "instrumental" in vocal_pref.lower() else "vocal"
+            )
 
         genre_list = _as_list(updated_state.get("genre_preferences"))
         if genre_list:
-            result[_SLOT_GENRE] = ", ".join(_as_text(g) for g in genre_list if _as_text(g))
+            result[_SLOT_GENRE] = ", ".join(
+                _as_text(g) for g in genre_list if _as_text(g)
+            )
 
         llm_check = _as_dict(preference_result.get("llm_check"))
         if llm_check and llm_check.get("generated_by_llm"):
             state.llm_status = "live_verified"
-            logger.info(f"[LLM VERIFIED] signature: {_as_text(llm_check.get('llm_signature'))}")
+            logger.info(
+                f"[LLM VERIFIED] signature: {_as_text(llm_check.get('llm_signature'))}"
+            )
 
         return result
 
-    def _build_messages(self, state: SessionState, current_user_prompt: str) -> list[dict[str, object]]:
-        messages: list[dict[str, object]] = [{"role": "system", "content": self.system_prompt}]
+    @staticmethod
+    def _merge_intent_slots(
+        base_slots: dict[str, object], preference_slots: dict[str, object]
+    ) -> dict[str, object]:
+        merged = dict(base_slots)
+        for key, value in preference_slots.items():
+            if value is None:
+                continue
+            if isinstance(value, str) and not value.strip():
+                continue
+            merged[key] = value
+        return merged
+
+    def _resolve_dialogue_intent(
+        self,
+        user_text: str,
+        intent_slots: dict[str, object],
+        state: SessionState,
+        base_intent: str,
+    ) -> str:
+        if base_intent in {_INTENT_EXPLAIN, _INTENT_FEEDBACK}:
+            return base_intent
+        if self._is_refresh_request(user_text):
+            return _INTENT_REFINE
+
+        has_preference_update = any(
+            [
+                _as_text(intent_slots.get(_SLOT_MOOD)),
+                _as_text(intent_slots.get(_SLOT_SCENE)),
+                _as_text(intent_slots.get(_SLOT_GENRE)),
+                _normalize_energy(intent_slots.get(_SLOT_ENERGY)),
+                _normalize_vocals(intent_slots.get(_SLOT_VOCALS)),
+                self._extract_excluded_artist(user_text),
+            ]
+        )
+
+        if has_preference_update and state.last_recommendation is not None:
+            return _INTENT_REFINE
+        return base_intent
+
+    def _build_messages(
+        self, state: SessionState, current_user_prompt: str
+    ) -> list[dict[str, object]]:
+        messages: list[dict[str, object]] = [
+            {"role": "system", "content": self.system_prompt}
+        ]
         history_turns = state.dialogue_history[-_MAX_PROMPT_HISTORY_TURNS:]
         for turn in history_turns:
             messages.append({"role": "user", "content": turn.user_input})
@@ -392,7 +504,13 @@ class Orchestrator:
         if query_text:
             result[_SLOT_QUERY_TEXT] = query_text
 
-        for key in (_SLOT_MOOD, _SLOT_SCENE, _SLOT_GENRE, _SLOT_ARTIST, _SLOT_SONG_NAME):
+        for key in (
+            _SLOT_MOOD,
+            _SLOT_SCENE,
+            _SLOT_GENRE,
+            _SLOT_ARTIST,
+            _SLOT_SONG_NAME,
+        ):
             value = _as_text(payload.get(key))
             if value:
                 result[key] = value
@@ -419,13 +537,18 @@ class Orchestrator:
 
         return result
 
-    def _deterministic_intent_slots(self, user_text: str, state: SessionState) -> dict[str, object]:
+    def _deterministic_intent_slots(
+        self, user_text: str, state: SessionState
+    ) -> dict[str, object]:
         lowered = user_text.lower()
 
         intent = _INTENT_SEARCH
         if any(token in lowered for token in ("为什么", "理由", "explain")):
             intent = _INTENT_EXPLAIN
-        elif any(token in lowered for token in ("不喜欢", "跳过", "dislike", "skip", "like", "喜欢")):
+        elif any(
+            token in lowered
+            for token in ("不喜欢", "跳过", "dislike", "skip", "like", "喜欢")
+        ):
             intent = _INTENT_FEEDBACK
         elif any(token in user_text for token in ("换一批", "再来一批", "换批")):
             intent = _INTENT_REFINE
@@ -513,7 +636,15 @@ class Orchestrator:
         lowered = user_text.lower()
         if "不要太吵" in user_text or "安静" in user_text or "轻柔" in user_text:
             return "low"
-        if "high energy" in lowered or "高能量" in user_text:
+        if (
+            "high energy" in lowered
+            or "高能量" in user_text
+            or "欢快" in user_text
+            or "更燃" in user_text
+            or "有活力" in user_text
+            or "跑步" in user_text
+            or "运动" in user_text
+        ):
             return "high"
         if "中等能量" in user_text:
             return "medium"
@@ -522,10 +653,32 @@ class Orchestrator:
     @staticmethod
     def _extract_vocals(user_text: str) -> str | None:
         lowered = user_text.lower()
-        if "来点纯音乐" in user_text or "纯音乐" in user_text or "instrumental" in lowered:
+        if (
+            "来点纯音乐" in user_text
+            or "纯音乐" in user_text
+            or "instrumental" in lowered
+        ):
             return "instrumental"
         if "人声" in user_text or "vocal" in lowered:
             return "vocal"
+        return None
+
+    @staticmethod
+    def _extract_excluded_artist(user_text: str) -> str | None:
+        patterns = [
+            r"不要[再]?[推荐听]?[给]?我?([^\s]+?)(?:的歌|的作品|的歌了)",
+            r"别[再]?[推荐听]?[给]?我?([^\s]+?)(?:的歌|的作品)",
+            r"不要是([^\s]+?)(?:了|了)",
+            r"别再[推荐听]?([^\s]+?)(?:的歌|的作品)",
+            r"排除([^\s]+?)(?:的歌|的作品|)",
+            r"不要([^\s]+?)(?:的歌|的作品)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, user_text)
+            if match:
+                artist = match.group(1).strip()
+                if artist and len(artist) < 50 and len(artist) > 1:
+                    return artist
         return None
 
     @staticmethod
@@ -544,7 +697,9 @@ class Orchestrator:
         return None
 
     @staticmethod
-    def _extract_feedback(user_text: str, state: SessionState) -> dict[str, object] | None:
+    def _extract_feedback(
+        user_text: str, state: SessionState
+    ) -> dict[str, object] | None:
         lowered = user_text.lower()
         feedback_type = ""
         if "不喜欢" in user_text or "dislike" in lowered:
@@ -557,9 +712,15 @@ class Orchestrator:
         if not feedback_type:
             return None
 
-        target_match = re.search(r"(?:id[:：\s]*)([A-Za-z0-9_\-]+)", user_text, re.IGNORECASE)
+        target_match = re.search(
+            r"(?:id[:：\s]*)([A-Za-z0-9_\-]+)", user_text, re.IGNORECASE
+        )
         target_id = target_match.group(1).strip() if target_match else ""
-        if not target_id and state.last_recommendation is not None and state.last_recommendation.results:
+        if (
+            not target_id
+            and state.last_recommendation is not None
+            and state.last_recommendation.results
+        ):
             target_id = state.last_recommendation.results[0].id
 
         feedback: dict[str, object] = {_FEEDBACK_TYPE: feedback_type}
@@ -567,10 +728,14 @@ class Orchestrator:
             feedback[_FEEDBACK_TARGET_ID] = target_id
         return feedback
 
-    def _apply_feedback(self, intent_slots: dict[str, object], state: SessionState) -> None:
+    def _apply_feedback(
+        self, intent_slots: dict[str, object], state: SessionState
+    ) -> None:
         feedback_obj = _as_dict(intent_slots.get(_SLOT_FEEDBACK))
         if feedback_obj is None:
-            feedback_obj = self._extract_feedback(_as_text(intent_slots.get(_SLOT_QUERY_TEXT)), state)
+            feedback_obj = self._extract_feedback(
+                _as_text(intent_slots.get(_SLOT_QUERY_TEXT)), state
+            )
             if feedback_obj is None:
                 return
 
@@ -579,7 +744,11 @@ class Orchestrator:
             return
 
         target_id = _as_text(feedback_obj.get(_FEEDBACK_TARGET_ID))
-        if not target_id and state.last_recommendation is not None and state.last_recommendation.results:
+        if (
+            not target_id
+            and state.last_recommendation is not None
+            and state.last_recommendation.results
+        ):
             target_id = state.last_recommendation.results[0].id
         if not target_id:
             return
@@ -589,15 +758,14 @@ class Orchestrator:
             state.exclude_ids = self._merge_ids(state.exclude_ids, [target_id], cap=100)
 
     @staticmethod
-    def _is_refresh_request(user_text: str, intent_slots: dict[str, object]) -> bool:
-        intent = _as_text(intent_slots.get(_SLOT_INTENT))
-        if intent != _INTENT_REFINE:
-            return False
+    def _is_refresh_request(user_text: str) -> bool:
         refresh_tokens = ("换一批", "再来一批", "换批")
         return any(token in user_text for token in refresh_tokens)
 
     @staticmethod
-    def _merge_ids(existing: list[str], incoming: list[str], cap: int = 100) -> list[str]:
+    def _merge_ids(
+        existing: list[str], incoming: list[str], cap: int = 100
+    ) -> list[str]:
         merged: list[str] = []
         seen: set[str] = set()
 
@@ -625,7 +793,9 @@ class Orchestrator:
         return Orchestrator._merge_ids([], collected, cap=cap)
 
     @staticmethod
-    def _build_preference_suffix(state: SessionState, intent_slots: dict[str, object]) -> str:
+    def _build_preference_suffix(
+        state: SessionState, intent_slots: dict[str, object]
+    ) -> str:
         energy = _normalize_energy(intent_slots.get(_SLOT_ENERGY))
         if energy is None:
             energy = _normalize_energy(state.preference_profile.preferred_energy)
@@ -653,13 +823,13 @@ class Orchestrator:
             phrase = vocals_phrase_map.get(vocals)
             if phrase:
                 clauses.append(phrase)
-        
+
         # Add accumulated genres (last 2)
         genres = state.preference_profile.preferred_genres
         if genres:
             recent_genres = genres[-2:] if len(genres) > 2 else genres
             clauses.append(" ".join(recent_genres))
-        
+
         return " ".join(clauses)
 
     @staticmethod
@@ -680,7 +850,7 @@ class Orchestrator:
                         if artist_part and artist_part not in liked_artists:
                             liked_artists.append(artist_part)
 
-                    for citation in (item.citations or []):
+                    for citation in item.citations or []:
                         if "genre=" in str(citation):
                             genre_val = str(citation).split("genre=")[-1].strip()
                             if genre_val and genre_val not in liked_genres:
@@ -693,6 +863,19 @@ class Orchestrator:
             clauses.append("类似 " + " ".join(liked_artists[-2:]) + " 的风格")
 
         return " ".join(clauses)
+
+    def _get_cf_seed_song(self, state: SessionState) -> str | None:
+        if not state.liked_songs or not state.recommendation_history:
+            return None
+        liked_set = set(state.liked_songs[-10:])
+        for record in reversed(state.recommendation_history):
+            for item in record.results:
+                if item.id in liked_set and item.name:
+                    name = str(item.name).strip()
+                    if name and " - " in name:
+                        logger.info(f"[CF SEED] Using liked song as CF seed: {name}")
+                        return name
+        return None
 
     def _build_tool_plan(
         self,
@@ -709,12 +892,8 @@ class Orchestrator:
         if intent in {_INTENT_FEEDBACK, _INTENT_EXPLAIN}:
             return []
 
-        # Auto-exclude last recommendation IDs to ensure "换一批" returns different results
-        last_rec_ids = []
-        if state.last_recommendation and state.last_recommendation.results:
-            last_rec_ids = [item.id for item in state.last_recommendation.results if hasattr(item, 'id')]
-        
-        exclude_ids = self._merge_ids(state.exclude_ids, last_rec_ids, cap=100)
+        exclude_ids = list(state.exclude_ids)
+        exclude_artists = list(state.exclude_artists) if state.exclude_artists else []
         preference_suffix = self._build_preference_suffix(state, intent_slots)
         liked_suffix = self._build_liked_context(state)
         effective_query_text = query_text
@@ -724,18 +903,30 @@ class Orchestrator:
         if liked_suffix and liked_suffix not in effective_query_text:
             suffix_parts.append(liked_suffix)
         if suffix_parts:
-            effective_query_text = f"{effective_query_text} {' '.join(suffix_parts)}".strip()
+            effective_query_text = (
+                f"{effective_query_text} {' '.join(suffix_parts)}".strip()
+            )
 
         candidate_k = top_k * _DEMO_MODE_CANDIDATE_MULTIPLIER
 
-        return [
-            (
-                "semantic_search",
-                {"query_text": effective_query_text, "top_k": candidate_k, "exclude_ids": exclude_ids},
-            )
-        ]
+        seed_song = self._get_cf_seed_song(state)
 
-    def _dispatch_tools(self, tool_plan: list[tuple[str, dict[str, object]]]) -> list[dict[str, object]]:
+        tool_args: dict[str, object] = {
+            "query_text": effective_query_text,
+            "top_k": candidate_k,
+            "exclude_ids": exclude_ids,
+            "intent": intent,
+        }
+        if seed_song:
+            tool_args["seed_song_name"] = seed_song
+        if exclude_artists:
+            tool_args["exclude_artists"] = exclude_artists
+
+        return [("hybrid_recommend", tool_args)]
+
+    def _dispatch_tools(
+        self, tool_plan: list[tuple[str, dict[str, object]]]
+    ) -> list[dict[str, object]]:
         records: list[dict[str, object]] = []
         for tool_name, args in tool_plan[: self.max_tool_calls]:
             dispatch_result = self.tools.dispatch(tool_name, args)
@@ -802,7 +993,9 @@ class Orchestrator:
     @staticmethod
     def _summarize_tool_result_data(data: object) -> list[dict[str, object]]:
         if isinstance(data, dict):
-            recommendations = _as_list(cast(dict[str, object], data).get("recommendations")) or []
+            recommendations = (
+                _as_list(cast(dict[str, object], data).get("recommendations")) or []
+            )
             rows = recommendations[:_TOOL_RESULTS_PROMPT_TOP_K]
             summarized: list[dict[str, object]] = []
             for row_obj in rows:
@@ -822,7 +1015,9 @@ class Orchestrator:
                 summarized_rows.append(row_summary)
         return summarized_rows
 
-    def _summarize_tool_results_for_prompt(self, tool_results: list[dict[str, object]]) -> list[dict[str, object]]:
+    def _summarize_tool_results_for_prompt(
+        self, tool_results: list[dict[str, object]]
+    ) -> list[dict[str, object]]:
         summarized_results: list[dict[str, object]] = []
         for row in tool_results:
             tool_name = _as_text(row.get("name"))
@@ -864,22 +1059,28 @@ class Orchestrator:
             if result.get("ok") is not True:
                 continue
 
-            recommendations = self._extract_recommendations_for_tool(tool_name, result.get("data"))
+            recommendations = self._extract_recommendations_for_tool(
+                tool_name, result.get("data")
+            )
             if not recommendations:
                 continue
 
             method = method_map.get(tool_name)
             if method is None:
                 continue
-            
+
             if _DEMO_MODE_DEFAULT:
                 playable = [r for r in recommendations if r.get("is_playable") is True]
-                non_playable = [r for r in recommendations if r.get("is_playable") is not True]
-                
+                non_playable = [
+                    r for r in recommendations if r.get("is_playable") is not True
+                ]
+
                 if len(playable) >= top_k:
                     recommendations = playable[:top_k]
                 else:
-                    recommendations = playable + non_playable[:max(0, top_k - len(playable))]
+                    recommendations = (
+                        playable + non_playable[: max(0, top_k - len(playable))]
+                    )
             else:
                 recommendations = recommendations[:top_k]
 
@@ -887,18 +1088,24 @@ class Orchestrator:
 
         return [], None
 
-    def _extract_recommendations_for_tool(self, tool_name: str, data: object) -> list[dict[str, object]]:
+    def _extract_recommendations_for_tool(
+        self, tool_name: str, data: object
+    ) -> list[dict[str, object]]:
         if tool_name == "cf_recommend":
             payload = _as_dict(data)
             if payload is None:
                 return []
             recommendations_raw = _as_list(payload.get("recommendations")) or []
-            return self._build_recommendations_from_rows(recommendations_raw, use_cf_fields=True, tool_name=tool_name)
+            return self._build_recommendations_from_rows(
+                recommendations_raw, use_cf_fields=True, tool_name=tool_name
+            )
 
         rows = _as_list(data)
         if rows is None:
             return []
-        return self._build_recommendations_from_rows(rows, use_cf_fields=False, tool_name=tool_name)
+        return self._build_recommendations_from_rows(
+            rows, use_cf_fields=False, tool_name=tool_name
+        )
 
     @staticmethod
     def _build_recommendations_from_rows(
@@ -934,7 +1141,7 @@ class Orchestrator:
                 name = rec_id
 
             seen_ids.add(rec_id)
-            
+
             # Keep original row data but ensure id and name are present
             item = dict(row)
             item["id"] = rec_id
@@ -977,14 +1184,18 @@ class Orchestrator:
         assistant_text = _as_text(final_payload.get(_FINAL_ASSISTANT_TEXT))
         followup = _as_text(final_payload.get(_FINAL_FOLLOWUP))
         if not assistant_text:
-            assistant_text = self._fallback_reply(user_text, intent_slots, recommendations, tool_failures)
+            assistant_text = self._fallback_reply(
+                user_text, intent_slots, recommendations, tool_failures
+            )
         elif followup:
             assistant_text = f"{assistant_text}\n{followup}"
 
         final_payload[_FINAL_ASSISTANT_TEXT] = assistant_text
         return final_payload
 
-    def _collect_tool_failures(self, tool_results: list[dict[str, object]]) -> list[str]:
+    def _collect_tool_failures(
+        self, tool_results: list[dict[str, object]]
+    ) -> list[str]:
         failures: list[str] = []
         for row in tool_results:
             result = _as_dict(row.get("result"))
@@ -997,7 +1208,9 @@ class Orchestrator:
         return failures
 
     @staticmethod
-    def _build_seed_recommendations(recommendations: list[dict[str, object]]) -> list[dict[str, object]]:
+    def _build_seed_recommendations(
+        recommendations: list[dict[str, object]],
+    ) -> list[dict[str, object]]:
         seed_rows: list[dict[str, object]] = []
         for row in recommendations:
             rec_id = _as_text(row.get("id"))
@@ -1018,6 +1231,22 @@ class Orchestrator:
                 evidence["genre"] = genre
             if title:
                 evidence["title"] = title
+
+            genre_description = row.get("genre_description")
+            mood_tags = row.get("mood_tags")
+            scene_tags = row.get("scene_tags")
+            instrumentation = row.get("instrumentation")
+            energy_note = row.get("energy_note")
+            if genre_description:
+                evidence["genre_description"] = genre_description
+            if mood_tags:
+                evidence["mood_tags"] = mood_tags
+            if scene_tags:
+                evidence["scene_tags"] = scene_tags
+            if instrumentation:
+                evidence["instrumentation"] = instrumentation
+            if energy_note:
+                evidence["energy_note"] = energy_note
 
             if tool_name == "semantic_search":
                 sim = row.get("similarity")
@@ -1045,7 +1274,10 @@ class Orchestrator:
                     evidence["cf_score"] = float(cast(float, cf_score))
                 sources_list = _as_list(sources)
                 if sources_list:
-                    source_names = [str(source) for source in sources_list[:_TOOL_RESULTS_PROMPT_MAX_SOURCES]]
+                    source_names = [
+                        str(source)
+                        for source in sources_list[:_TOOL_RESULTS_PROMPT_MAX_SOURCES]
+                    ]
                     joined_sources = ",".join(source_names)
                     citations.append(f"hybrid_recommend.sources={joined_sources}")
                     evidence["sources"] = source_names
@@ -1058,7 +1290,7 @@ class Orchestrator:
             }
             if evidence:
                 seed_row["evidence"] = evidence
-            
+
             # Extract score from evidence for top-level access
             if "similarity" in evidence:
                 seed_row["score"] = evidence["similarity"]
@@ -1075,13 +1307,17 @@ class Orchestrator:
                 seed_row["audio_url"] = audio_url
 
             seed_rows.append(seed_row)
-        
+
         total = len(seed_rows)
         for idx, row in enumerate(seed_rows):
             raw_score = row.get("score")
-            raw_float = float(cast(float, raw_score)) if isinstance(raw_score, (int, float)) else None
+            raw_float = (
+                float(cast(float, raw_score))
+                if isinstance(raw_score, (int, float))
+                else None
+            )
             row["display_score"] = _calibrate_display_score(raw_float, idx, total)
-        
+
         return seed_rows
 
     def _generate_final_response(
@@ -1157,20 +1393,31 @@ class Orchestrator:
         if state.exclude_ids:
             multi_turn_context["excluded_count"] = len(state.exclude_ids)
         if state.recommendation_history:
-            multi_turn_context["previous_recommendation_rounds"] = len(state.recommendation_history)
+            multi_turn_context["previous_recommendation_rounds"] = len(
+                state.recommendation_history
+            )
         if multi_turn_context:
             payload["multi_turn_context"] = multi_turn_context
 
         prompt = (
             "Return ONLY valid JSON with fields: assistant_text, recommendations.\n"
             "Rules:\n"
-            "- assistant_text: brief natural language (1-2 sentences)\n"
+            "- assistant_text: brief natural language (1-2 sentences in Chinese)\n"
             "- recommendations: array with id, name, reason, citations\n"
-            "- reason: write a NATURAL explanation (1-2 sentences) in Chinese\n"
-            "- DO NOT mention similarity score, embedding, ranking, or technical metrics\n"
-            "- Explain WHY this song fits the user's mood/scene/genre preference\n"
-            "- Use natural language like '这首歌节奏轻快，适合学习时听' NOT '基于相似度0.35推荐'\n"
-            "- If user_context has mood/scene/genre, mention it naturally\n"
+            "- reason: REQUIRED. Write 15-40 Chinese characters explaining WHY this song fits user.\n"
+            "- You MUST use evidence from: genre_description, mood_tags, scene_tags, instrumentation, energy_note\n"
+            "- Each reason MUST mention at least ONE specific musical characteristic (NOT just genre name)\n"
+            "- DO NOT mention: similarity score, embedding, ranking, algorithm, technical terms\n"
+            "- DO NOT use generic phrases like '适合你的场景' or '符合你的需求'\n"
+            "- Good examples (with musical specifics):\n"
+            "  * '弱化节奏推进，合成器铺陈出沉浸感，适合深夜独处'\n"
+            "  * '钢琴与弦乐交织，旋律宁静深远，适合安静思考'\n"
+            "  * '低保真采样带有温暖噪点，节奏松散，适合专注陪伴'\n"
+            "  * '爵士和声变化丰富，即兴段落有格调，适合轻松氛围'\n"
+            "- Bad examples (too generic, DO NOT USE):\n"
+            "  * '适合学习'\n"
+            "  * '旋律好听'\n"
+            "  * '这首歌很适合你'\n"
             "- Use double quotes, no markdown, no code fences\n\n"
             f"{json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}"
         )
@@ -1184,8 +1431,16 @@ class Orchestrator:
             )
             parsed = self._parse_chat_json(response)
             if parsed is None:
-                logger.warning("Failed to parse LLM final response JSON, generating fallback response")
-                return self._build_fallback_response(state, query_text, seed_recommendations, user_context, multi_turn_context)
+                logger.warning(
+                    "Failed to parse LLM final response JSON, generating fallback response"
+                )
+                return self._build_fallback_response(
+                    state,
+                    query_text,
+                    seed_recommendations,
+                    user_context,
+                    multi_turn_context,
+                )
 
             assistant_text = _as_text(parsed.get(_FINAL_ASSISTANT_TEXT))
             validated_recommendations = self._validate_final_recommendations(
@@ -1203,7 +1458,13 @@ class Orchestrator:
         except Exception as e:
             logger.error(f"Exception in _generate_final_response: {e}", exc_info=True)
             state.llm_status = "fallback"
-            return self._build_fallback_response(state, query_text, seed_recommendations, user_context, multi_turn_context)
+            return self._build_fallback_response(
+                state,
+                query_text,
+                seed_recommendations,
+                user_context,
+                multi_turn_context,
+            )
 
     def _build_fallback_response(
         self,
@@ -1214,8 +1475,10 @@ class Orchestrator:
         multi_turn_context: dict[str, object],
     ) -> dict[str, object]:
         """Generate a natural fallback response when LLM JSON parsing fails."""
+        import hashlib
+
         parts: list[str] = []
-        
+
         if user_context:
             context_parts = []
             if user_context.get("mood"):
@@ -1224,23 +1487,39 @@ class Orchestrator:
                 context_parts.append(f"{user_context['scene']}场景")
             if user_context.get("energy"):
                 energy_map = {"low": "安静", "medium": "适中", "high": "高能量"}
-                context_parts.append(f"{energy_map.get(str(user_context['energy']), str(user_context['energy']))}风格")
+                context_parts.append(
+                    f"{energy_map.get(str(user_context['energy']), str(user_context['energy']))}风格"
+                )
             if context_parts:
                 parts.append(f"基于{', '.join(context_parts[:2])}，")
-        
+
         parts.append(f"为你找到了 {len(seed_recommendations)} 首歌曲推荐。")
-        
+
         excluded_count = multi_turn_context.get("excluded_count")
-        if excluded_count and isinstance(excluded_count, (int, float)) and excluded_count > 0:
+        if (
+            excluded_count
+            and isinstance(excluded_count, (int, float))
+            and excluded_count > 0
+        ):
             parts.append("已避开你之前反馈过的内容。")
-        
+
         prev_rounds = multi_turn_context.get("previous_recommendation_rounds")
         if prev_rounds and isinstance(prev_rounds, (int, float)) and prev_rounds > 0:
             parts.append("这是基于你当前偏好的新一轮推荐。")
-        
+
+        _DEFAULT_REASONS = [
+            "旋律与你的需求相匹配",
+            "风格适合当前场景",
+            "节奏和氛围都很合适",
+            "这首作品值得一听",
+            "符合你提到的音乐偏好",
+        ]
+
         enhanced_recommendations = []
         for rec in seed_recommendations:
             enhanced_rec = dict(rec)
+            rec_id = str(rec.get("id", ""))
+
             if not rec.get("reason"):
                 evidence = rec.get("evidence")
                 genre = ""
@@ -1254,38 +1533,76 @@ class Orchestrator:
                     artist = str(evidence.get("artist") or "")
                     similarity = evidence.get("similarity")
                     sources = evidence.get("sources")
-                
+
                 reason_parts = []
-                
+
                 if user_context:
                     if user_context.get("scene"):
-                        reason_parts.append(f"适合{user_context['scene']}时听")
+                        reason_parts.append(f"适合{user_context['scene']}场景")
                     if user_context.get("mood"):
-                        reason_parts.append(f"符合{user_context['mood']}的心情")
+                        reason_parts.append(f"符合{user_context['mood']}心情")
+                    if user_context.get("genre"):
+                        reason_parts.append(f"{user_context['genre']}风格")
                     if user_context.get("energy"):
-                        energy_desc = {"low": "轻松舒缓", "medium": "节奏适中", "high": "活力十足"}
-                        reason_parts.append(energy_desc.get(str(user_context["energy"]), ""))
-                
-                if genre and not reason_parts:
-                    reason_parts.append(f"{genre}风格")
-                
+                        energy_desc = {
+                            "low": "轻松舒缓",
+                            "medium": "节奏适中",
+                            "high": "活力十足",
+                        }
+                        energy_text = energy_desc.get(str(user_context["energy"]), "")
+                        if energy_text:
+                            reason_parts.append(energy_text)
+
+                if len(reason_parts) < 2:
+                    if artist and artist not in "，".join(reason_parts):
+                        reason_parts.append(f"来自{artist}")
+                    if genre and genre not in "，".join(reason_parts):
+                        reason_parts.append(f"{genre}风格")
+
+                prev_rounds_value = multi_turn_context.get(
+                    "previous_recommendation_rounds", 0
+                )
+                if (
+                    isinstance(prev_rounds_value, (int, float))
+                    and prev_rounds_value > 0
+                ):
+                    if len(reason_parts) < 3:
+                        reason_parts.append("基于你的偏好调整")
+
                 if sources and isinstance(sources, list):
-                    if "semantic" in sources:
-                        if similarity is not None and similarity > 0.35:
+                    if "semantic" in sources and similarity is not None:
+                        if similarity > 0.35:
                             reason_parts.append("很契合你的描述")
-                
+                        elif similarity > 0.26:
+                            reason_parts.append("与你的需求相关")
+
                 if reason_parts:
                     enhanced_rec["reason"] = "，".join([p for p in reason_parts if p])
                 else:
-                    enhanced_rec["reason"] = "根据你的需求推荐"
-            
+                    if rec_id:
+                        idx = int(hashlib.md5(rec_id.encode()).hexdigest(), 16) % len(
+                            _DEFAULT_REASONS
+                        )
+                        enhanced_rec["reason"] = _DEFAULT_REASONS[idx]
+                    else:
+                        enhanced_rec["reason"] = "根据你的听歌偏好推荐"
+            else:
+                if not enhanced_rec.get("reason"):
+                    if rec_id:
+                        idx = int(hashlib.md5(rec_id.encode()).hexdigest(), 16) % len(
+                            _DEFAULT_REASONS
+                        )
+                        enhanced_rec["reason"] = _DEFAULT_REASONS[idx]
+                    else:
+                        enhanced_rec["reason"] = "根据你的听歌偏好推荐"
+
             if rec.get("is_playable") is not None:
                 enhanced_rec["is_playable"] = rec["is_playable"]
             if rec.get("audio_url") is not None:
                 enhanced_rec["audio_url"] = rec["audio_url"]
-            
+
             enhanced_recommendations.append(enhanced_rec)
-        
+
         return {
             _FINAL_ASSISTANT_TEXT: " ".join(parts),
             _FINAL_RECOMMENDATIONS: enhanced_recommendations,
@@ -1304,7 +1621,7 @@ class Orchestrator:
 
         generated_rows = _as_list(generated)
         if generated_rows is None:
-            return seed_recommendations
+            return Orchestrator._ensure_reasons(seed_recommendations)
 
         validated: list[dict[str, object]] = []
         for item_obj in generated_rows:
@@ -1317,10 +1634,14 @@ class Orchestrator:
 
             seed = allowed_by_id[rec_id]
             name = _as_text(seed.get("name"))
-            
+
             llm_reason = _as_text(item.get("reason"))
             seed_reason = _as_text(seed.get("reason"))
-            reason = llm_reason if llm_reason and len(llm_reason) > 5 else (seed_reason if seed_reason else "根据你的需求推荐")
+            reason = (
+                llm_reason
+                if llm_reason and len(llm_reason) > 5
+                else (seed_reason if seed_reason else "")
+            )
 
             citations_raw = _as_list(item.get("citations"))
             citations: list[str] = []
@@ -1344,7 +1665,7 @@ class Orchestrator:
                 "reason": reason,
                 "citations": citations,
             }
-            
+
             if seed.get("is_playable") is not None:
                 result["is_playable"] = seed["is_playable"]
             if seed.get("audio_url") is not None:
@@ -1353,12 +1674,87 @@ class Orchestrator:
                 result["score"] = seed["score"]
             if seed.get("display_score") is not None:
                 result["display_score"] = seed["display_score"]
-            
+
             validated.append(result)
 
         if validated:
             return validated
-        return seed_recommendations
+        return Orchestrator._ensure_reasons(seed_recommendations)
+
+    @staticmethod
+    def _ensure_reasons(
+        recommendations: list[dict[str, object]],
+    ) -> list[dict[str, object]]:
+        import hashlib
+
+        _NATURAL_REASON_TEMPLATES = [
+            "这首歌的旋律很适合你当前的需求",
+            "节奏和氛围都很贴合你的偏好",
+            "风格上与你的听歌习惯相契合",
+            "这首作品值得一听，很有特点",
+            "整体感觉很适合你现在的场景",
+            "曲风和情绪都很到位",
+            "旋律线条很舒服，值得一试",
+            "这首歌的氛围感很好",
+            "节奏编排得很有层次感",
+            "编曲和你的口味很匹配",
+        ]
+
+        _ARTIST_TEMPLATES = [
+            "来自{artist}的作品",
+            "{artist}的演绎很有感染力",
+            "这首歌展现了{artist}的独特风格",
+            "{artist}的音乐表达很到位",
+        ]
+
+        _GENRE_TEMPLATES = [
+            "{genre}风格的佳作",
+            "很有{genre}的味道",
+            "典型的{genre}风格呈现",
+            "{genre}元素的精彩演绎",
+        ]
+
+        result: list[dict[str, object]] = []
+        for rec in recommendations:
+            enhanced = dict(rec)
+            existing_reason = _as_text(rec.get("reason"))
+            if existing_reason and len(existing_reason) > 5:
+                enhanced["reason"] = existing_reason
+            else:
+                rec_id = str(rec.get("id", ""))
+                evidence = rec.get("evidence")
+                name = str(rec.get("name", ""))
+
+                genre = ""
+                artist = ""
+                if isinstance(evidence, dict):
+                    genre = str(evidence.get("genre") or "")
+                    artist = str(evidence.get("artist") or "")
+                    if " - " in name and not artist:
+                        artist = name.split(" - ")[0].strip()
+
+                rec_hash = (
+                    int(hashlib.md5(rec_id.encode()).hexdigest(), 16) if rec_id else 0
+                )
+
+                if genre and artist:
+                    template_idx = rec_hash % len(_ARTIST_TEMPLATES)
+                    reason = _ARTIST_TEMPLATES[template_idx].format(artist=artist)
+                elif artist:
+                    template_idx = rec_hash % len(_ARTIST_TEMPLATES)
+                    reason = _ARTIST_TEMPLATES[template_idx].format(artist=artist)
+                elif genre:
+                    template_idx = rec_hash % len(_GENRE_TEMPLATES)
+                    reason = _GENRE_TEMPLATES[template_idx].format(genre=genre)
+                else:
+                    template_idx = rec_hash % len(_NATURAL_REASON_TEMPLATES)
+                    reason = _NATURAL_REASON_TEMPLATES[template_idx]
+
+                enhanced["reason"] = reason
+
+            result.append(enhanced)
+
+        return result
 
     @staticmethod
     def _fallback_reply(
@@ -1368,9 +1764,10 @@ class Orchestrator:
         tool_failures: list[str],
     ) -> str:
         if recommendations:
-            preview = "、".join(_as_text(row.get("name")) for row in recommendations[:3])
+            preview = "、".join(
+                _as_text(row.get("name")) for row in recommendations[:3]
+            )
             return f"我找到了 {len(recommendations)} 首相关歌曲：{preview}。如果你愿意，我可以继续细化。"
-
 
         intent = _as_text(intent_slots.get(_SLOT_INTENT))
         if intent == _INTENT_FEEDBACK:

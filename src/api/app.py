@@ -16,7 +16,11 @@ from src.agent import MockLLMClient, Orchestrator
 from src.api.session_store import SessionStore
 from src.llm.clients import QwenClient
 from src.llm.clients.base import ChatResponse
-from src.llm.prompts.schemas import FEEDBACK_ADAPTATION_SCHEMA, RECOMMENDATION_EXPLANATION_SCHEMA
+from src.llm.prompts.schemas import (
+    FEEDBACK_ADAPTATION_SCHEMA,
+    RECOMMENDATION_EXPLANATION_SCHEMA,
+)
+from src.manager.behavior_recorder import record_behavior, get_behavior_stats
 from src.tools import build_default_registry
 from src.tools.registry import ToolRegistry
 
@@ -115,9 +119,15 @@ def _build_mock_registry() -> ToolRegistry:
         top_k = int(cast(int | float | str, args["top_k"]))
         exclude_ids = cast(list[str], args.get("exclude_ids") or [])
         seed_song_name_obj = args.get("seed_song_name")
-        seed_song_name = str(seed_song_name_obj) if seed_song_name_obj is not None else ""
+        seed_song_name = (
+            str(seed_song_name_obj) if seed_song_name_obj is not None else ""
+        )
+        intent_obj = args.get("intent")
+        intent = str(intent_obj) if intent_obj is not None else "recommend"
 
-        sem = semantic_search({"query_text": query_text, "top_k": top_k, "exclude_ids": exclude_ids})
+        sem = semantic_search(
+            {"query_text": query_text, "top_k": top_k, "exclude_ids": exclude_ids}
+        )
         if sem.get("ok") is not True:
             return {"ok": False, "data": [], "error": "mock semantic_search failed"}
 
@@ -126,6 +136,7 @@ def _build_mock_registry() -> ToolRegistry:
         if isinstance(sem_rows_obj, list):
             sem_rows = cast(list[object], sem_rows_obj)
 
+        sources_label = "semantic" if intent == "search" else "hybrid"
         suffix = f" / seed={seed_song_name}" if seed_song_name else ""
         blended: list[dict[str, object]] = []
         for row_obj in sem_rows[: max(1, min(20, top_k))]:
@@ -144,7 +155,7 @@ def _build_mock_registry() -> ToolRegistry:
                     "distance": row.get("distance"),
                     "cf_score": None,
                     "score": row.get("similarity"),
-                    "sources": ["semantic", "mock"],
+                    "sources": [sources_label, "mock"],
                 }
             )
         return {"ok": True, "data": blended}
@@ -176,6 +187,7 @@ def _build_mock_registry() -> ToolRegistry:
             "w_sem": {"type": "number"},
             "w_cf": {"type": "number"},
             "exclude_ids": {"type": "array"},
+            "intent": {"type": "string"},
         },
         "required": ["query_text", "top_k"],
     }
@@ -203,12 +215,16 @@ def _build_mock_registry() -> ToolRegistry:
 
 
 def _install_offline_retrieve_semantic_docs() -> None:
-    def _offline_retrieve_semantic_docs(query: str, top_k: int = 5) -> list[dict[str, object]]:
+    def _offline_retrieve_semantic_docs(
+        query: str, top_k: int = 5
+    ) -> list[dict[str, object]]:
         _ = query
         _ = top_k
         return []
 
-    setattr(orchestrator_module, "retrieve_semantic_docs", _offline_retrieve_semantic_docs)
+    setattr(
+        orchestrator_module, "retrieve_semantic_docs", _offline_retrieve_semantic_docs
+    )
 
 
 def _resolve_llm_mode() -> str:
@@ -247,9 +263,12 @@ app = FastAPI(
     description="LLM mode is controlled by MUSIC_AGENT_LLM_MODE (mock by default, qwen optional).",
 )
 
-FMA_SMALL_AUDIO_DIR = Path(__file__).parent.parent.parent / "dataset" / "raw" / "fma_small"
+FMA_SMALL_AUDIO_DIR = (
+    Path(__file__).parent.parent.parent / "dataset" / "raw" / "fma_small"
+)
 if FMA_SMALL_AUDIO_DIR.exists():
     from fastapi.staticfiles import StaticFiles
+
     app.mount("/audio", StaticFiles(directory=str(FMA_SMALL_AUDIO_DIR)), name="audio")
 
 
@@ -290,6 +309,9 @@ class ChatResponseModel(BaseModel):
     session_id: str
     assistant_text: str
     recommendations: list[RecommendationObject]
+    recommendation_action: str = Field(
+        default="replace", pattern="^(replace|preserve)$"
+    )
     state: ChatStateResponse
     debug: DebugInfo = Field(default_factory=DebugInfo)
 
@@ -326,6 +348,7 @@ class FeedbackResponse(BaseModel):
     ack_message: str = ""
     updated_preference_state: dict[str, Any] = Field(default_factory=dict)
     next_strategy: dict[str, Any] = Field(default_factory=dict)
+    recommendations: list[RecommendationObject] = Field(default_factory=list)
     debug: DebugInfo = Field(default_factory=DebugInfo)
 
 
@@ -345,17 +368,25 @@ def chat(payload: ChatRequest) -> ChatResponseModel:
     LLM_DEBUG_INFO = {
         "llm_enabled": LLM_MODE == "qwen",
         "llm_provider": "qwen" if LLM_MODE == "qwen" else "mock",
-        "llm_model": ORCHESTRATOR.llm.model if hasattr(ORCHESTRATOR.llm, "model") else "mock",
+        "llm_model": ORCHESTRATOR.llm.model
+        if hasattr(ORCHESTRATOR.llm, "model")
+        else "mock",
         "llm_called": False,
         "fallback_used": False,
         "llm_latency_ms": 0,
     }
 
     session_id, state = SESSION_STORE.get_or_create(payload.session_id)
-    
+    logger.info(f"[CHAT] session={session_id}, msg_len={len(payload.message)}")
+
     start_time = time.perf_counter()
     turn_result = ORCHESTRATOR.handle_turn(payload.message, state)
     latency_ms = int((time.perf_counter() - start_time) * 1000)
+
+    logger.info(
+        f"[CHAT] session={session_id}, latency={latency_ms}ms, "
+        f"llm_status={state.llm_status}, recs={len(recommendations) if isinstance(turn_result, dict) else 0}"
+    )
 
     LLM_DEBUG_INFO["llm_called"] = state.llm_status in ("live", "live_verified")
     LLM_DEBUG_INFO["fallback_used"] = state.llm_status == "fallback"
@@ -366,14 +397,19 @@ def chat(payload: ChatRequest) -> ChatResponseModel:
         recommendations = turn_result.get("recommendations")
         if not isinstance(recommendations, list):
             recommendations = []
+        recommendation_action = str(turn_result.get("recommendation_action", "replace"))
+        if recommendation_action not in {"replace", "preserve"}:
+            recommendation_action = "replace"
     else:
         assistant_text = str(turn_result)
         recommendations = []
+        recommendation_action = "replace"
 
     return ChatResponseModel(
         session_id=session_id,
         assistant_text=assistant_text,
         recommendations=recommendations,
+        recommendation_action=recommendation_action,
         state=ChatStateResponse(
             mood=state.current_mood,
             scene=state.current_scene,
@@ -395,7 +431,9 @@ def get_session(session_id: str) -> SessionResponseModel:
     state = SESSION_STORE.get(session_id)
     if state is None:
         raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
-    return SessionResponseModel(ok=True, session_id=session_id, state=state.get_state_summary())
+    return SessionResponseModel(
+        ok=True, session_id=session_id, state=state.get_state_summary()
+    )
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -419,7 +457,12 @@ def health_llm() -> LLMHealthResponse:
     try:
         start_time = time.perf_counter()
         response = ORCHESTRATOR.llm.chat(
-            messages=[{"role": "user", "content": "Say 'ok' in JSON format: {\"status\": \"ok\"}"}],
+            messages=[
+                {
+                    "role": "user",
+                    "content": 'Say \'ok\' in JSON format: {"status": "ok"}',
+                }
+            ],
             temperature=0.0,
             max_tokens=50,
             json_output=True,
@@ -431,7 +474,9 @@ def health_llm() -> LLMHealthResponse:
                 status="ok",
                 llm_mode=LLM_MODE,
                 llm_provider="qwen",
-                llm_model=ORCHESTRATOR.llm.model if hasattr(ORCHESTRATOR.llm, "model") else "qwen3.5-plus",
+                llm_model=ORCHESTRATOR.llm.model
+                if hasattr(ORCHESTRATOR.llm, "model")
+                else "qwen3.5-plus",
                 llm_available=True,
                 latency_ms=latency_ms,
                 error=None,
@@ -441,7 +486,9 @@ def health_llm() -> LLMHealthResponse:
                 status="error",
                 llm_mode=LLM_MODE,
                 llm_provider="qwen",
-                llm_model=ORCHESTRATOR.llm.model if hasattr(ORCHESTRATOR.llm, "model") else "qwen3.5-plus",
+                llm_model=ORCHESTRATOR.llm.model
+                if hasattr(ORCHESTRATOR.llm, "model")
+                else "qwen3.5-plus",
                 llm_available=False,
                 latency_ms=latency_ms,
                 error="LLM returned invalid JSON",
@@ -451,11 +498,72 @@ def health_llm() -> LLMHealthResponse:
             status="error",
             llm_mode=LLM_MODE,
             llm_provider="qwen",
-            llm_model=ORCHESTRATOR.llm.model if hasattr(ORCHESTRATOR.llm, "model") else "qwen3.5-plus",
+            llm_model=ORCHESTRATOR.llm.model
+            if hasattr(ORCHESTRATOR.llm, "model")
+            else "qwen3.5-plus",
             llm_available=False,
             latency_ms=None,
             error=str(e),
         )
+
+
+@app.get("/health/verbose")
+def health_verbose():
+    import platform
+    from pathlib import Path
+
+    project_root = Path(__file__).parent.parent.parent
+    index_dir = project_root / "index" / "chroma_bge_m3"
+    data_dir = project_root / "data"
+    models_dir = data_dir / "models"
+    audio_dir = project_root / "dataset" / "raw" / "fma_small"
+
+    components = {
+        "llm": {
+            "status": "ok" if LLM_MODE == "qwen" else "mock",
+            "mode": LLM_MODE,
+            "provider": "qwen" if LLM_MODE == "qwen" else "mock",
+        },
+        "cf_model": {
+            "status": "not_loaded",
+            "path": str(models_dir / "implicit_model.pkl"),
+            "ready": False,
+        },
+        "vector_index": {
+            "status": "ok" if index_dir.exists() else "not_found",
+            "path": str(index_dir),
+            "exists": index_dir.exists(),
+        },
+        "audio_files": {
+            "status": "ok" if audio_dir.exists() else "not_found",
+            "path": str(audio_dir),
+            "exists": audio_dir.exists(),
+        },
+        "behavior_data": {
+            "path": str(data_dir / "processed" / "user_behaviors.jsonl"),
+        },
+        "system": {
+            "platform": platform.system(),
+            "python_version": platform.python_version(),
+        },
+    }
+
+    overall_status = "ok"
+    for key in ["llm", "vector_index", "audio_files"]:
+        if components[key].get("status") not in ["ok", "mock"]:
+            overall_status = "degraded"
+            break
+
+    return {
+        "status": overall_status,
+        "llm_mode": LLM_MODE,
+        "components": components,
+    }
+
+
+@app.get("/behavior/stats")
+def behavior_stats():
+    return get_behavior_stats()
 
 
 @app.post("/feedback", response_model=FeedbackResponse)
@@ -464,7 +572,9 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
     LLM_DEBUG_INFO = {
         "llm_enabled": LLM_MODE == "qwen",
         "llm_provider": "qwen" if LLM_MODE == "qwen" else "mock",
-        "llm_model": ORCHESTRATOR.llm.model if hasattr(ORCHESTRATOR.llm, "model") else "mock",
+        "llm_model": ORCHESTRATOR.llm.model
+        if hasattr(ORCHESTRATOR.llm, "model")
+        else "mock",
         "llm_called": False,
         "fallback_used": False,
         "llm_latency_ms": 0,
@@ -472,21 +582,36 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
 
     state = SESSION_STORE.get(payload.session_id)
     if state is None:
-        raise HTTPException(status_code=404, detail=f"Session not found: {payload.session_id}")
+        raise HTTPException(
+            status_code=404, detail=f"Session not found: {payload.session_id}"
+        )
 
     if LLM_MODE == "qwen":
         try:
             start_time = time.perf_counter()
-            
-            prompt_path = Path(__file__).parent.parent / "llm" / "prompts" / "feedback_adaptation_prompt.txt"
+
+            prompt_path = (
+                Path(__file__).parent.parent
+                / "llm"
+                / "prompts"
+                / "feedback_adaptation_prompt.txt"
+            )
             prompt_template = prompt_path.read_text(encoding="utf-8")
 
             preference_state = state.get_state_summary()
-            
-            prompt = prompt_template.replace("{preference_state_json}", json.dumps(preference_state, ensure_ascii=False))
+
+            prompt = prompt_template.replace(
+                "{preference_state_json}",
+                json.dumps(preference_state, ensure_ascii=False),
+            )
             prompt = prompt.replace("{feedback_type}", payload.feedback_type)
-            prompt = prompt.replace("{track_json}", json.dumps(payload.track_metadata, ensure_ascii=False))
-            prompt = prompt.replace("{recommendation_context_json}", json.dumps(payload.recommendation_context, ensure_ascii=False))
+            prompt = prompt.replace(
+                "{track_json}", json.dumps(payload.track_metadata, ensure_ascii=False)
+            )
+            prompt = prompt.replace(
+                "{recommendation_context_json}",
+                json.dumps(payload.recommendation_context, ensure_ascii=False),
+            )
 
             response = ORCHESTRATOR.llm.chat(
                 messages=[{"role": "user", "content": prompt}],
@@ -502,27 +627,34 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
             if response.json_data and isinstance(response.json_data, dict):
                 result = response.json_data
                 llm_check = result.get("llm_check", {})
-                
+
                 if llm_check.get("generated_by_llm"):
                     LLM_DEBUG_INFO["fallback_used"] = False
-                    
+
                     updated_state = result.get("updated_preference_state", {})
                     next_strategy = result.get("next_strategy", {})
                     ack_message = result.get("ack_message", "")
 
                     if payload.feedback_type == "like":
                         state.add_feedback(payload.track_id, "like")
-                        logger.info(f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}")
+                        logger.info(
+                            f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}"
+                        )
                     elif payload.feedback_type == "dislike":
                         state.add_feedback(payload.track_id, "dislike")
-                        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
-                        logger.info(f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id}")
+                        state.exclude_ids = list(
+                            set(state.exclude_ids + [payload.track_id])
+                        )[:100]
+                        logger.info(
+                            f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id}"
+                        )
 
                     return FeedbackResponse(
                         success=True,
                         ack_message=ack_message,
                         updated_preference_state=updated_state,
                         next_strategy=next_strategy,
+                        recommendations=[],
                         debug=DebugInfo(**LLM_DEBUG_INFO),
                     )
 
@@ -533,27 +665,90 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
     ack_messages = {
         "like": "已记录你的喜欢，后续会为你推荐更多类似的歌曲。",
         "dislike": "已记录你的不喜欢，后续推荐将排除这首歌。",
-        "refresh": "已排除上一批结果，正在基于你当前偏好换一批推荐...",
+        "refresh": "已排除上一批结果正在基于你当前偏好换一批推荐...",
     }
+
+    cf_recommendations: list[RecommendationObject] = []
 
     if payload.feedback_type == "like":
         state.add_feedback(payload.track_id, "like")
-        logger.info(f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}")
+        record_behavior(
+            user_id=payload.session_id,
+            song_id=payload.track_id,
+            action="like",
+            metadata={
+                "title": payload.track_metadata.get("title", "") if payload.track_metadata else "",
+                "artist": payload.track_metadata.get("artist", "") if payload.track_metadata else "",
+            }
+        )
+        logger.info(
+            f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}"
+        )
+
+        track_title = payload.track_metadata.get("title", "") if payload.track_metadata else ""
+        track_artist = payload.track_metadata.get("artist", "") if payload.track_metadata else ""
+
+        if track_title:
+            seed_song = f"{track_artist} - {track_title}" if track_artist else track_title
+
+            try:
+                cf_result = TOOL_REGISTRY.dispatch("cf_recommend", {
+                    "song_name": seed_song,
+                    "top_k": 3,
+                    "exclude_ids": list(state.exclude_ids),
+                })
+                if cf_result.get("ok") is True:
+                    cf_data = cf_result.get("data", {})
+                    cf_recs = cf_data.get("recommendations", [])
+                    if isinstance(cf_recs, list):
+                        for rec in cf_recs[:2]:
+                            if isinstance(rec, dict):
+                                cf_recommendations.append(RecommendationObject(
+                                    id=str(rec.get("id", "")),
+                                    name=str(rec.get("name", "")),
+                                    reason="喜欢这首歌的人也喜欢这首",
+                                    is_playable=False,
+                                ))
+                if cf_recommendations:
+                    first_rec = cf_recommendations[0]
+                    ack_messages["like"] = f"喜欢这首歌的人也喜欢：{first_rec.name}"
+            except Exception as e:
+                logger.error(f"CF recommendation failed: {e}")
+
     elif payload.feedback_type == "dislike":
         state.add_feedback(payload.track_id, "dislike")
+        record_behavior(
+            user_id=payload.session_id,
+            song_id=payload.track_id,
+            action="dislike",
+        )
         state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
-        logger.info(f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}")
+        logger.info(
+            f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}"
+        )
     elif payload.feedback_type == "refresh":
-        # Fix: refresh should update exclude_ids with last recommendation IDs
         if state.last_recommendation and state.last_recommendation.results:
-            last_ids = [item.id for item in state.last_recommendation.results if hasattr(item, 'id')]
+            last_ids = [
+                item.id
+                for item in state.last_recommendation.results
+                if hasattr(item, "id")
+            ]
             state.exclude_ids = list(set(state.exclude_ids + last_ids))[:100]
-        logger.info(f"[FEEDBACK] refresh session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}")
+            for tid in last_ids:
+                record_behavior(
+                    user_id=payload.session_id,
+                    song_id=tid,
+                    action="refresh_exclude",
+                )
+        logger.info(
+            f"[FEEDBACK] refresh session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}"
+        )
 
     return FeedbackResponse(
         success=True,
         ack_message=ack_messages.get(payload.feedback_type, "已收到反馈。"),
         updated_preference_state={},
         next_strategy={},
+        recommendations=cf_recommendations,
         debug=DebugInfo(**LLM_DEBUG_INFO),
     )

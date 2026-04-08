@@ -66,7 +66,9 @@ class MockLLMClient(BaseLLMClient):
             user_text = _as_text(payload.get("user_text"))
             data = self._mock_intent_and_slots(user_text)
             content = json.dumps(data, ensure_ascii=False)
-            return ChatResponse(content=content, json_data=data, raw={"stage": "intent"})
+            return ChatResponse(
+                content=content, json_data=data, raw={"stage": "intent"}
+            )
 
         if "FINAL_RESPONSE_SCHEMA" in user_content:
             payload = self._extract_payload(user_content)
@@ -81,7 +83,9 @@ class MockLLMClient(BaseLLMClient):
             "followup_question": "你现在更偏好哪种情绪或场景？",
         }
         fallback_content = json.dumps(fallback, ensure_ascii=False)
-        return ChatResponse(content=fallback_content, json_data=fallback, raw={"stage": "fallback"})
+        return ChatResponse(
+            content=fallback_content, json_data=fallback, raw={"stage": "fallback"}
+        )
 
     @staticmethod
     def _last_user_message(messages: list[dict[str, object]]) -> str:
@@ -113,7 +117,10 @@ class MockLLMClient(BaseLLMClient):
         intent = _INTENT_SEARCH
         if any(token in lowered for token in ("为什么", "理由", "explain")):
             intent = _INTENT_EXPLAIN
-        elif any(token in lowered for token in ("不喜欢", "跳过", "dislike", "skip", "like", "喜欢")):
+        elif any(
+            token in lowered
+            for token in ("不喜欢", "跳过", "dislike", "skip", "like", "喜欢")
+        ):
             intent = _INTENT_FEEDBACK
         elif any(token in lowered for token in ("换", "再来", "调整", "refine")):
             intent = _INTENT_REFINE
@@ -213,7 +220,9 @@ class MockLLMClient(BaseLLMClient):
             return None
 
         feedback: dict[str, str] = {"type": feedback_type}
-        target_match = re.search(r"(?:id[:：\s]*)([A-Za-z0-9_\-]+)", text, re.IGNORECASE)
+        target_match = re.search(
+            r"(?:id[:：\s]*)([A-Za-z0-9_\-]+)", text, re.IGNORECASE
+        )
         if target_match:
             target_id = target_match.group(1).strip()
             if target_id:
@@ -235,7 +244,11 @@ class MockLLMClient(BaseLLMClient):
             if not rec_id or not name:
                 continue
 
-            reason = _as_text(item.get("reason")) or "与当前需求匹配"
+            reason = _as_text(item.get("reason"))
+            if not reason or len(reason) < 10:
+                evidence = _as_dict(item.get("evidence")) or {}
+                reason = MockLLMClient._build_reason_from_evidence(evidence)
+
             citations_raw = _as_list(item.get("citations")) or ["tool_output"]
             citations: list[str] = []
             for citation_obj in citations_raw:
@@ -262,9 +275,13 @@ class MockLLMClient(BaseLLMClient):
                 tool_failures.append(error_text)
 
         if recommendations:
-            assistant_text = f"我根据你的需求整理了 {len(recommendations)} 首歌，先听听看。"
+            assistant_text = (
+                f"我根据你的需求整理了 {len(recommendations)} 首歌，先听听看。"
+            )
         elif tool_failures:
-            assistant_text = "工具这次没有成功返回结果，我先记录你的需求，你可以换个关键词再试。"
+            assistant_text = (
+                "工具这次没有成功返回结果，我先记录你的需求，你可以换个关键词再试。"
+            )
         else:
             assistant_text = "我还没有拿到可用的推荐结果，你可以补充一个情绪或场景。"
 
@@ -273,3 +290,42 @@ class MockLLMClient(BaseLLMClient):
             "recommendations": recommendations,
             "followup_question": "你想要更放松一点，还是更有节奏一点？",
         }
+
+    @staticmethod
+    def _build_reason_from_evidence(evidence: dict[str, object]) -> str:
+        parts = []
+
+        genre_description = _as_text(evidence.get("genre_description"))
+        instrumentation = evidence.get("instrumentation")
+        energy_note = _as_text(evidence.get("energy_note"))
+        mood_tags = evidence.get("mood_tags")
+
+        if genre_description:
+            parts.append(genre_description[:20])
+
+        if (
+            instrumentation
+            and isinstance(instrumentation, list)
+            and len(instrumentation) > 0
+        ):
+            inst_str = "、".join(str(i) for i in instrumentation[:2])
+            parts.append(f"编曲包含{inst_str}")
+
+        if energy_note:
+            parts.append(energy_note[:15])
+
+        if mood_tags and isinstance(mood_tags, list) and len(mood_tags) > 0:
+            mood_str = "、".join(str(m) for m in mood_tags[:2])
+            parts.append(f"情绪{mood_str}")
+
+        if parts:
+            return "，".join(parts[:3])
+
+        artist = _as_text(evidence.get("artist"))
+        genre = _as_text(evidence.get("genre"))
+        if artist and genre:
+            return f"{artist}的{genre}风格作品"
+        elif genre:
+            return f"{genre}风格的音乐"
+
+        return "根据你的需求推荐"

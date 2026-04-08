@@ -41,5 +41,6 @@ export interface FeedbackResponse {
   ack_message: string;
   updated_preference_state: Record<string, unknown>;
   next_strategy: Record<string, unknown>;
+  recommendations: Track[];
   debug: DebugInfo;
 }

@@ -1,4 +1,7 @@
+import logging
 from typing import Protocol, cast
+
+logger = logging.getLogger(__name__)
 
 from src.recommender.music_recommender import MusicRecommender
 
@@ -15,6 +18,7 @@ CF_RECOMMEND_SCHEMA: dict[str, object] = {
 
 
 _recommender: MusicRecommender | None = None
+_cf_model_ready: bool = False
 
 
 class _RecommenderProtocol(Protocol):
@@ -62,41 +66,78 @@ def cf_recommend(args: dict[str, object]) -> dict[str, object]:
     top_k = int(cast(int | float | str, args["top_k"]))
     exclude_ids = _parse_exclude_ids(args)
 
-    try:
-        recommender = cast(_RecommenderProtocol, _get_recommender())
-        result = recommender.recommend_by_song(song_name, top_k=top_k)
-    except FileNotFoundError as exc:
-        return {"ok": False, "data": {"matched_song": None, "recommendations": []}, "error": str(exc)}
-    except Exception as exc:
+    logger.info(f"[CF] Request: song={song_name}, top_k={top_k}, exclude={len(exclude_ids)}")
+
+    recommendations = []
+    matched_song = None
+
+    if _cf_model_ready:
+        try:
+            logger.info(f"[CF] Using implicit CF model")
+            recommender = cast(_RecommenderProtocol, _get_recommender())
+            result = recommender.recommend_by_song(song_name, top_k=top_k)
+            if result.get("matched_song"):
+                matched_song = result["matched_song"]
+            raw_recommendations = result.get("recommendations", [])
+            for rec_obj in cast(list[object], raw_recommendations):
+                if isinstance(rec_obj, dict):
+                    rec = cast(dict[str, object], rec_obj)
+                    if exclude_ids and _collect_result_ids(rec).intersection(exclude_ids):
+                        continue
+                    recommendations.append(rec)
+            logger.info(f"[CF] Implicit model returned {len(recommendations)} results")
+        except Exception as e:
+            logger.warning(f"[CF] Implicit model failed: {e}")
+
+    if not recommendations:
+        try:
+            logger.info(f"[CF] Falling back to ChromaDB semantic similarity")
+            from src.searcher.music_searcher import MusicSearcher
+            searcher = MusicSearcher()
+            search_results = searcher.search(
+                query=song_name,
+                top_k=top_k * 2,
+                include_metadata=True,
+                include_documents=False
+            )
+            for r in search_results:
+                tid = str(r.get("track_id") or r.get("id", ""))
+                if not tid or tid in exclude_ids:
+                    continue
+                title = r.get("title", song_name)
+                artist = r.get("artist", "")
+                rec = {
+                    "id": tid,
+                    "name": f"{artist} - {title}" if artist else title,
+                    "score": r.get("similarity", 0.8),
+                }
+                recommendations.append(rec)
+                if len(recommendations) >= top_k:
+                    break
+            if search_results and not matched_song:
+                first = search_results[0]
+                matched_song = {
+                    "id": str(first.get("track_id") or first.get("id", "")),
+                    "name": f"{first.get('artist', '')} - {first.get('title', song_name)}" if first.get('artist') else first.get('title', song_name)
+                }
+            logger.info(f"[CF] ChromaDB returned {len(recommendations)} results")
+        except ImportError as e:
+            logger.warning(f"[CF] ChromaDB not available: {e}")
+        except Exception as e:
+            logger.warning(f"[CF] ChromaDB search failed: {e}")
+
+    if not recommendations:
+        logger.warning(f"[CF] No similar songs found for '{song_name}'")
         return {
             "ok": False,
             "data": {"matched_song": None, "recommendations": []},
-            "error": f"Collaborative recommendation failed: {exc}",
+            "error": f"No similar songs found for '{song_name}'",
         }
 
-    raw_recommendations = result.get("recommendations", [])
-    recommendations: list[object] = []
-    if isinstance(raw_recommendations, list):
-        for rec_obj in cast(list[object], raw_recommendations):
-            if not isinstance(rec_obj, dict):
-                recommendations.append(rec_obj)
-                continue
-
-            rec = cast(dict[str, object], rec_obj)
-            if exclude_ids:
-                comparable_ids = _collect_result_ids(rec)
-                if comparable_ids and comparable_ids.intersection(exclude_ids):
-                    continue
-            recommendations.append(rec)
-
+    logger.info(f"[CF] Returning {len(recommendations[:top_k])} recommendations")
     data: dict[str, object] = {
-        "matched_song": cast(object, result.get("matched_song")),
-        "recommendations": recommendations,
+        "matched_song": matched_song,
+        "recommendations": recommendations[:top_k],
     }
-
-    error = cast(object, result.get("error"))
-    if error:
-        data["error"] = error
-        return {"ok": False, "data": data, "error": error}
 
     return {"ok": True, "data": data}

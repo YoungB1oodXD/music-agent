@@ -19,6 +19,7 @@ export interface ChatResponse {
   session_id: string;
   assistant_text: string;
   recommendations: RecommendationObject[];
+  recommendation_action?: 'replace' | 'preserve';
   state: ChatState;
 }
 

@@ -2,9 +2,11 @@
   "active_plan": "E:\\Workspace\\music_agent\\.sisyphus\\plans\\post-reindex-threshold-and-final-acceptance.md",
   "started_at": "2026-03-12T17:16:23.032Z",
   "session_ids": [
-    "ses_34bf8ff91ffemO6I1XKRrM3mO0"
+    "ses_34bf8ff91ffemO6I1XKRrM3mO0",
+    "ses_2b6b19d93ffej0gFEvz0CUNsIz"
   ],
   "plan_name": "post-reindex-threshold-and-final-acceptance",
   "agent": "atlas",
-  "worktree_path": "E:\\Workspace\\music_agent"
+  "worktree_path": "E:\\Workspace\\music_agent",
+  "task_sessions": {}
 }

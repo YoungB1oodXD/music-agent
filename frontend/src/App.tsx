@@ -113,7 +113,9 @@ export default function App() {
 
       setSessionId(response.session_id);
       setContext(mapChatStateToSessionContext(response.state));
-      setTracks(mapRecommendationsToTracks(response.recommendations));
+      if (response.recommendation_action !== 'preserve') {
+        setTracks(mapRecommendationsToTracks(response.recommendations));
+      }
 
       const newAgentMsg: Message = {
         id: (Date.now() + 1).toString(),
@@ -187,12 +189,18 @@ export default function App() {
     const trackIdMatch = message.match(/id\s*[:：]\s*(\S+)/);
     const trackId = trackIdMatch ? trackIdMatch[1] : '';
 
+    const currentTrack = tracks.find(t => t.id === trackId);
+    const trackMetadata = currentTrack ? {
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+    } : {};
+
     try {
       const response = await sendFeedback({
         session_id: sessionId,
         feedback_type: feedbackType as 'like' | 'dislike' | 'refresh',
         track_id: trackId,
-        track_metadata: {},
+        track_metadata: trackMetadata,
         recommendation_context: {},
       });
 
@@ -214,6 +222,17 @@ export default function App() {
         setTracks(mapRecommendationsToTracks(chatResponse.recommendations));
       } else if (isDislike && trackId) {
         setTracks(prev => prev.filter(t => t.id !== trackId));
+      } else if (isLike && trackId) {
+        const cfTracks = mapRecommendationsToTracks(response.recommendations);
+        if (cfTracks.length > 0) {
+          setTracks(prev => {
+            const likedIndex = prev.findIndex(t => t.id === trackId);
+            if (likedIndex === -1) return [...prev, ...cfTracks];
+            const newTracks = [...prev];
+            newTracks.splice(likedIndex + 1, 0, ...cfTracks);
+            return newTracks;
+          });
+        }
       }
 
       return true;

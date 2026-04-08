@@ -280,18 +280,60 @@ python scripts/vectorizer_bge.py
 python scripts/build_audio_mapping.py
 ```
 
-### 命令行聊天
+---
 
-```bash
-# Mock 模式（无需 API Key）
-python scripts/chat_cli.py --llm mock
+## 🔧 API 接口文档
 
-# Qwen 模式
-python scripts/chat_cli.py --llm qwen
+### 核心端点
 
-# 单次执行
-python scripts/chat_cli.py --llm qwen --once "推荐适合学习的歌"
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /chat | 对话式推荐 |
+| POST | /feedback | 用户反馈（喜欢/不喜欢） |
+| GET | /session/{session_id} | 获取会话状态 |
+| POST | /reset_session | 重置会话 |
+| GET | /health | 基础健康检查 |
+| GET | /health/verbose | 详细组件状态 |
+| GET | /health/llm | LLM 服务健康检查 |
+| GET | /behavior/stats | 用户行为统计 |
+
+### 响应示例
+
+```json
+// GET /health/verbose
+{
+  "status": "ok",
+  "llm_mode": "qwen",
+  "components": {
+    "llm": {"status": "ok", "mode": "qwen", "provider": "qwen"},
+    "cf_model": {"status": "not_loaded", "ready": false},
+    "vector_index": {"status": "ok", "exists": true},
+    "audio_files": {"status": "ok", "exists": true}
+  }
+}
 ```
+
+---
+
+## ⚙️ 配置说明
+
+### 环境变量
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| MUSIC_AGENT_LLM_MODE | mock | LLM 模式：mock / qwen |
+| MUSIC_AGENT_LLM_TIMEOUT | 30 | LLM 请求超时（秒） |
+| DASHSCOPE_API_KEY | - | Qwen API Key |
+| LOG_LEVEL | INFO | 日志级别：DEBUG/INFO/WARNING/ERROR |
+
+### 全局配置
+
+项目配置集中管理在 `src/config.py`：
+
+- 数据目录：`data/models`, `data/processed`, `index/chroma_bge_m3`
+- 向量索引：`index/chroma_bge_m3`
+- 音频文件：`dataset/raw/fma_small`
+- 推荐参数：top_k 默认 5，排除列表上限 100
 
 ---
 

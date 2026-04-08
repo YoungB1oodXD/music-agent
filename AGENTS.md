@@ -1,237 +1,309 @@
 # AGENTS.md
 
-**Generated:** 2026-03-24 | **Updated:** 2026-03-31
-**Stack:** Python 3.11 | FastAPI | BGE-M3 | ChromaDB | Implicit ALS | React 19 + Vite + TailwindCSS
+**Updated:** 2026-04-01  
+**Stack:** Python 3.11, FastAPI, Qwen/OpenAI-compatible client, ChromaDB, Implicit ALS, React 19, Vite, TailwindCSS v4
 
-## OVERVIEW
+## Purpose
 
-Dual-brain music recommendation system with LLM-powered agent orchestration. Left brain: semantic search (BGE-M3 + ChromaDB). Right brain: collaborative filtering (Implicit ALS). Runtime: intent extraction → slot filling → tool dispatch → response synthesis.
+This file is for coding agents operating in `E:\Workspace\music_agent`.
+Prefer small, pattern-matching changes. Verify with the repo’s actual checks instead of inventing new tooling.
 
-## STRUCTURE
+## High-Level Architecture
 
-```
+Dual-brain music recommendation system:
+- **Left brain:** semantic retrieval with BGE-M3 + ChromaDB
+- **Right brain:** collaborative filtering with Implicit ALS
+- **Runtime flow:** intent extraction → slot filling → tool dispatch → response synthesis
+
+## Repository Layout
+
+```text
 src/
-├── agent/        # Orchestrator — LLM-driven intent/slot extraction, tool dispatch
-├── api/          # FastAPI app — /chat, /recommend, /search, /feedback endpoints
-├── llm/          # LLM clients — Qwen (OpenAI-compatible), mock client
-├── rag/          # Retrieval augmentation — context builder, retriever, sanitizer
-├── tools/        # Tool registry — CF/semantic/hybrid recommend tools
-├── manager/      # Session state management
-├── recommender/  # Collaborative filtering (Right Brain)
-└── searcher/     # Semantic search (Left Brain)
-frontend/         # React 19 + Vite + TailwindCSS v4
-scripts/          # Entry points — training, vectorization, CLI, API server
-tests/            # Standalone test scripts (no pytest harness)
+├── agent/        # Orchestration, intent routing, response assembly
+├── api/          # FastAPI app and session endpoints
+├── llm/          # Qwen client, prompt schemas
+├── rag/          # Retrieval context building and sanitization
+├── tools/        # Tool registry + semantic/CF/hybrid tools
+├── manager/      # Session state models
+├── recommender/  # Implicit ALS recommender
+└── searcher/     # Chroma/BGE semantic search
+frontend/         # React + Vite app
+scripts/          # Entry-point scripts, training, audits, CLI, API runner
+tests/            # Standalone smoke/unit scripts (not pytest)
 ```
 
-## WHERE TO LOOK
+## Source-of-Truth Config Files
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add new tool | `src/tools/` | Register in `__init__.py` `build_default_registry()`, create handler |
-| Modify intent routing | `src/agent/orchestrator.py` | Core dispatch logic, `_ALLOWED_INTENTS` |
-| Change LLM provider | `src/llm/clients/` | Base class + Qwen implementation |
-| Adjust RAG pipeline | `src/rag/` | Context builder + retriever + sanitizer |
-| Add API endpoint | `src/api/app.py` | FastAPI routes, Pydantic models, session store |
-| Train models | `scripts/` | train_cf.py, vectorizer_bge.py |
-| Frontend component | `frontend/src/components/` | React components with TailwindCSS |
-| API service layer | `frontend/src/services/` | TypeScript API client |
+- Backend deps: `requirements.txt`
+- Frontend scripts: `frontend/package.json`
+- Frontend TS config: `frontend/tsconfig.json`
+- Frontend dev/build proxy config: `frontend/vite.config.ts`
+- Existing repo docs: `README.md`
 
-## ANTI-PATTERNS (CRITICAL)
+## Instruction Files Present / Absent
 
-- **DO NOT** use `as any`, `@ts-ignore` equivalents in Python or TypeScript
-- **DO NOT** suppress type errors — this repo uses type hints
-- **DO NOT** delete failing tests to "pass"
-- **DO NOT** run `scripts/run_hybrid_pipeline.py` — references missing `cleanup.py`
-- **DO NOT** catch broadly without logging: use `except Exception` with `logger.error(..., exc_info=True)`
-- **DO NOT** use wildcard imports (`from x import *`)
-- **DO NOT** skip BLAS pinning on Windows before importing `implicit`
+- Root agent guide exists: `AGENTS.md`
+- Additional scoped guides exist under `src/agent/AGENTS.md`, `src/tools/AGENTS.md`, `src/llm/AGENTS.md`, `scripts/AGENTS.md`
+- **No** `.cursor/rules/`
+- **No** `.cursorrules`
+- **No** `.github/copilot-instructions.md`
 
-## UNIQUE STYLES
+## Environment Setup
 
-- **No package structure**: Scripts inject `sys.path.insert(0, repo_root)` before importing `src.*`
-- **Encoding headers**: Keep `# -*- coding: utf-8 -*-` for files with non-ASCII content
-- **Mixed language**: Chinese/English strings — match nearby code language
-- **Mock patterns**: Tests build fake handlers inline, register with `ToolRegistry`
-- **BLAS pinning**: Set `OPENBLAS_NUM_THREADS=1` etc. before importing `implicit` on Windows
-- **Tool responses**: All handlers return `{"ok": bool, "data": Any, "error": str | None}`
-
-## ENVIRONMENT
+### Backend install
 
 ```bash
-# Install backend dependencies
 python -m pip install -r requirements.txt
+```
 
-# Windows BLAS thread pinning (required for implicit)
+### Frontend install
+
+```bash
+cd frontend && npm install
+```
+
+### Required / important environment variables
+
+```bash
+# Windows BLAS pinning before code that imports implicit
 set OPENBLAS_NUM_THREADS=1
 set MKL_NUM_THREADS=1
 set OMP_NUM_THREADS=1
 
-# DashScope API keys (priority: BAILIAN > default)
-set DASHSCOPE_API_KEY_BAILIAN="your_key"  # Preferred
-set DASHSCOPE_API_KEY="your_key"          # Fallback
+# LLM mode
+set MUSIC_AGENT_LLM_MODE=mock
+set MUSIC_AGENT_LLM_MODE=qwen
 
-# LLM mode selection
-set MUSIC_AGENT_LLM_MODE=qwen   # Use Qwen (needs API key)
-set MUSIC_AGENT_LLM_MODE=mock   # Use mock (no API key needed)
-
-# Install frontend dependencies
-cd frontend && npm install
+# Qwen / DashScope credentials
+set DASHSCOPE_API_KEY_BAILIAN=your_key
+set DASHSCOPE_API_KEY=your_key
 ```
 
-## BUILD / TRAIN COMMANDS
+## Build / Run Commands
 
-No single build tool — "build" generates data artifacts and models.
+### Backend app
 
 ```bash
-# 1. Process data for embedding
-python scripts/data_processor_bge.py
-# → data/processed/unified_songs_bge.parquet
-
-# 2. Build metadata mapping
-python scripts/build_metadata_from_json.py
-# → dataset/processed/metadata.json
-
-# 3. Train collaborative filtering model
-python scripts/train_cf.py
-# → data/models/implicit_model.pkl, cf_mappings.pkl
-
-# 4. Build vector index
-python scripts/vectorizer_bge.py
-# → index/chroma_bge_m3/
-
-# 5. Build audio mapping
-python scripts/build_audio_mapping.py
+python scripts/run_api.py
 ```
 
-## LINT / TYPECHECK
+Starts FastAPI on port `8000`.
 
-No linter/formatter configured for Python. For TypeScript:
+### Frontend dev server
 
 ```bash
-# Python minimal sanity check
-python -m compileall src scripts tests
+cd frontend && npm run dev
+```
 
-# TypeScript type check (frontend)
-cd frontend && npm run lint    # tsc --noEmit
+Vite runs on port `3000`.
 
-# Frontend build
+### Frontend production build
+
+```bash
 cd frontend && npm run build
 ```
 
-## TESTS
-
-No pytest harness — tests are standalone scripts with `if __name__ == "__main__"` blocks.
-
-### Run a single test
+### Frontend preview
 
 ```bash
-python tests/verify_enhancement.py
-python tests/tool_registry_unit.py
-python tests/agent_orchestrator_smoke.py
-python tests/tool_smoke.py
-python tests/rag_sanitize_smoke.py
-python tests/qwen_live_smoke.py
-python tests/api_chat_smoke.py
+cd frontend && npm run preview
 ```
 
-### Run module smoke tests (modules double as test runners)
+### CLI smoke usage
+
+```bash
+python scripts/chat_cli.py --llm mock
+python scripts/chat_cli.py --llm qwen --once "推荐适合学习的歌"
+```
+
+## Lint / Typecheck / Validation
+
+### Python
+
+There is **no formal Python linter/formatter config** in this repo.
+Use the lightweight sanity check below:
+
+```bash
+python -m compileall src scripts tests
+```
+
+### Frontend TypeScript
+
+```bash
+cd frontend && npm run lint
+```
+
+Note: `npm run lint` is actually:
+
+```bash
+tsc --noEmit
+```
+
+### Recommended full validation after frontend changes
+
+```bash
+cd frontend && npm run lint && npm run build
+```
+
+## Test Commands
+
+### Important: tests are standalone scripts, not pytest
+
+Do **not** assume `pytest`.
+To run a single test, execute the target file directly:
+
+```bash
+python tests/tool_registry_unit.py
+python tests/agent_orchestrator_smoke.py
+python tests/api_chat_smoke.py
+python tests/api_feedback_refresh_smoke.py
+python tests/rag_sanitize_smoke.py
+python tests/qwen_live_smoke.py
+```
+
+### Module smoke runners
+
+Some source modules are also runnable directly:
 
 ```bash
 python src/recommender/music_recommender.py
 python src/searcher/music_searcher.py
 ```
 
-### Run CLI smoke test
+### Practical targeted verification
+
+- Tooling change → `python tests/tool_registry_unit.py`
+- Orchestrator change → `python tests/agent_orchestrator_smoke.py`
+- API change → `python tests/api_chat_smoke.py`
+- Feedback/session flow change → `python tests/api_feedback_refresh_smoke.py`
+- LLM wiring change → `python tests/qwen_live_smoke.py` or `python tests/dashscope_key_smoke.py`
+
+## Data / Model Build Pipeline
+
+“Build” often means generating artifacts, not compiling code.
+Recommended sequence:
 
 ```bash
-python scripts/chat_cli.py --llm mock --once "推荐适合学习的歌"
+python scripts/data_processor_bge.py
+python scripts/build_metadata_from_json.py
+python scripts/train_cf.py
+python scripts/vectorizer_bge.py
+python scripts/build_audio_mapping.py
 ```
 
-### Prerequisites
+Outputs include processed data, CF model artifacts, and the Chroma index.
 
-- `MusicSearcher` requires `index/chroma_bge_m3/`
-- `MusicRecommender` requires `data/models/*.pkl` and optionally `dataset/processed/metadata.json`
+## Known Unsafe / Non-Authoritative Commands
 
-## CODE STYLE
+Do **not** rely on:
 
-### Formatting
-- Indentation: 4 spaces. Line length: keep readable (<100 preferred).
-- Files often have shebang + `# -*- coding: utf-8 -*-` header.
-- TypeScript: 2-space indent (Vite default), follow `tsconfig.json`.
+```bash
+python scripts/run_hybrid_pipeline.py
+```
+
+It references missing pieces and is called out as problematic in repo guidance.
+
+## Python Code Style
 
 ### Imports
-- Top-level imports, grouped: (1) stdlib, (2) third-party, (3) local.
-- Avoid wildcard imports. Use `from __future__ import annotations` for forward refs.
+- Group imports as: stdlib → third-party → local `src.*`
+- Prefer absolute project imports like `from src.tools.registry import ToolRegistry`
+- Avoid wildcard imports
+- Newer typed modules often start with `from __future__ import annotations`
+
+### Formatting
+- Use 4 spaces
+- Keep lines readable; consistency matters more than rigid wrapping
+- Preserve UTF-8 headers in older files containing Chinese text
+- Match nearby docstring/comment language
 
 ### Types
-- Use type hints for public methods and non-trivial helpers.
-- Use `Optional[T]`, `Dict[str, Any]`, `cast()` from typing.
-- Do NOT use `Any` to silence type errors. Use `cast()` with justification.
-- Frontend: Strict TypeScript — no `any`, use proper interfaces in `types.ts`.
+- Add type hints to public functions and non-trivial helpers
+- Prefer modern built-in generics in newer files when consistent with surroundings
+- Use `cast()` after runtime checks instead of weakening types
+- Do not use typing escapes to silence errors
 
 ### Naming
-- Modules: `snake_case.py`. Classes: `PascalCase`. Functions: `snake_case`.
-- Constants: `UPPER_SNAKE_CASE`. Internal module constants: `_PREFIXED_NAME`.
-- TypeScript: `PascalCase` components, `camelCase` functions/variables.
+- Modules/functions/variables: `snake_case`
+- Classes: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Internal helper/constants often use a leading underscore, e.g. `_INTENT_*`, `_SLOT_*`
 
-### Paths
-- Use `pathlib.Path`. Compute `project_root` from `__file__`.
-- Create parent dirs: `mkdir(parents=True, exist_ok=True)`.
+### Paths and files
+- Prefer `pathlib.Path`
+- Derive project-relative paths from `__file__`
+- Use `encoding="utf-8"` for text reads/writes
+- Create directories with `mkdir(parents=True, exist_ok=True)`
+
+### Error handling
+- Prefer specific exceptions over broad `except Exception`
+- If broad catch is necessary, log with context; `logger.error(..., exc_info=True)` is the repo-preferred pattern
+- Missing file/resource conditions should raise clear `FileNotFoundError` or `ImportError`
+- API layer should convert failures to appropriate `HTTPException` or structured responses
 
 ### Logging
-- `logger = logging.getLogger(__name__)` at module level.
-- Scripts may call `logging.basicConfig()` at import time.
-- Log exceptions with `logger.error(..., exc_info=True)`.
+- Standard pattern: `logger = logging.getLogger(__name__)`
+- Some runtime scripts/modules use `logging.basicConfig()` at import time; do not add extra noisy logging without reason
 
-### Error Handling
-- Missing files: raise `FileNotFoundError` with path.
-- Missing deps: raise `ImportError` with install hint.
-- Never use bare `except:`. Never swallow errors silently.
-- API layer: Convert to `HTTPException` with appropriate status code.
+## Tool-Layer Conventions
 
-## CLI USAGE
+- Tool handlers should return the repo envelope:
 
-```bash
-# Chat CLI (mock mode for testing)
-python scripts/chat_cli.py --llm mock
-
-# Chat CLI (Qwen mode)
-python scripts/chat_cli.py --llm qwen --once "推荐适合学习的歌"
-
-# Interactive CLI session
-python scripts/chat_cli.py --llm mock
-> 推荐一些适合学习的歌
-> 换一批
-> 我想要更欢快的
-
-# API server
-python scripts/run_api.py  # Port 8000
-
-# Frontend dev server
-cd frontend && npm run dev  # Port 3000, proxies /api and /audio to :8000
-
-# Start all services (PowerShell)
-.\start_all.ps1
+```python
+{"ok": bool, "data": object, "error": str | None}
 ```
 
-## API ENDPOINTS
+- Keep schema validation behavior compatible with `src/tools/registry.py`
+- Do not change tool argument names casually; the orchestrator depends on them
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/chat` | Intelligent conversation — returns recommendations + state |
-| POST | `/feedback` | User feedback (like/dislike/refresh) |
-| POST | `/reset_session` | Reset session state |
-| GET | `/session/{id}` | Get session state summary |
-| GET | `/health` | Health check + LLM mode |
-| GET | `/health/llm` | LLM connectivity check |
-| GET | `/audio/{path}` | Static audio file serving (FMA Small) |
+## Frontend Code Style
 
-## REPO-SPECIFIC CONVENTIONS
+### Imports and structure
+- External imports first, then local imports
+- Current frontend mostly uses relative imports even though `@` alias exists
+- Match nearby file style instead of forcing alias usage everywhere
 
-- Mixed Chinese/English: keep user-facing messages consistent with nearby code.
-- Some scripts reference missing files — prefer direct scripts: `train_cf.py`, `vectorizer_bge.py`, `data_processor_bge.py`.
-- Orchestrator constants use `_PREFIXED` naming (e.g., `_INTENT_RECOMMEND`, `_SLOT_MOOD`).
-- Frontend proxies `/api` → `http://localhost:8000` (strips `/api` prefix) and `/audio` → `:8000` (no rewrite).
-- Score calibration: display scores clamped to 65-98% range, position-based ranking.
-- Demo mode (`_DEMO_MODE_DEFAULT=True`): prioritizes playable songs in results.
+### Formatting
+- Use 2 spaces
+- Semicolons are standard
+- JSX is function-component based and often uses multiline Tailwind utility strings
+
+### Types
+- Prefer `interface` for props and API payloads
+- Give async service functions explicit return types
+- Prefer `Record<string, unknown>` over loose object typing when payload shape is uncertain
+- Avoid `any`; there are a few legacy uses, but do not spread that pattern
+
+### Naming
+- Components/interfaces/types: `PascalCase`
+- Functions/variables/hooks: `camelCase`
+- Component files usually use `PascalCase.tsx`
+
+### Error handling
+- Service functions throw `Error` for HTTP or parse failure
+- UI code may catch and degrade gracefully; follow that pattern for user-facing resilience
+- Use `console.error` sparingly for real diagnostics
+
+## Frontend/Backend Integration Rules
+
+- Frontend API base is `/api`
+- In Vite dev proxy:
+  - `/api` → `http://localhost:8000` **with rewrite removing `/api`**
+  - `/audio` → `http://localhost:8000` **without rewrite**
+- Do not casually change endpoint prefixes without checking `frontend/src/config/api.ts` and `frontend/vite.config.ts`
+
+## Repo-Specific Gotchas
+
+- Mixed Chinese/English strings are intentional; match surrounding code
+- Windows BLAS env pinning must happen before importing `implicit`
+- Scripts commonly inject repo root into `sys.path` before importing `src.*`
+- Backend style is mixed: newer orchestration/tooling code is stricter than older recommender/searcher modules
+- Frontend contains legacy Gemini/AI Studio residue (`frontend/README.md`, `@google/genai`, `GEMINI_API_KEY`), but the active repo backend architecture is DashScope/Qwen-based
+
+## Agent Rules of Thumb
+
+- Prefer minimal fixes over refactors
+- Follow existing local patterns before introducing new abstractions
+- Verify with direct script execution, not imagined test runners
+- For a single backend test, run `python tests/<name>.py`
+- For frontend changes, default verification is `npm run lint` + `npm run build`
