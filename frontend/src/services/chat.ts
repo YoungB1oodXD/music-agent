@@ -1,4 +1,5 @@
 import { ENDPOINTS } from '../config/api';
+import { RefreshResponse } from '../types';
 
 export interface ChatState {
   mood?: string | null;
@@ -13,6 +14,11 @@ export interface RecommendationObject {
   name: string;
   reason?: string | null;
   citations: string[];
+  genre?: string;
+  genre_description?: string;
+  tags?: string[];
+  is_playable?: boolean;
+  audio_url?: string;
 }
 
 export interface ChatResponse {
@@ -46,5 +52,26 @@ export const sendChatMessage = async (params: ChatRequest): Promise<ChatResponse
     return data as ChatResponse;
   } catch (error) {
     throw new Error('Failed to parse chat response');
+  }
+};
+
+export const refreshRecommendations = async (sessionId: string): Promise<RefreshResponse> => {
+  const response = await fetch(ENDPOINTS.RECOMMEND_REFRESH, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Refresh API error: ${response.status}`);
+  }
+
+  try {
+    const data = await response.json();
+    return data as RefreshResponse;
+  } catch {
+    throw new Error('Failed to parse refresh response');
   }
 };

@@ -6,14 +6,20 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Optional, cast
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 import src.agent.orchestrator as orchestrator_module
 from src.agent import MockLLMClient, Orchestrator
+from src.api.auth import auth_router, get_current_user
+from src.api.playlist import playlist_router, like_router
+from src.api.sessions import session_router
 from src.api.session_store import SessionStore
+from src.api.user import user_router
+from src.database import get_db, init_db
 from src.llm.clients import QwenClient
 from src.llm.clients.base import ChatResponse
 from src.llm.prompts.schemas import (
@@ -21,6 +27,7 @@ from src.llm.prompts.schemas import (
     RECOMMENDATION_EXPLANATION_SCHEMA,
 )
 from src.manager.behavior_recorder import record_behavior, get_behavior_stats
+from src.models import ChatHistory, User
 from src.tools import build_default_registry
 from src.tools.registry import ToolRegistry
 
@@ -227,6 +234,29 @@ def _install_offline_retrieve_semantic_docs() -> None:
     )
 
 
+def _get_optional_user(request: Request) -> User | None:
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header[7:]
+    from src.api.auth import tokens
+
+    user_id = tokens.get(token)
+    if user_id is None:
+        return None
+    from src.database import get_db
+
+    db_gen = get_db()
+    db = next(db_gen)
+    try:
+        return db.query(User).filter(User.id == user_id).first()
+    finally:
+        try:
+            next(db_gen)
+        except StopIteration:
+            pass
+
+
 def _resolve_llm_mode() -> str:
     raw_mode = os.getenv(LLM_MODE_ENV_VAR, "mock").strip().lower()
     if raw_mode in {"mock", "qwen"}:
@@ -263,6 +293,23 @@ app = FastAPI(
     description="LLM mode is controlled by MUSIC_AGENT_LLM_MODE (mock by default, qwen optional).",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    logger.info(f"{request.method} {request.url.path}")
+    response = await call_next(request)
+    logger.info(f"Status: {response.status_code}")
+    return response
+
+
 FMA_SMALL_AUDIO_DIR = (
     Path(__file__).parent.parent.parent / "dataset" / "raw" / "fma_small"
 )
@@ -270,6 +317,14 @@ if FMA_SMALL_AUDIO_DIR.exists():
     from fastapi.staticfiles import StaticFiles
 
     app.mount("/audio", StaticFiles(directory=str(FMA_SMALL_AUDIO_DIR)), name="audio")
+
+app.include_router(auth_router)
+app.include_router(playlist_router)
+app.include_router(like_router)
+app.include_router(session_router)
+app.include_router(user_router)
+
+init_db()
 
 
 class ChatRequest(BaseModel):
@@ -294,6 +349,12 @@ class RecommendationObject(BaseModel):
     audio_url: str | None = None
     score: float | None = None
     display_score: int | None = None
+    tags: list[str] = Field(default_factory=list)
+    mood_tags: list[str] = Field(default_factory=list)
+    scene_tags: list[str] = Field(default_factory=list)
+    instrumentation: list[str] = Field(default_factory=list)
+    genre: str | None = None
+    genre_description: str | None = None
 
 
 class DebugInfo(BaseModel):
@@ -338,7 +399,7 @@ class HealthResponse(BaseModel):
 class FeedbackRequest(BaseModel):
     session_id: str
     feedback_type: str = Field(..., pattern="^(like|dislike|refresh)$")
-    track_id: str
+    track_id: str | None = None
     track_metadata: dict[str, Any] = Field(default_factory=dict)
     recommendation_context: dict[str, Any] = Field(default_factory=dict)
 
@@ -352,6 +413,17 @@ class FeedbackResponse(BaseModel):
     debug: DebugInfo = Field(default_factory=DebugInfo)
 
 
+class RefreshRequest(BaseModel):
+    session_id: str
+
+
+class RefreshResponse(BaseModel):
+    session_id: str
+    recommendations: list[RecommendationObject]
+    state: ChatStateResponse
+    debug: DebugInfo
+
+
 class LLMHealthResponse(BaseModel):
     status: str
     llm_mode: str
@@ -363,7 +435,7 @@ class LLMHealthResponse(BaseModel):
 
 
 @app.post("/chat", response_model=ChatResponseModel)
-def chat(payload: ChatRequest) -> ChatResponseModel:
+def chat(payload: ChatRequest, request: Request) -> ChatResponseModel:
     global LLM_DEBUG_INFO
     LLM_DEBUG_INFO = {
         "llm_enabled": LLM_MODE == "qwen",
@@ -376,21 +448,16 @@ def chat(payload: ChatRequest) -> ChatResponseModel:
         "llm_latency_ms": 0,
     }
 
-    session_id, state = SESSION_STORE.get_or_create(payload.session_id)
-    logger.info(f"[CHAT] session={session_id}, msg_len={len(payload.message)}")
+    current_user = _get_optional_user(request)
+    user_id = str(current_user.id) if current_user else None
+    session_id, state = SESSION_STORE.get_or_create(payload.session_id, user_id=user_id)
+
+    SESSION_STORE.load_history(session_id, user_id)
+    prev_turn_count = len(state.dialogue_history)
 
     start_time = time.perf_counter()
     turn_result = ORCHESTRATOR.handle_turn(payload.message, state)
     latency_ms = int((time.perf_counter() - start_time) * 1000)
-
-    logger.info(
-        f"[CHAT] session={session_id}, latency={latency_ms}ms, "
-        f"llm_status={state.llm_status}, recs={len(recommendations) if isinstance(turn_result, dict) else 0}"
-    )
-
-    LLM_DEBUG_INFO["llm_called"] = state.llm_status in ("live", "live_verified")
-    LLM_DEBUG_INFO["fallback_used"] = state.llm_status == "fallback"
-    LLM_DEBUG_INFO["llm_latency_ms"] = latency_ms
 
     if isinstance(turn_result, dict):
         assistant_text = str(turn_result.get("assistant_text", ""))
@@ -400,10 +467,65 @@ def chat(payload: ChatRequest) -> ChatResponseModel:
         recommendation_action = str(turn_result.get("recommendation_action", "replace"))
         if recommendation_action not in {"replace", "preserve"}:
             recommendation_action = "replace"
+
+        flat_recommendations: list[dict[str, Any]] = []
+        for rec in recommendations:
+            rec = dict(rec)
+            evidence = rec.get("evidence")
+            if isinstance(evidence, dict):
+                if rec.get("genre") is None:
+                    rec["genre"] = evidence.get("genre")
+                if rec.get("genre_description") is None:
+                    rec["genre_description"] = evidence.get("genre_description")
+                if not rec.get("tags"):
+                    rec["tags"] = []
+                if isinstance(evidence.get("mood_tags"), list):
+                    rec["tags"] = rec["tags"] + evidence["mood_tags"]
+                if isinstance(evidence.get("scene_tags"), list):
+                    rec["tags"] = rec["tags"] + evidence["scene_tags"]
+                if isinstance(evidence.get("instrumentation"), list):
+                    rec["tags"] = rec["tags"] + evidence["instrumentation"]
+                if evidence.get("energy_note"):
+                    rec["tags"] = rec["tags"] + [evidence["energy_note"]]
+                rec["tags"] = list(dict.fromkeys(rec["tags"]))
+            flat_recommendations.append(rec)
+        recommendations = flat_recommendations
     else:
         assistant_text = str(turn_result)
         recommendations = []
         recommendation_action = "replace"
+
+    logger.info(
+        f"[CHAT] session={session_id}, latency={latency_ms}ms, "
+        f"llm_status={state.llm_status}, recs={len(recommendations)}"
+    )
+
+    LLM_DEBUG_INFO["llm_called"] = state.llm_status in ("live", "live_verified")
+    LLM_DEBUG_INFO["fallback_used"] = state.llm_status == "fallback"
+    LLM_DEBUG_INFO["llm_latency_ms"] = latency_ms
+
+    new_turns = state.dialogue_history[prev_turn_count:]
+    if new_turns:
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            ChatHistory.save_turns(
+                db,
+                session_id,
+                user_id,
+                [
+                    {
+                        "turn_id": turn.turn_id,
+                        "user_input": turn.user_input,
+                        "system_response": turn.system_response,
+                        "intent": turn.intent,
+                        "entities": turn.entities,
+                    }
+                    for turn in new_turns
+                ],
+            )
+        finally:
+            db.close()
 
     return ChatResponseModel(
         session_id=session_id,
@@ -422,18 +544,19 @@ def chat(payload: ChatRequest) -> ChatResponseModel:
 
 
 @app.post("/reset_session", response_model=ResetSessionResponse)
-def reset_session(payload: ResetSessionRequest) -> ResetSessionResponse:
+def reset_session(
+    payload: ResetSessionRequest,
+    current_user: User = Depends(get_current_user),
+) -> ResetSessionResponse:
+    state = SESSION_STORE.get(payload.session_id)
+    if (
+        state is not None
+        and state.user_id is not None
+        and state.user_id != str(current_user.id)
+    ):
+        raise HTTPException(status_code=403, detail="Not your session")
+    SESSION_STORE.clear_history(payload.session_id, str(current_user.id))
     return ResetSessionResponse(ok=SESSION_STORE.reset(payload.session_id))
-
-
-@app.get("/session/{session_id}", response_model=SessionResponseModel)
-def get_session(session_id: str) -> SessionResponseModel:
-    state = SESSION_STORE.get(session_id)
-    if state is None:
-        raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
-    return SessionResponseModel(
-        ok=True, session_id=session_id, state=state.get_state_summary()
-    )
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -671,58 +794,58 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
     cf_recommendations: list[RecommendationObject] = []
 
     if payload.feedback_type == "like":
-        state.add_feedback(payload.track_id, "like")
-        record_behavior(
-            user_id=payload.session_id,
-            song_id=payload.track_id,
-            action="like",
-            metadata={
-                "title": payload.track_metadata.get("title", "") if payload.track_metadata else "",
-                "artist": payload.track_metadata.get("artist", "") if payload.track_metadata else "",
-            }
+        if payload.track_id:
+            state.add_feedback(payload.track_id, "like")
+        track_title = (
+            payload.track_metadata.get("title", "") if payload.track_metadata else ""
         )
+        track_artist = (
+            payload.track_metadata.get("artist", "") if payload.track_metadata else ""
+        )
+        song_name = f"{track_artist} - {track_title}" if track_artist else track_title
+        _db_gen = get_db()
+        _db = next(_db_gen)
+        try:
+            record_behavior(
+                user_id=str(state.user_id) if state.user_id else payload.session_id,
+                song_id=payload.track_id or "",
+                behavior_type="like",
+                song_name=song_name,
+                session_id=payload.session_id,
+                metadata={
+                    "title": track_title,
+                    "artist": track_artist,
+                },
+                db=_db,
+            )
+        finally:
+            try:
+                next(_db_gen)
+            except StopIteration:
+                pass
         logger.info(
             f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}"
         )
 
-        track_title = payload.track_metadata.get("title", "") if payload.track_metadata else ""
-        track_artist = payload.track_metadata.get("artist", "") if payload.track_metadata else ""
-
-        if track_title:
-            seed_song = f"{track_artist} - {track_title}" if track_artist else track_title
-
-            try:
-                cf_result = TOOL_REGISTRY.dispatch("cf_recommend", {
-                    "song_name": seed_song,
-                    "top_k": 3,
-                    "exclude_ids": list(state.exclude_ids),
-                })
-                if cf_result.get("ok") is True:
-                    cf_data = cf_result.get("data", {})
-                    cf_recs = cf_data.get("recommendations", [])
-                    if isinstance(cf_recs, list):
-                        for rec in cf_recs[:2]:
-                            if isinstance(rec, dict):
-                                cf_recommendations.append(RecommendationObject(
-                                    id=str(rec.get("id", "")),
-                                    name=str(rec.get("name", "")),
-                                    reason="喜欢这首歌的人也喜欢这首",
-                                    is_playable=False,
-                                ))
-                if cf_recommendations:
-                    first_rec = cf_recommendations[0]
-                    ack_messages["like"] = f"喜欢这首歌的人也喜欢：{first_rec.name}"
-            except Exception as e:
-                logger.error(f"CF recommendation failed: {e}")
-
     elif payload.feedback_type == "dislike":
-        state.add_feedback(payload.track_id, "dislike")
-        record_behavior(
-            user_id=payload.session_id,
-            song_id=payload.track_id,
-            action="dislike",
-        )
-        state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
+        if payload.track_id:
+            state.add_feedback(payload.track_id, "dislike")
+            state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
+            _db_gen2 = get_db()
+            _db2 = next(_db_gen2)
+            try:
+                record_behavior(
+                    user_id=str(state.user_id) if state.user_id else payload.session_id,
+                    song_id=payload.track_id,
+                    behavior_type="dislike",
+                    session_id=payload.session_id,
+                    db=_db2,
+                )
+            finally:
+                try:
+                    next(_db_gen2)
+                except StopIteration:
+                    pass
         logger.info(
             f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}"
         )
@@ -734,12 +857,24 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
                 if hasattr(item, "id")
             ]
             state.exclude_ids = list(set(state.exclude_ids + last_ids))[:100]
-            for tid in last_ids:
-                record_behavior(
-                    user_id=payload.session_id,
-                    song_id=tid,
-                    action="refresh_exclude",
-                )
+            _db_gen3 = get_db()
+            _db3 = next(_db_gen3)
+            try:
+                for tid in last_ids:
+                    record_behavior(
+                        user_id=str(state.user_id)
+                        if state.user_id
+                        else payload.session_id,
+                        song_id=tid,
+                        behavior_type="refresh_exclude",
+                        session_id=payload.session_id,
+                        db=_db3,
+                    )
+            finally:
+                try:
+                    next(_db_gen3)
+                except StopIteration:
+                    pass
         logger.info(
             f"[FEEDBACK] refresh session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}"
         )
@@ -750,5 +885,278 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
         updated_preference_state={},
         next_strategy={},
         recommendations=cf_recommendations,
+        debug=DebugInfo(**LLM_DEBUG_INFO),
+    )
+
+
+_DISPLAY_SCORE_MIN = 65
+_DISPLAY_SCORE_MAX = 98
+_DISPLAY_SCORE_TOP = 95
+_DISPLAY_SCORE_BOTTOM = 75
+
+
+def _calibrate_display_score(raw_score: float | None, rank: int, total: int) -> int:
+    if total <= 0:
+        return 85
+    if total == 1:
+        base = 90.0
+    else:
+        position_range = _DISPLAY_SCORE_TOP - _DISPLAY_SCORE_BOTTOM
+        base = _DISPLAY_SCORE_TOP - (rank * position_range / (total - 1))
+    adjustment = 0
+    if raw_score is not None:
+        if raw_score >= 0.5:
+            adjustment = 3
+        elif raw_score >= 0.35:
+            adjustment = 0
+        elif raw_score >= 0.26:
+            adjustment = -2
+        else:
+            adjustment = -5
+    display = base + adjustment
+    return int(max(_DISPLAY_SCORE_MIN, min(_DISPLAY_SCORE_MAX, display)))
+
+
+def _build_preference_suffix(state) -> str:
+    clauses: list[str] = []
+    energy = state.preference_profile.preferred_energy
+    vocals = state.preference_profile.preferred_vocals
+    energy_phrase_map = {
+        "low": "安静 轻柔",
+        "medium": "中等节奏 平衡",
+        "high": "高能量 有节奏",
+    }
+    vocals_phrase_map = {
+        "instrumental": "纯音乐 器乐",
+        "vocal": "人声",
+    }
+    if energy and energy in energy_phrase_map:
+        clauses.append(energy_phrase_map[energy])
+    if vocals and vocals in vocals_phrase_map:
+        clauses.append(vocals_phrase_map[vocals])
+    genres = state.preference_profile.preferred_genres
+    if genres:
+        recent_genres = genres[-2:] if len(genres) > 2 else genres
+        clauses.append(" ".join(recent_genres))
+    return " ".join(clauses)
+
+
+def _build_liked_context(state) -> str:
+    if not state.liked_songs:
+        return ""
+    liked_ids = set(state.liked_songs[-10:])
+    liked_genres: list[str] = []
+    liked_artists: list[str] = []
+    for record in state.recommendation_history:
+        for item in record.results:
+            if item.id in liked_ids:
+                name = item.name or ""
+                if " - " in name:
+                    artist_part = name.split(" - ")[0].strip()
+                    if artist_part and artist_part not in liked_artists:
+                        liked_artists.append(artist_part)
+                for citation in item.citations or []:
+                    if "genre=" in str(citation):
+                        genre_val = str(citation).split("genre=")[-1].strip()
+                        if genre_val and genre_val not in liked_genres:
+                            liked_genres.append(genre_val)
+    clauses: list[str] = []
+    if liked_genres:
+        clauses.append(" ".join(liked_genres[-3:]))
+    if liked_artists:
+        clauses.append("类似 " + " ".join(liked_artists[-2:]) + " 的风格")
+    return " ".join(clauses)
+
+
+def _get_cf_seed_song(state) -> str | None:
+    if not state.liked_songs or not state.recommendation_history:
+        return None
+    liked_set = set(state.liked_songs[-10:])
+    for record in reversed(state.recommendation_history):
+        for item in record.results:
+            if item.id in liked_set and item.name:
+                name = str(item.name).strip()
+                if name and " - " in name:
+                    return name
+    return None
+
+
+@app.post("/recommend/refresh", response_model=RefreshResponse)
+def recommend_refresh(payload: RefreshRequest) -> RefreshResponse:
+    global LLM_DEBUG_INFO
+    LLM_DEBUG_INFO = {
+        "llm_enabled": LLM_MODE == "qwen",
+        "llm_provider": "qwen" if LLM_MODE == "qwen" else "mock",
+        "llm_model": ORCHESTRATOR.llm.model
+        if hasattr(ORCHESTRATOR.llm, "model")
+        else "mock",
+        "llm_called": False,
+        "fallback_used": False,
+        "llm_latency_ms": 0,
+    }
+
+    state = SESSION_STORE.get(payload.session_id)
+    if state is None:
+        raise HTTPException(
+            status_code=404, detail=f"Session not found: {payload.session_id}"
+        )
+
+    last_ids: list[str] = []
+    if state.last_recommendation and state.last_recommendation.results:
+        last_ids = [
+            item.id for item in state.last_recommendation.results if hasattr(item, "id")
+        ]
+        state.exclude_ids = list(set(state.exclude_ids + last_ids))[:100]
+        _db_gen_r = get_db()
+        _db_r = next(_db_gen_r)
+        try:
+            for tid in last_ids:
+                record_behavior(
+                    user_id=str(state.user_id) if state.user_id else payload.session_id,
+                    song_id=tid,
+                    behavior_type="refresh_exclude",
+                    session_id=payload.session_id,
+                    db=_db_r,
+                )
+        finally:
+            try:
+                next(_db_gen_r)
+            except StopIteration:
+                pass
+
+    base_query = ""
+    if state.last_recommendation and state.last_recommendation.query:
+        base_query = state.last_recommendation.query
+    else:
+        parts = []
+        if state.current_mood:
+            parts.append(state.current_mood)
+        if state.current_scene:
+            parts.append(state.current_scene)
+        if state.current_genre:
+            parts.append(state.current_genre)
+        base_query = " ".join(parts)
+
+    preference_suffix = _build_preference_suffix(state)
+    liked_suffix = _build_liked_context(state)
+    effective_query = base_query
+    if preference_suffix and preference_suffix not in effective_query:
+        effective_query = f"{effective_query} {preference_suffix}".strip()
+    if liked_suffix and liked_suffix not in effective_query:
+        effective_query = f"{effective_query} {liked_suffix}".strip()
+
+    top_k = 5
+    seed_song = _get_cf_seed_song(state)
+
+    tool_args: dict[str, object] = {
+        "query_text": effective_query,
+        "top_k": top_k,
+        "exclude_ids": list(state.exclude_ids),
+        "intent": "recommend_music",
+    }
+    if seed_song:
+        tool_args["seed_song_name"] = seed_song
+
+    tool_result = TOOL_REGISTRY.dispatch("hybrid_recommend", tool_args)
+    raw_items: list[dict[str, object]] = []
+    if tool_result.get("ok") is True:
+        data = tool_result.get("data")
+        if isinstance(data, list):
+            raw_items = list(data)
+        elif isinstance(data, dict):
+            recs = data.get("recommendations")
+            if isinstance(recs, list):
+                raw_items = list(recs)
+
+    recommendations: list[RecommendationObject] = []
+    seen_ids: set[str] = set()
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        rec_id = str(item.get("track_id") or item.get("id") or "")
+        if not rec_id or rec_id in seen_ids:
+            continue
+        seen_ids.add(rec_id)
+        title = str(item.get("title") or "")
+        artist = str(item.get("artist") or "")
+        name = f"{artist} - {title}" if artist else title
+        raw_score = item.get("score")
+        score_float = float(raw_score) if isinstance(raw_score, (int, float)) else None
+        display = _calibrate_display_score(score_float, len(recommendations), top_k)
+        sources: list[str] = list(item.get("sources") or [])
+        genre_desc_val = item.get("genre_description")
+        genre_val = str(item.get("genre") or "")
+        mood_tags_val = item.get("mood_tags")
+        scene_tags_val = item.get("scene_tags")
+        instrumentation_val = item.get("instrumentation")
+        mood_tags: list[str] = (
+            list(mood_tags_val) if isinstance(mood_tags_val, list) else []
+        )
+        scene_tags: list[str] = (
+            list(scene_tags_val) if isinstance(scene_tags_val, list) else []
+        )
+        instrumentation: list[str] = (
+            list(instrumentation_val) if isinstance(instrumentation_val, list) else []
+        )
+        tags: list[str] = (
+            list(item.get("tags") or []) + mood_tags + scene_tags + instrumentation
+        )
+        tags = list(dict.fromkeys(tags))
+        if genre_val and not genre_desc_val:
+            from src.tools.semantic_search_tool import _derive_explanation_fields
+
+            derived = _derive_explanation_fields(genre_val)
+            genre_desc_val = derived.get("genre_description")
+        rec_reason = item.get("reason")
+        if not rec_reason:
+            if "cf" in sources and "semantic" in sources:
+                rec_reason = (
+                    f"融合风格推荐：{genre_val}" if genre_val else "融合风格推荐"
+                )
+            elif "cf" in sources:
+                rec_reason = (
+                    f"相似用户推荐：{genre_val}" if genre_val else "相似用户推荐"
+                )
+            else:
+                rec_reason = f"推荐歌曲：{genre_val}" if genre_val else "为你推荐"
+        recommendations.append(
+            RecommendationObject(
+                id=rec_id,
+                name=name,
+                reason=rec_reason,
+                citations=item.get("citations") or [],
+                is_playable=item.get("is_playable"),
+                audio_url=item.get("audio_url"),
+                score=score_float,
+                display_score=display,
+                tags=tags,
+                mood_tags=mood_tags,
+                scene_tags=scene_tags,
+                instrumentation=instrumentation,
+                genre=genre_val,
+                genre_description=genre_desc_val,
+            )
+        )
+
+    state.add_recommendation(
+        query=base_query,
+        results=[{"id": r.id, "name": r.name} for r in recommendations],
+        method="hybrid",
+    )
+
+    logger.info(
+        f"[REFRESH] session={payload.session_id} query='{effective_query}' recs={len(recommendations)}"
+    )
+
+    return RefreshResponse(
+        session_id=payload.session_id,
+        recommendations=recommendations,
+        state=ChatStateResponse(
+            mood=state.current_mood,
+            scene=state.current_scene,
+            genre=state.current_genre,
+            preferred_energy=state.preference_profile.preferred_energy,
+            preferred_vocals=state.preference_profile.preferred_vocals,
+        ),
         debug=DebugInfo(**LLM_DEBUG_INFO),
     )

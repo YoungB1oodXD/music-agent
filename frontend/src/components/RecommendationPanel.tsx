@@ -178,12 +178,24 @@ function TrackCard({ track, index, onFeedback, showToast }: TrackCardProps) {
               <h4 className="text-sm font-bold text-slate-900 truncate">{track.title}</h4>
               <p className="text-xs text-slate-500 truncate mt-0.5">{track.artist}</p>
             </div>
-            <div className="flex items-center gap-1 text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
-              <span className="text-xs font-bold">{track.matchScore}%</span>
+            <div className="flex items-center gap-1 flex-wrap justify-end">
+              {track.genre && (
+                <span className="text-[9px] text-gray-500 border border-gray-200 bg-gray-50 px-1.5 py-0.5 rounded-full">
+                  {track.genre}
+                </span>
+              )}
+              {track.style && (
+                <span className="text-[9px] text-gray-500 border border-gray-200 bg-gray-50 px-1.5 py-0.5 rounded-full">
+                  {track.style}
+                </span>
+              )}
+              <span className="text-[10px] font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md font-bold">
+                {track.matchScore}%
+              </span>
             </div>
           </div>
-          
-          <div className="flex gap-1.5 mt-2.5 overflow-x-auto no-scrollbar items-center">
+
+          <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar items-center flex-wrap">
             {track.isPlayable && (
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 font-medium whitespace-nowrap border border-emerald-200 flex items-center gap-1">
                 <Volume2 className="w-3 h-3" />

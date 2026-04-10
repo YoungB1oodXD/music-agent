@@ -84,7 +84,7 @@ export function ChatArea({ messages, onSendMessage }: ChatAreaProps) {
                 )}
               </div>
               <span className="text-[10px] text-slate-400 mt-1.5 px-1 font-medium">
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           </motion.div>

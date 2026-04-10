@@ -1,5 +1,5 @@
 {
-  "name": "Aura - Music AI",
-  "description": "Conversational music recommendation system with LLM agent and hybrid RAG recommendations.",
+  "name": "Melodia - AI Music Assistant",
+  "description": "A smart music recommendation system with a dual-brain architecture, featuring multi-turn chat, personalized playlists, and real-time feedback.",
   "requestFramePermissions": []
 }

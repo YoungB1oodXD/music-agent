@@ -1,8 +1,87 @@
+import ast
+import csv
 import json
 from pathlib import Path
 from typing import Protocol, cast
 
 from src.searcher.music_searcher import MusicSearcher
+
+# Lazy-loaded genres ID→name mapping (loaded once on first use)
+_GENRES_ID_TO_NAME: dict[str, str] | None = None
+
+
+def _get_genres_id_to_name() -> dict[str, str]:
+    """Load FMA genres.csv and return {genre_id: genre_title} mapping."""
+    global _GENRES_ID_TO_NAME
+    if _GENRES_ID_TO_NAME is not None:
+        return _GENRES_ID_TO_NAME
+
+    _GENRES_ID_TO_NAME = {}
+    genres_csv_path = (
+        Path(__file__).parent.parent.parent
+        / "dataset"
+        / "raw"
+        / "fma_metadata"
+        / "fma_metadata"
+        / "genres.csv"
+    )
+    if genres_csv_path.exists():
+        try:
+            with open(genres_csv_path, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                next(reader, None)  # skip header
+                for row in reader:
+                    if len(row) >= 4:
+                        genre_id = row[0].strip()
+                        title = row[3].strip()
+                        if genre_id and title:
+                            _GENRES_ID_TO_NAME[genre_id] = title
+        except Exception:
+            pass
+
+    # Fallback for common IDs (best-effort)
+    _FALLBACK_GENRES = {
+        "15": "Electronic",
+        "4": "Jazz",
+        "12": "Rock",
+        "10": "Pop",
+        "17": "Folk",
+        "5": "Classical",
+        "21": "Hip-Hop",
+        "38": "Experimental",
+        "2": "International",
+        "3": "Blues",
+        "9": "Country",
+        "14": "Soul-RnB",
+        "8": "Old-Time / Historic",
+        "20": "Spoken",
+        "13": "Easy Listening",
+        "1235": "Instrumental",
+    }
+    for k, v in _FALLBACK_GENRES.items():
+        _GENRES_ID_TO_NAME.setdefault(k, v)
+
+    return _GENRES_ID_TO_NAME
+
+
+def _convert_genre_id_to_name(genre_value: str) -> str:
+    """
+    Convert a genre value that might be a numeric ID or a name.
+    Returns the name if conversion succeeds, otherwise returns the original value.
+    """
+    genres_map = _get_genres_id_to_name()
+    # Try as numeric string key first
+    if genre_value in genres_map:
+        return genres_map[genre_value]
+    # Try as integer key
+    try:
+        int_key = str(int(genre_value))
+        if int_key in genres_map:
+            return genres_map[int_key]
+    except (ValueError, OverflowError):
+        pass
+    # Already a name, return as-is
+    return genre_value
 
 
 SEMANTIC_SEARCH_SCHEMA: dict[str, object] = {
@@ -335,6 +414,16 @@ def semantic_search(args: dict[str, object]) -> dict[str, object]:
         track_id = str(item.get("track_id", ""))
         audio_info = _get_audio_info(track_id)
         genre = str(item.get("genre", ""))
+        if not genre:
+            genres_all_str = str(item.get("genres_all", ""))
+            if genres_all_str and genres_all_str != "nan":
+                try:
+                    genres_list = ast.literal_eval(genres_all_str)
+                    if isinstance(genres_list, list) and genres_list:
+                        raw_genre = str(genres_list[0])
+                        genre = _convert_genre_id_to_name(raw_genre)
+                except Exception:
+                    pass
         explanation_fields = _derive_explanation_fields(genre)
 
         result_item: dict[str, object] = {

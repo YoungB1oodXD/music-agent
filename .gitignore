@@ -54,5 +54,10 @@ logs/
 .cache/
 
 # Sisyphus 工作目录
-.sisyphus/evidence/
-.sisyphus/plans/
+.sisyphus/
+
+# 文档（内部文档、汇报材料）
+docs/
+
+# 另一个音乐助手项目（无关）
+melodia---ai-music-assistant/

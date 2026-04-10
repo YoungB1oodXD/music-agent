@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from typing import TypedDict, cast
 
 from .cf_recommend_tool import cf_recommend
-from .semantic_search_tool import semantic_search
+from .semantic_search_tool import _derive_explanation_fields, semantic_search
 
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,11 @@ class HybridItem(TypedDict):
     sources: list[str]
     is_playable: object
     audio_url: object
+    genre_description: object
+    mood_tags: object
+    scene_tags: object
+    instrumentation: object
+    energy_note: object
 
 
 def _to_float(value: object, default: float = 0.0) -> float:
@@ -135,19 +140,23 @@ def _compute_cf_signal_strength(cf_items: list["ScoredItem"]) -> dict[str, float
     return {"mean": mean_score, "spread": spread, "max": max(scores) if scores else 0.0}
 
 
-def _get_intent_weights(intent: str | None, cf_signal: dict[str, float]) -> tuple[float, float]:
+def _get_intent_weights(
+    intent: str | None, cf_signal: dict[str, float]
+) -> tuple[float, float]:
     cf_mean = cf_signal.get("mean", 0.0)
     cf_spread = cf_signal.get("spread", 0.0)
-    
+
     if cf_mean < _CF_SIGNAL_THRESHOLD or cf_spread < _CF_SCORE_SPREAD_THRESHOLD:
         logger.info(
             f"CF signal too weak (mean={cf_mean:.2e}, spread={cf_spread:.2e}), "
             f"falling back to semantic-only"
         )
         return (1.0, 0.0)
-    
+
     if intent == "similar_to_last":
-        logger.info(f"Intent=similar_to_last, using behavior-prioritized weights (0.4/0.6)")
+        logger.info(
+            f"Intent=similar_to_last, using behavior-prioritized weights (0.4/0.6)"
+        )
         return (0.4, 0.6)
     elif intent == "search":
         logger.info(f"Intent=search, using semantic-only weights (1.0/0.0)")
@@ -170,22 +179,28 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
     seed_song_name = str(seed_song_name_obj) if seed_song_name_obj is not None else None
     intent_obj = args.get("intent")
     intent = str(intent_obj) if intent_obj is not None else None
-    
+
     manual_w_sem = args.get("w_sem")
     manual_w_cf = args.get("w_cf")
     use_manual_weights = manual_w_sem is not None or manual_w_cf is not None
-    
+
     w_sem = 0.7
     w_cf = 0.3
-    
+
     if use_manual_weights:
         w_sem = _to_float(args.get("w_sem", 0.6), 0.6)
         w_cf = _to_float(args.get("w_cf", 0.4), 0.4)
         logger.info(f"Using manual weights: w_sem={w_sem}, w_cf={w_cf}")
 
-    sem_result = semantic_search({"query_text": query_text, "top_k": sem_top_k, "exclude_ids": list(exclude_ids)})
+    sem_result = semantic_search(
+        {"query_text": query_text, "top_k": sem_top_k, "exclude_ids": list(exclude_ids)}
+    )
     if sem_result.get("ok") is not True:
-        return {"ok": False, "data": [], "error": sem_result.get("error", "Semantic search failed")}
+        return {
+            "ok": False,
+            "data": [],
+            "error": sem_result.get("error", "Semantic search failed"),
+        }
 
     sem_items = sem_result.get("data", [])
     sem_scored_raw: list[ScoredItem] = []
@@ -200,7 +215,13 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
         item_id = str(item.get("track_id") or item.get("id") or "")
         if not item_id:
             continue
-        sem_scored_raw.append({"id": item_id, "score": _to_float(item.get("similarity"), 0.0), "payload": item})
+        sem_scored_raw.append(
+            {
+                "id": item_id,
+                "score": _to_float(item.get("similarity"), 0.0),
+                "payload": item,
+            }
+        )
 
     sem_scored: list[ScoredItem] = []
     sem_floor_passed: list[ScoredItem] = []
@@ -219,7 +240,13 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
 
     cf_items: list[ScoredItem] = []
     if seed_song_name:
-        cf_result = cf_recommend({"song_name": seed_song_name, "top_k": cf_top_k, "exclude_ids": list(exclude_ids)})
+        cf_result = cf_recommend(
+            {
+                "song_name": seed_song_name,
+                "top_k": cf_top_k,
+                "exclude_ids": list(exclude_ids),
+            }
+        )
         cf_data = cf_result.get("data", {})
         if not isinstance(cf_data, dict):
             cf_data = {}
@@ -242,12 +269,18 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
             rec_id = str(rec.get("id") or "")
             if not rec_id:
                 continue
-            cf_items.append({"id": rec_id, "score": _to_float(rec.get("score"), 0.0), "payload": rec})
-    
+            cf_items.append(
+                {
+                    "id": rec_id,
+                    "score": _to_float(rec.get("score"), 0.0),
+                    "payload": rec,
+                }
+            )
+
     if not use_manual_weights:
         cf_signal = _compute_cf_signal_strength(cf_items)
         w_sem, w_cf = _get_intent_weights(intent, cf_signal)
-    
+
     sem_norm = _normalize_scores(sem_scored, "score")
     cf_norm = _normalize_scores(cf_items, "score")
 
@@ -269,30 +302,44 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
             "sources": ["semantic"],
             "is_playable": payload.get("is_playable"),
             "audio_url": payload.get("audio_url"),
+            "genre_description": payload.get("genre_description"),
+            "mood_tags": payload.get("mood_tags"),
+            "scene_tags": payload.get("scene_tags"),
+            "instrumentation": payload.get("instrumentation"),
+            "energy_note": payload.get("energy_note"),
         }
 
     for row in cf_items:
         item_id = row["id"]
         payload = row["payload"]
         split = _split_name(str(payload.get("name", "")))
+        cf_genre = payload.get("genre") or ""
+        explanation = _derive_explanation_fields(str(cf_genre)) if cf_genre else {}
         if item_id not in merged:
             merged[item_id] = {
                 "id": payload.get("id"),
                 "title": split["title"],
                 "artist": split["artist"],
-                "genre": "",
+                "genre": cf_genre,
                 "track_id": payload.get("id"),
                 "semantic_similarity": None,
                 "distance": None,
                 "cf_score": payload.get("score"),
                 "score": w_cf * cf_norm.get(item_id, 0.0),
                 "sources": ["cf"],
-                "is_playable": None,
-                "audio_url": None,
+                "is_playable": payload.get("is_playable"),
+                "audio_url": payload.get("audio_url"),
+                "genre_description": explanation.get("genre_description"),
+                "mood_tags": explanation.get("mood_tags"),
+                "scene_tags": explanation.get("scene_tags"),
+                "instrumentation": explanation.get("instrumentation"),
+                "energy_note": explanation.get("energy_note"),
             }
         else:
             merged[item_id]["cf_score"] = payload.get("score")
-            merged[item_id]["score"] = merged[item_id]["score"] + w_cf * cf_norm.get(item_id, 0.0)
+            merged[item_id]["score"] = merged[item_id]["score"] + w_cf * cf_norm.get(
+                item_id, 0.0
+            )
             sources = merged[item_id]["sources"]
             if "cf" not in sources:
                 sources.append("cf")

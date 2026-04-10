@@ -23,7 +23,8 @@ rapidfuzz>=3.0.0
 openai>=1.0.0,<2
 pydantic>=2.0.0
 
-# Web 服务 (可选)
+# Web 服务
 fastapi>=0.100.0
 uvicorn>=0.23.0
-# streamlit>=1.25.0
+sqlalchemy>=2.0.0
+python-multipart>=0.0.6

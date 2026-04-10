@@ -1,3 +1,4 @@
+import api from './api';
 import { ENDPOINTS } from '../config/api';
 
 export interface SessionResponse {
@@ -27,21 +28,6 @@ export const fetchSession = async (sessionId: string): Promise<SessionResponse> 
 };
 
 export const resetSession = async (sessionId: string): Promise<{ ok: boolean }> => {
-  const response = await fetch(ENDPOINTS.RESET_SESSION, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ session_id: sessionId }),
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to reset session: ${response.status}`);
-  }
-  
-  try {
-    return await response.json();
-  } catch (error) {
-    throw new Error('Failed to parse reset session response');
-  }
+  const response = await api.post(ENDPOINTS.RESET_SESSION, { session_id: sessionId });
+  return response.data;
 };

@@ -4,6 +4,7 @@ export const ENDPOINTS = {
   HEALTH: `${API_BASE}/health`,
   CHAT: `${API_BASE}/chat`,
   FEEDBACK: `${API_BASE}/feedback`,
-  SESSION_BASE: `${API_BASE}/session`,
+  RECOMMEND_REFRESH: `${API_BASE}/recommend/refresh`,
+  SESSION_BASE: `${API_BASE}/sessions`,
   RESET_SESSION: `${API_BASE}/reset_session`,
 } as const;

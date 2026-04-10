@@ -1,54 +1,111 @@
-import json
+from __future__ import annotations
+
 import logging
-from pathlib import Path
 from datetime import datetime
+
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-BEHAVIOR_FILE = Path(__file__).parent.parent.parent / "data" / "processed" / "user_behaviors.jsonl"
+BEHAVIOR_TYPES = {
+    "like",
+    "unlike",
+    "play",
+    "add_to_playlist",
+    "remove_from_playlist",
+    "refresh_exclude",
+}
 
 
 def record_behavior(
     user_id: str,
     song_id: str,
-    action: str,
+    behavior_type: str,
+    song_name: str = "",
+    session_id: str = "",
     metadata: dict | None = None,
+    db: Session | None = None,
 ) -> bool:
     try:
-        BEHAVIOR_FILE.parent.mkdir(parents=True, exist_ok=True)
-        record = {
-            "timestamp": datetime.now().isoformat(),
-            "user_id": user_id,
-            "song_id": song_id,
-            "action": action,
-            "metadata": metadata or {},
-        }
-        with open(BEHAVIOR_FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        if db is not None:
+            _record_to_sqlite(
+                db, user_id, song_id, behavior_type, song_name, session_id, metadata
+            )
+        else:
+            from src.database import get_db
+
+            db_gen = get_db()
+            inner_db = next(db_gen)
+            try:
+                _record_to_sqlite(
+                    inner_db,
+                    user_id,
+                    song_id,
+                    behavior_type,
+                    song_name,
+                    session_id,
+                    metadata,
+                )
+            finally:
+                try:
+                    next(db_gen)
+                except StopIteration:
+                    pass
         return True
     except Exception as e:
-        logger.error(f"Failed to record behavior: {e}")
+        logger.error(f"Failed to record behavior: {e}", exc_info=True)
         return False
 
 
+def _record_to_sqlite(
+    db: Session,
+    user_id: str,
+    song_id: str,
+    behavior_type: str,
+    song_name: str,
+    session_id: str,
+    metadata: dict | None,
+) -> None:
+    from src.models.user_behavior import UserBehavior
+
+    entry = UserBehavior(
+        user_id=user_id,
+        song_id=song_id,
+        behavior_type=behavior_type,
+        song_name=song_name,
+        session_id=session_id,
+        metadata_json=metadata or {},
+    )
+    db.add(entry)
+    db.commit()
+
+
 def get_behavior_stats() -> dict:
-    if not BEHAVIOR_FILE.exists():
-        return {"total": 0, "by_action": {}}
-    counts: dict[str, int] = {}
-    total = 0
+    from src.database import get_db
+    from src.models.user_behavior import UserBehavior
+
     try:
-        with open(BEHAVIOR_FILE, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                total += 1
-                try:
-                    rec = json.loads(line)
-                    action = rec.get("action", "unknown")
-                    counts[action] = counts.get(action, 0) + 1
-                except json.JSONDecodeError:
-                    pass
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            total = db.query(UserBehavior).count()
+            from sqlalchemy import func
+
+            results = (
+                db.query(
+                    UserBehavior.behavior_type,
+                    func.count(UserBehavior.id).label("count"),
+                )
+                .group_by(UserBehavior.behavior_type)
+                .all()
+            )
+            by_type = {row.behavior_type: row.count for row in results}
+            return {"total": total, "by_type": by_type}
+        finally:
+            try:
+                next(db_gen)
+            except StopIteration:
+                pass
     except Exception as e:
-        logger.error(f"Failed to read behavior stats: {e}")
-    return {"total": total, "by_action": counts}
+        logger.error(f"Failed to get behavior stats: {e}")
+        return {"total": 0, "by_type": {}}
