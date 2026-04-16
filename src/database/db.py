@@ -39,6 +39,7 @@ def init_db() -> None:
     from src.models.chat_history import ChatHistory
     from src.models.user_behavior import UserBehavior
     from src.models.user_preference import UserPreference
+    from src.models.auth_token import AuthToken
 
     Base.metadata.create_all(bind=engine)
     logger.info(f"Database initialized at {DB_PATH}")

@@ -60,7 +60,11 @@ def list_sessions(
     db: Session = Depends(get_db),
 ) -> SessionListResponse:
     user_id_str = str(current_user.id)
-    rows = db.query(ChatHistory).filter(ChatHistory.user_id == user_id_str).all()
+    rows = (
+        db.query(ChatHistory)
+        .filter((ChatHistory.user_id == user_id_str) | (ChatHistory.user_id == None))
+        .all()
+    )
 
     sessions_map: dict[str, dict] = {}
     for row in rows:

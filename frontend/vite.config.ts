@@ -26,7 +26,6 @@ export default defineConfig(({mode}) => {
         '/api/sessions': {
           target: 'http://localhost:8000',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
         },
         '/api/feedback': {
           target: 'http://localhost:8000',

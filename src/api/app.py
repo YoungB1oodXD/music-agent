@@ -239,16 +239,15 @@ def _get_optional_user(request: Request) -> User | None:
     if not auth_header.startswith("Bearer "):
         return None
     token = auth_header[7:]
-    from src.api.auth import tokens
-
-    user_id = tokens.get(token)
-    if user_id is None:
-        return None
+    from src.api.auth import _get_user_id_from_token
     from src.database import get_db
 
     db_gen = get_db()
     db = next(db_gen)
     try:
+        user_id = _get_user_id_from_token(db, token)
+        if user_id is None:
+            return None
         return db.query(User).filter(User.id == user_id).first()
     finally:
         try:

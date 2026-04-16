@@ -85,7 +85,6 @@ class SessionStore:
             )
             self._sessions[new_id] = new_state
             if user_id:
-                self._history_loaded.add((new_id, user_id))
                 self._user_sessions.setdefault(user_id, []).append(new_id)
             return new_id, new_state
 

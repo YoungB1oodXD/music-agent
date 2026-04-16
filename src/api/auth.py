@@ -6,20 +6,19 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.models import User
+from src.models import User, AuthToken
 
 logger = logging.getLogger(__name__)
 auth_router = APIRouter(prefix="/api/auth", tags=["auth"])
 security = HTTPBearer()
 
 TOKEN_EXPIRE_DAYS = 7
-tokens: dict[str, int] = {}
 
 
 def hash_password(password: str, salt: Optional[str] = None) -> str:
@@ -37,10 +36,30 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
-def create_token(user_id: int) -> str:
+def _cleanup_expired_tokens(db: Session) -> None:
+    db.query(AuthToken).filter(AuthToken.expires_at < datetime.utcnow()).delete()
+    db.commit()
+
+
+def create_token(db: Session, user_id: int) -> str:
+    _cleanup_expired_tokens(db)
     token = secrets.token_urlsafe(32)
-    tokens[token] = user_id
+    expires_at = datetime.utcnow() + timedelta(days=TOKEN_EXPIRE_DAYS)
+    auth_token = AuthToken(token=token, user_id=user_id, expires_at=expires_at)
+    db.add(auth_token)
+    db.commit()
     return token
+
+
+def _get_user_id_from_token(db: Session, token: str) -> Optional[int]:
+    auth_token = db.query(AuthToken).filter(AuthToken.token == token).first()
+    if auth_token is None:
+        return None
+    if auth_token.is_expired():
+        db.delete(auth_token)
+        db.commit()
+        return None
+    return auth_token.user_id
 
 
 def get_current_user(
@@ -48,9 +67,9 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     token = credentials.credentials
-    user_id = tokens.get(token)
+    user_id = _get_user_id_from_token(db, token)
     if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
@@ -102,7 +121,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespon
     db.add(liked_playlist)
     db.commit()
 
-    token = create_token(user.id)
+    token = create_token(db, user.id)
     logger.info(f"[AUTH] User registered: {user.username}")
     return TokenResponse(
         access_token=token,
@@ -118,7 +137,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     if user is None or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    token = create_token(user.id)
+    token = create_token(db, user.id)
     logger.info(f"[AUTH] User logged in: {user.username}")
     return TokenResponse(
         access_token=token,
@@ -126,6 +145,19 @@ def login(req: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
             id=user.id, username=user.username, created_at=user.created_at
         ),
     )
+
+
+@auth_router.post("/logout")
+def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    token = credentials.credentials
+    auth_token = db.query(AuthToken).filter(AuthToken.token == token).first()
+    if auth_token is not None:
+        db.delete(auth_token)
+        db.commit()
+    return {"message": "Logged out"}
 
 
 @auth_router.get("/me", response_model=UserResponse)

@@ -17,27 +17,10 @@ from pydantic import BaseModel, Field
 
 
 class RecommendationItem(BaseModel):
-    """
-    单条推荐项（富对象）
-
-    字段说明：
-    - id: 歌曲唯一标识符
-    - name: 歌曲名称 (通常为 Artist - Title)
-    - reason: 推荐理由 (可选)
-    - citations: 引用/来源 (可选)
-    """
-
     id: str = Field(..., description="歌曲 ID")
     name: str = Field(..., description="歌曲名称")
     reason: Optional[str] = Field(default=None, description="推荐理由")
     citations: List[str] = Field(default_factory=list, description="引用/来源")
-
-    def strip(self, *args, **kwargs):
-        """兼容性方法：允许像字符串一样调用 strip()"""
-        return self.id.strip(*args, **kwargs)
-
-    def __str__(self):
-        return self.id
 
 
 class RecommendationRecord(BaseModel):
@@ -269,8 +252,11 @@ class SessionState(BaseModel):
         }
 
     def add_recommendation(
-        self, query: str, results: List[Any], method: str = "hybrid"
-    ):
+        self,
+        query: str,
+        results: List["RecommendationItem | dict[str, object] | str"],
+        method: str = "hybrid",
+    ) -> None:
         """
         添加推荐记录
 
@@ -356,7 +342,11 @@ class SessionState(BaseModel):
             self.current_genre = genre
         self.updated_at = datetime.now()
 
-    def add_feedback(self, song_id: Any, feedback: str):
+    def add_feedback(
+        self,
+        song_id: "str | dict[str, object] | RecommendationItem",
+        feedback: str,
+    ) -> None:
         """
         添加用户反馈
 
