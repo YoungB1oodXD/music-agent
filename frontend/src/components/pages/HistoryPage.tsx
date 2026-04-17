@@ -1,4 +1,4 @@
-import { useEffect, MouseEvent } from 'react';
+import { useEffect, MouseEvent, useState } from 'react';
 import { History, MessageSquare, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useChatStore } from '../../store/useChatStore';
@@ -6,9 +6,15 @@ import { useChatStore } from '../../store/useChatStore';
 export default function HistoryPage() {
   const { sessions, loadSession, fetchSessions, deleteSession, createNewSession } = useChatStore();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSessions();
+    setIsLoading(true);
+    setError(null);
+    fetchSessions()
+      .catch((err: Error) => setError(err.message || '加载失败'))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleLoadSession = (id: string) => {
@@ -46,7 +52,16 @@ export default function HistoryPage() {
 
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-4xl mx-auto space-y-4">
-          {sessions.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-20 text-gray-500">
+              <div className="animate-spin w-8 h-8 border-2 border-gray-300 border-t-[#1C1D1C] rounded-full mx-auto mb-4" />
+              <p>加载中...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20 text-red-500">
+              <p>{error}</p>
+            </div>
+          ) : sessions.length === 0 ? (
             <div className="text-center py-20 text-gray-500">
               <MessageSquare size={48} className="mx-auto mb-4 opacity-20" />
               <p>暂无对话记录</p>

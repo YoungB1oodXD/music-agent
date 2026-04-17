@@ -147,17 +147,22 @@ def login(req: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     )
 
 
-@auth_router.post("/logout")
+class LogoutResponse(BaseModel):
+    ok: bool = True
+    message: str = "Logged out"
+
+
+@auth_router.post("/logout", response_model=LogoutResponse)
 def logout(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
-) -> dict[str, str]:
+) -> LogoutResponse:
     token = credentials.credentials
     auth_token = db.query(AuthToken).filter(AuthToken.token == token).first()
     if auth_token is not None:
         db.delete(auth_token)
         db.commit()
-    return {"message": "Logged out"}
+    return LogoutResponse()
 
 
 @auth_router.get("/me", response_model=UserResponse)

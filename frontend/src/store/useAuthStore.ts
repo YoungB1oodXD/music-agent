@@ -9,8 +9,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (credentials: any) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  login: (credentials: { username: string; password: string }) => Promise<void>;
+  register: (data: { username: string; password: string }) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -32,8 +32,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem(TOKEN_KEY, access_token);
       set({ token: access_token, user, isAuthenticated: true, isLoading: false });
       useChatStore.getState().createNewSession();
-    } catch (err: any) {
-      set({ error: err.response?.data?.detail || err.message, isLoading: false });
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } }; message?: string };
+      set({ error: error.response?.data?.detail || error.message || 'An error occurred', isLoading: false });
     }
   },
 
@@ -45,8 +46,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem(TOKEN_KEY, access_token);
       set({ token: access_token, user, isAuthenticated: true, isLoading: false });
       useChatStore.getState().createNewSession();
-    } catch (err: any) {
-      set({ error: err.response?.data?.detail || err.message, isLoading: false });
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } }; message?: string };
+      set({ error: error.response?.data?.detail || error.message || 'An error occurred', isLoading: false });
     }
   },
 

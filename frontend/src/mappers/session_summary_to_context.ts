@@ -1,6 +1,19 @@
 import { SessionContext } from '../types';
 
-export function mapSessionSummaryToSessionContext(state: any): SessionContext {
+interface SessionStateInput {
+  mood?: string | null;
+  scene?: string | null;
+  style?: string | null;
+  energy?: string | null;
+  vocal?: string | null;
+  genre?: string | null;
+  preference_profile?: {
+    preferred_energy?: string;
+    preferred_vocals?: string;
+  };
+}
+
+export function mapSessionSummaryToSessionContext(state: SessionStateInput): SessionContext {
   const context: SessionContext = {
     mood: [],
     scene: [],
@@ -9,7 +22,7 @@ export function mapSessionSummaryToSessionContext(state: any): SessionContext {
     vocal: [],
   };
 
-  if (!state || typeof state !== 'object') {
+  if (!state) {
     return context;
   }
 

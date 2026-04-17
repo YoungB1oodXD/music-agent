@@ -1,4 +1,4 @@
-import { ENDPOINTS } from '../config/api';
+import api from '../services/api';
 import { RefreshResponse } from '../types';
 
 export interface ChatState {
@@ -35,43 +35,11 @@ export interface ChatRequest {
 }
 
 export const sendChatMessage = async (params: ChatRequest): Promise<ChatResponse> => {
-  const response = await fetch(ENDPOINTS.CHAT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Chat API error: ${response.status}`);
-  }
-
-  try {
-    const data = await response.json();
-    return data as ChatResponse;
-  } catch (error) {
-    throw new Error('Failed to parse chat response');
-  }
+  const response = await api.post<ChatResponse>('/chat', params);
+  return response.data;
 };
 
 export const refreshRecommendations = async (sessionId: string): Promise<RefreshResponse> => {
-  const response = await fetch(ENDPOINTS.RECOMMEND_REFRESH, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ session_id: sessionId }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Refresh API error: ${response.status}`);
-  }
-
-  try {
-    const data = await response.json();
-    return data as RefreshResponse;
-  } catch {
-    throw new Error('Failed to parse refresh response');
-  }
+  const response = await api.post<RefreshResponse>('/recommend_refresh', { session_id: sessionId });
+  return response.data;
 };

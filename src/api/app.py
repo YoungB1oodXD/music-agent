@@ -10,6 +10,7 @@ from typing import Any, Optional, cast
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 import src.agent.orchestrator as orchestrator_module
@@ -292,6 +293,39 @@ app = FastAPI(
     description="LLM mode is controlled by MUSIC_AGENT_LLM_MODE (mock by default, qwen optional).",
 )
 
+
+# ── Global exception handlers ────────────────────────────────────────────────
+
+
+class ErrorResponse(BaseModel):
+    ok: bool = False
+    error: str
+    detail: str | None = None
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Re-serialize HTTPException as a consistent JSON envelope."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"ok": False, "error": exc.detail, "detail": exc.detail},
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Catch-all for unhandled exceptions — prevents raw 500 stack traces leaking."""
+    logger.error("Unhandled exception: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "ok": False,
+            "error": "Internal server error",
+            "detail": None,
+        },
+    )
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -337,6 +371,12 @@ class ChatStateResponse(BaseModel):
     genre: str | None = None
     preferred_energy: str | None = None
     preferred_vocals: str | None = None
+
+
+class HealthVerboseResponse(BaseModel):
+    status: str
+    llm_mode: str
+    components: dict[str, Any]
 
 
 class RecommendationObject(BaseModel):
@@ -629,8 +669,8 @@ def health_llm() -> LLMHealthResponse:
         )
 
 
-@app.get("/health/verbose")
-def health_verbose():
+@app.get("/health/verbose", response_model=HealthVerboseResponse)
+def health_verbose() -> HealthVerboseResponse:
     import platform
     from pathlib import Path
 
@@ -640,7 +680,7 @@ def health_verbose():
     models_dir = data_dir / "models"
     audio_dir = project_root / "dataset" / "raw" / "fma_small"
 
-    components = {
+    components: dict[str, Any] = {
         "llm": {
             "status": "ok" if LLM_MODE == "qwen" else "mock",
             "mode": LLM_MODE,
@@ -676,11 +716,11 @@ def health_verbose():
             overall_status = "degraded"
             break
 
-    return {
-        "status": overall_status,
-        "llm_mode": LLM_MODE,
-        "components": components,
-    }
+    return HealthVerboseResponse(
+        status=overall_status,
+        llm_mode=LLM_MODE,
+        components=components,
+    )
 
 
 @app.get("/behavior/stats")

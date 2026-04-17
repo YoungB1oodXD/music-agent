@@ -14,18 +14,23 @@ export default function PlaylistPage() {
   const { playingTrackId, playTrack } = useAudioPlayer();
   const [playlistSongs, setPlaylistSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const playlist = playlists.find(p => String(p.id) === String(id));
 
   useEffect(() => {
     if (id) {
       setIsLoading(true);
-      api.get(`/playlists/${id}`).then(res => {
-        setPlaylistSongs(res.data.songs || []);
-        setIsLoading(false);
-      }).catch(() => {
-        setIsLoading(false);
-      });
+      setFetchError(null);
+      api.get(`/playlists/${id}`)
+        .then(res => {
+          setPlaylistSongs(res.data.songs || []);
+          setIsLoading(false);
+        })
+        .catch((err: Error) => {
+          setFetchError(err.message || '加载失败');
+          setIsLoading(false);
+        });
     }
   }, [id]);
 
@@ -103,6 +108,12 @@ export default function PlaylistPage() {
           <span>删除歌单</span>
         </button>
       </div>
+
+      {fetchError && (
+        <div className="px-8 py-4 bg-red-50 border-b border-red-100 text-red-600 text-sm">
+          {fetchError}
+        </div>
+      )}
 
       {/* Song List */}
       <div className="flex-1 overflow-y-auto px-8 pb-8">

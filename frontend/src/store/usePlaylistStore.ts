@@ -59,8 +59,9 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
         isCreating: false 
       }));
       return true;
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to create playlist';
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } }; message?: string };
+      const errorMsg = error.response?.data?.detail || error.message || 'Failed to create playlist';
       set({ isCreating: false, error: errorMsg });
       return false;
     }

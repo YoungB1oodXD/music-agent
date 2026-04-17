@@ -6,7 +6,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from src.api.auth import get_current_user
 from src.database import get_db
@@ -74,7 +74,12 @@ def get_playlists(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> List[PlaylistResponse]:
-    playlists = db.query(Playlist).filter(Playlist.user_id == current_user.id).all()
+    playlists = (
+        db.query(Playlist)
+        .options(joinedload(Playlist.songs))
+        .filter(Playlist.user_id == current_user.id)
+        .all()
+    )
     result = []
     for p in playlists:
         result.append(
@@ -123,6 +128,7 @@ def get_playlist(
 ) -> PlaylistDetailResponse:
     playlist = (
         db.query(Playlist)
+        .options(joinedload(Playlist.songs))
         .filter(
             Playlist.id == playlist_id,
             Playlist.user_id == current_user.id,
@@ -161,12 +167,12 @@ def get_playlist(
     )
 
 
-@playlist_router.delete("/{playlist_id}")
+@playlist_router.delete("/{playlist_id}", response_model=dict[str, bool])
 def delete_playlist(
     playlist_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> dict:
+) -> dict[str, bool]:
     playlist = (
         db.query(Playlist)
         .filter(
