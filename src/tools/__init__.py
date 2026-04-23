@@ -1,8 +1,12 @@
-from .cf_recommend_tool import CF_RECOMMEND_SCHEMA, cf_recommend
 from .hybrid_recommend_tool import HYBRID_RECOMMEND_SCHEMA, hybrid_recommend
 from .registry import ToolRegistry
 from .semantic_search_tool import SEMANTIC_SEARCH_SCHEMA, semantic_search
-from .session_state_tool import add_feedback, get_context_summary, update_mood, update_scene
+from .session_state_tool import (
+    add_feedback,
+    get_context_summary,
+    update_mood,
+    update_scene,
+)
 
 
 def build_default_registry() -> ToolRegistry:
@@ -14,14 +18,8 @@ def build_default_registry() -> ToolRegistry:
         handler=semantic_search,
     )
     registry.register(
-        name="cf_recommend",
-        description="[EXPERIMENTAL/DISABLED] Collaborative filtering - requires Last.fm data not available in FMA-only mode",
-        parameters_schema=CF_RECOMMEND_SCHEMA,
-        handler=cf_recommend,
-    )
-    registry.register(
         name="hybrid_recommend",
-        description="[EXPERIMENTAL/DISABLED] Hybrid recommendation - CF component not available in FMA-only mode",
+        description="Content-based hybrid recommendation using semantic search and metadata similarity",
         parameters_schema=HYBRID_RECOMMEND_SCHEMA,
         handler=hybrid_recommend,
     )
@@ -32,7 +30,6 @@ __all__ = [
     "ToolRegistry",
     "build_default_registry",
     "semantic_search",
-    "cf_recommend",
     "hybrid_recommend",
     "update_mood",
     "update_scene",

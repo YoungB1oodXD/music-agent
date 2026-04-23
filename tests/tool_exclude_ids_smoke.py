@@ -34,31 +34,15 @@ def _fake_semantic_search(args: dict[str, object]) -> dict[str, object]:
     return {"ok": True, "data": rows[: max(1, min(20, top_k))]}
 
 
-def _fake_cf_recommend(args: dict[str, object]) -> dict[str, object]:
-    top_k = int(cast(int | float | str, args.get("top_k", 5)))
-    recommendations: list[dict[str, object]] = [
-        {"id": "CF_KEEP_1", "name": "Study Crew - Deep Work", "score": 0.88},
-        {"id": "CF_EXCLUDE_1", "name": "Test Artist - Filter Me", "score": 0.86},
-    ]
-    return {
-        "ok": True,
-        "data": {
-            "matched_song": {"id": "seed_1", "name": "Seed Song"},
-            "recommendations": recommendations[: max(1, min(20, top_k))],
-        },
-    }
-
-
 def run_test() -> None:
-    with patch("src.tools.hybrid_recommend_tool.semantic_search", _fake_semantic_search), patch(
-        "src.tools.hybrid_recommend_tool.cf_recommend", _fake_cf_recommend
+    with patch(
+        "src.tools.hybrid_recommend_tool.semantic_search", _fake_semantic_search
     ):
         result = hybrid_recommend(
             {
                 "query_text": "study music",
                 "top_k": 5,
-                "seed_song_name": "Seed Song",
-                "exclude_ids": ["TR_EXCLUDE_1", "CF_EXCLUDE_1"],
+                "exclude_ids": ["TR_EXCLUDE_1"],
             }
         )
 
@@ -77,7 +61,6 @@ def run_test() -> None:
                     all_ids.add(value)
 
         assert "TR_EXCLUDE_1" not in all_ids
-        assert "CF_EXCLUDE_1" not in all_ids
         assert "TR_KEEP_1" in all_ids
 
         print("tool_exclude_ids_smoke passed")

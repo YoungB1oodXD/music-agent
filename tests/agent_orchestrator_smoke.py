@@ -19,23 +19,11 @@ _SEMANTIC_SCHEMA: dict[str, object] = {
     "required": ["query_text", "top_k"],
 }
 
-_CF_SCHEMA: dict[str, object] = {
-    "type": "object",
-    "properties": {
-        "song_name": {"type": "string"},
-        "top_k": {"type": "integer"},
-    },
-    "required": ["song_name", "top_k"],
-}
-
 _HYBRID_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
         "query_text": {"type": "string"},
-        "seed_song_name": {"type": "string"},
         "top_k": {"type": "integer"},
-        "w_sem": {"type": "number"},
-        "w_cf": {"type": "number"},
     },
     "required": ["query_text", "top_k"],
 }
@@ -85,25 +73,6 @@ def _semantic_search_handler(args: dict[str, object]) -> dict[str, object]:
         row.update(explanation_fields)
 
     return {"ok": True, "data": rows}
-
-
-def _cf_recommend_handler(args: dict[str, object]) -> dict[str, object]:
-    top_k = _to_int(args.get("top_k"), default=5)
-    rec_1: dict[str, object] = {
-        "id": "CF_2001",
-        "name": "Runner - City Flow",
-        "score": 0.96,
-    }
-    rec_2: dict[str, object] = {
-        "id": "CF_2002",
-        "name": "Pulse - Step Forward",
-        "score": 0.87,
-    }
-    data: dict[str, object] = {
-        "matched_song": {"id": "seed_1", "name": "Seed - Demo Song"},
-        "recommendations": [rec_1, rec_2][:top_k],
-    }
-    return {"ok": True, "data": data}
 
 
 def _hybrid_recommend_handler(args: dict[str, object]) -> dict[str, object]:
@@ -157,12 +126,6 @@ def build_test_registry() -> ToolRegistry:
         description="Test semantic search",
         parameters_schema=_SEMANTIC_SCHEMA,
         handler=_semantic_search_handler,
-    )
-    registry.register(
-        name="cf_recommend",
-        description="Test collaborative recommendation",
-        parameters_schema=_CF_SCHEMA,
-        handler=_cf_recommend_handler,
     )
     registry.register(
         name="hybrid_recommend",

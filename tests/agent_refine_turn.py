@@ -18,23 +18,11 @@ _SEMANTIC_SCHEMA: dict[str, object] = {
     "required": ["query_text", "top_k"],
 }
 
-_CF_SCHEMA: dict[str, object] = {
-    "type": "object",
-    "properties": {
-        "song_name": {"type": "string"},
-        "top_k": {"type": "integer"},
-    },
-    "required": ["song_name", "top_k"],
-}
-
 _HYBRID_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
         "query_text": {"type": "string"},
-        "seed_song_name": {"type": "string"},
         "top_k": {"type": "integer"},
-        "w_sem": {"type": "number"},
-        "w_cf": {"type": "number"},
     },
     "required": ["query_text", "top_k"],
 }
@@ -70,17 +58,6 @@ def _semantic_search_handler(args: dict[str, object]) -> dict[str, object]:
     return {"ok": True, "data": rows}
 
 
-def _cf_recommend_handler(args: dict[str, object]) -> dict[str, object]:
-    top_k = _to_int(args.get("top_k"), default=5)
-    rec_1: dict[str, object] = {"id": "CF_5001", "name": "Tempo - Fast Lane", "score": 0.9}
-    rec_2: dict[str, object] = {"id": "CF_5002", "name": "Tempo - Slow Lane", "score": 0.82}
-    data: dict[str, object] = {
-        "matched_song": {"id": "seed_2", "name": "Seed - Route"},
-        "recommendations": [rec_1, rec_2][:top_k],
-    }
-    return {"ok": True, "data": data}
-
-
 def _hybrid_recommend_handler(args: dict[str, object]) -> dict[str, object]:
     top_k = _to_int(args.get("top_k"), default=5)
     row_1: dict[str, object] = {
@@ -94,7 +71,9 @@ def _hybrid_recommend_handler(args: dict[str, object]) -> dict[str, object]:
     return {"ok": True, "data": rows}
 
 
-def _fake_retrieve_semantic_docs(query_text: str, top_k: int) -> list[dict[str, object]]:
+def _fake_retrieve_semantic_docs(
+    query_text: str, top_k: int
+) -> list[dict[str, object]]:
     _ = query_text
     doc_1: dict[str, object] = {
         "doc_id": 1,
@@ -123,12 +102,6 @@ def build_test_registry() -> ToolRegistry:
         description="Test semantic search",
         parameters_schema=_SEMANTIC_SCHEMA,
         handler=_semantic_search_handler,
-    )
-    registry.register(
-        name="cf_recommend",
-        description="Test collaborative recommendation",
-        parameters_schema=_CF_SCHEMA,
-        handler=_cf_recommend_handler,
     )
     registry.register(
         name="hybrid_recommend",

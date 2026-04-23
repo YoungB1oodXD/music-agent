@@ -2,16 +2,15 @@
 
 ## OVERVIEW
 
-Plugin-style tool dispatch. Tools are registered with JSON schemas and callable handlers. Used by orchestrator for CF/semantic/hybrid recommendations.
+Plugin-style tool dispatch. Tools are registered with JSON schemas and callable handlers. Used by orchestrator for semantic/content-based recommendations.
 
 ## STRUCTURE
 
 ```
 tools/
 ├── registry.py              # ToolRegistry class — registration, dispatch, validation
-├── cf_recommend_tool.py     # Collaborative filtering tool
 ├── semantic_search_tool.py  # Semantic search tool
-├── hybrid_recommend_tool.py # Hybrid (CF + semantic) tool
+├── hybrid_recommend_tool.py # Hybrid (content-based) tool
 ├── session_state_tool.py    # Session state access tool
 └── __init__.py              # build_default_registry()
 ```

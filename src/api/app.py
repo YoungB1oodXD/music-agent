@@ -92,36 +92,6 @@ def _build_mock_registry() -> ToolRegistry:
 
         return {"ok": True, "data": rows}
 
-    def cf_recommend(args: dict[str, object]) -> dict[str, object]:
-        song_name = str(args["song_name"])
-        top_k = int(cast(int | float | str, args["top_k"]))
-        exclude_ids = set(cast(list[str], args.get("exclude_ids") or []))
-
-        seed = _mock_sha_seed(song_name)
-        recommendations: list[dict[str, object]] = []
-        for idx in range(40):
-            rec_id = f"mock_cf_{seed}_{idx + 1:02d}"
-            if rec_id in exclude_ids:
-                continue
-
-            recommendations.append(
-                {
-                    "id": rec_id,
-                    "name": f"{song_name} - Similar #{idx + 1}",
-                    "score": round(1.0 - 0.03 * idx, 4),
-                }
-            )
-            if len(recommendations) >= top_k:
-                break
-
-        return {
-            "ok": True,
-            "data": {
-                "matched_song": {"id": f"mock_seed_{seed}", "name": song_name},
-                "recommendations": recommendations,
-            },
-        }
-
     def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
         query_text = str(args["query_text"])
         top_k = int(cast(int | float | str, args["top_k"]))
@@ -177,23 +147,12 @@ def _build_mock_registry() -> ToolRegistry:
         },
         "required": ["query_text", "top_k"],
     }
-    cf_schema: dict[str, object] = {
-        "type": "object",
-        "properties": {
-            "song_name": {"type": "string"},
-            "top_k": {"type": "integer"},
-            "exclude_ids": {"type": "array"},
-        },
-        "required": ["song_name", "top_k"],
-    }
     hybrid_schema: dict[str, object] = {
         "type": "object",
         "properties": {
             "query_text": {"type": "string"},
             "seed_song_name": {"type": "string"},
             "top_k": {"type": "integer"},
-            "w_sem": {"type": "number"},
-            "w_cf": {"type": "number"},
             "exclude_ids": {"type": "array"},
             "intent": {"type": "string"},
         },
@@ -206,12 +165,6 @@ def _build_mock_registry() -> ToolRegistry:
         description="(mock) deterministic semantic music search",
         parameters_schema=semantic_schema,
         handler=semantic_search,
-    )
-    registry.register(
-        name="cf_recommend",
-        description="(mock) deterministic collaborative recommendation",
-        parameters_schema=cf_schema,
-        handler=cf_recommend,
     )
     registry.register(
         name="hybrid_recommend",
@@ -686,11 +639,6 @@ def health_verbose() -> HealthVerboseResponse:
             "mode": LLM_MODE,
             "provider": "qwen" if LLM_MODE == "qwen" else "mock",
         },
-        "cf_model": {
-            "status": "not_loaded",
-            "path": str(models_dir / "implicit_model.pkl"),
-            "ready": False,
-        },
         "vector_index": {
             "status": "ok" if index_dir.exists() else "not_found",
             "path": str(index_dir),
@@ -830,7 +778,7 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
         "refresh": "已排除上一批结果正在基于你当前偏好换一批推荐...",
     }
 
-    cf_recommendations: list[RecommendationObject] = []
+    content_recommendations: list[RecommendationObject] = []
 
     if payload.feedback_type == "like":
         if payload.track_id:
@@ -923,7 +871,7 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
         ack_message=ack_messages.get(payload.feedback_type, "已收到反馈。"),
         updated_preference_state={},
         next_strategy={},
-        recommendations=cf_recommendations,
+        recommendations=content_recommendations,
         debug=DebugInfo(**LLM_DEBUG_INFO),
     )
 
@@ -1007,7 +955,7 @@ def _build_liked_context(state) -> str:
     return " ".join(clauses)
 
 
-def _get_cf_seed_song(state) -> str | None:
+def _get_seed_song(state) -> str | None:
     if not state.liked_songs or not state.recommendation_history:
         return None
     liked_set = set(state.liked_songs[-10:])
@@ -1085,7 +1033,7 @@ def recommend_refresh(payload: RefreshRequest) -> RefreshResponse:
         effective_query = f"{effective_query} {liked_suffix}".strip()
 
     top_k = 5
-    seed_song = _get_cf_seed_song(state)
+    seed_song = _get_seed_song(state)
 
     tool_args: dict[str, object] = {
         "query_text": effective_query,
@@ -1148,14 +1096,12 @@ def recommend_refresh(payload: RefreshRequest) -> RefreshResponse:
             genre_desc_val = derived.get("genre_description")
         rec_reason = item.get("reason")
         if not rec_reason:
-            if "cf" in sources and "semantic" in sources:
+            if "content" in sources and "semantic" in sources:
                 rec_reason = (
                     f"融合风格推荐：{genre_val}" if genre_val else "融合风格推荐"
                 )
-            elif "cf" in sources:
-                rec_reason = (
-                    f"相似用户推荐：{genre_val}" if genre_val else "相似用户推荐"
-                )
+            elif "content" in sources:
+                rec_reason = f"内容推荐：{genre_val}" if genre_val else "内容推荐"
             else:
                 rec_reason = f"推荐歌曲：{genre_val}" if genre_val else "为你推荐"
         recommendations.append(

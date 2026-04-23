@@ -31,7 +31,7 @@ class RecommendationRecord(BaseModel):
     - timestamp: 推荐时间戳
     - query: 用户查询/请求内容
     - results: 推荐结果列表（富对象列表）
-    - method: 推荐方法（semantic/collaborative/hybrid）
+    - method: 推荐方法（semantic/content）
     - feedback: 用户反馈（可选，如 like/dislike/skip）
     """
 
@@ -40,7 +40,7 @@ class RecommendationRecord(BaseModel):
     results: List[RecommendationItem] = Field(
         default_factory=list, description="推荐结果列表"
     )
-    method: str = Field(..., description="推荐方法: semantic/collaborative/hybrid")
+    method: str = Field(..., description="推荐方法: semantic/content")
     feedback: Optional[str] = Field(
         default=None, description="用户反馈: like/dislike/skip"
     )

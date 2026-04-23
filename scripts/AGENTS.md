@@ -8,11 +8,9 @@
 
 | Script | Purpose |
 |--------|---------|
-| `train_cf.py` | Train ALS collaborative filtering model |
 | `vectorizer_bge.py` | Build ChromaDB index from embeddings |
 | `chat_cli.py` | Interactive chat CLI — `--llm {mock,qwen}` |
 | `run_api.py` | Launch FastAPI server (uvicorn) |
-| `eval_model.py` | Model evaluation metrics |
 | `data_processor_bge.py` | Process FMA data for embedding |
 
 ## CONVENTIONS

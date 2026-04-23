@@ -1,7 +1,7 @@
 # AGENTS.md
 
 **Updated:** 2026-04-10  
-**Stack:** Python 3.11, FastAPI, Qwen/OpenAI-compatible, ChromaDB, Implicit ALS, React 19, Vite, TailwindCSS v4
+**Stack:** Python 3.11, FastAPI, Qwen/OpenAI-compatible, ChromaDB, BGE-M3, React 19, Vite, TailwindCSS v4
 
 ## Purpose
 
@@ -10,9 +10,9 @@ Prefer small, pattern-matching changes. Verify with the repo's actual checks.
 
 ## High-Level Architecture
 
-Dual-brain music recommendation:
+Music recommendation via semantic search and content-based similarity:
 - **Left brain:** semantic retrieval (BGE-M3 + ChromaDB)
-- **Right brain:** collaborative filtering (Implicit ALS)
+- **Right brain:** content-based similarity (BGE-M3 metadata + heuristic matching)
 - **Runtime:** intent extraction → slot filling → tool dispatch → response synthesis
 
 ## Repository Layout
@@ -23,9 +23,9 @@ src/
 ├── api/          # FastAPI app and session endpoints
 ├── llm/          # Qwen client, prompt schemas
 ├── rag/          # Retrieval context building
-├── tools/        # Tool registry + semantic/CF/hybrid tools
+├── tools/        # Tool registry + semantic/hybrid tools
 ├── manager/      # Session state models
-├── recommender/  # Implicit ALS recommender
+├── recommender/   # Content-based recommendation (heuristic)
 └── searcher/     # Chroma/BGE semantic search
 frontend/         # React + Vite app
 scripts/          # Entry-point scripts, training, CLI
@@ -54,11 +54,6 @@ cd frontend && npm install
 ### Required Environment Variables
 
 ```bash
-# Windows BLAS pinning (before importing implicit)
-set OPENBLAS_NUM_THREADS=1
-set MKL_NUM_THREADS=1
-set OMP_NUM_THREADS=1
-
 # LLM mode
 set MUSIC_AGENT_LLM_MODE=mock   # No API key needed
 set MUSIC_AGENT_LLM_MODE=qwen   # Requires DashScope key
@@ -211,7 +206,6 @@ Schema validation compatible with `src/tools/registry.py`. Do not change tool ar
 ## Gotchas
 
 - Mixed Chinese/English strings are intentional
-- Windows BLAS env pinning must precede `implicit` import
 - Scripts inject repo root into `sys.path` before `src.*` imports
 - Backend style mixed: newer orchestration/tooling is stricter than older modules
 - Frontend has legacy Gemini/AI Studio residue (`@google/genai`, `GEMINI_API_KEY`); active backend is DashScope/Qwen

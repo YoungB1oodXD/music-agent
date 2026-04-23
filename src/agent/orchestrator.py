@@ -877,19 +877,6 @@ class Orchestrator:
 
         return " ".join(clauses)
 
-    def _get_cf_seed_song(self, state: SessionState) -> str | None:
-        if not state.liked_songs or not state.recommendation_history:
-            return None
-        liked_set = set(state.liked_songs[-10:])
-        for record in reversed(state.recommendation_history):
-            for item in record.results:
-                if item.id in liked_set and item.name:
-                    name = str(item.name).strip()
-                    if name and " - " in name:
-                        logger.info(f"[CF SEED] Using liked song as CF seed: {name}")
-                        return name
-        return None
-
     def _build_tool_plan(
         self,
         intent: str,
@@ -922,16 +909,12 @@ class Orchestrator:
 
         candidate_k = top_k * _DEMO_MODE_CANDIDATE_MULTIPLIER
 
-        seed_song = self._get_cf_seed_song(state)
-
         tool_args: dict[str, object] = {
             "query_text": effective_query_text,
             "top_k": candidate_k,
             "exclude_ids": exclude_ids,
             "intent": intent,
         }
-        if seed_song:
-            tool_args["seed_song_name"] = seed_song
         if exclude_artists:
             tool_args["exclude_artists"] = exclude_artists
 
@@ -1060,8 +1043,7 @@ class Orchestrator:
     ) -> tuple[list[dict[str, object]], str | None]:
         method_map = {
             "semantic_search": "semantic",
-            "cf_recommend": "collaborative",
-            "hybrid_recommend": "hybrid",
+            "hybrid_recommend": "content",
         }
 
         for row in tool_results:
@@ -1104,15 +1086,6 @@ class Orchestrator:
     def _extract_recommendations_for_tool(
         self, tool_name: str, data: object
     ) -> list[dict[str, object]]:
-        if tool_name == "cf_recommend":
-            payload = _as_dict(data)
-            if payload is None:
-                return []
-            recommendations_raw = _as_list(payload.get("recommendations")) or []
-            return self._build_recommendations_from_rows(
-                recommendations_raw, use_cf_fields=True, tool_name=tool_name
-            )
-
         rows = _as_list(data)
         if rows is None:
             return []
@@ -1268,23 +1241,15 @@ class Orchestrator:
                     evidence["similarity"] = float(cast(float, sim))
                 if genre:
                     citations.append(f"semantic_search.genre={genre}")
-            elif tool_name == "cf_recommend":
-                score = row.get("score")
-                if score is not None:
-                    citations.append(f"cf_recommend.score={score}")
-                    evidence["cf_score"] = float(cast(float, score))
             elif tool_name == "hybrid_recommend":
                 score = row.get("score")
                 sources = row.get("sources")
                 sem_sim = row.get("semantic_similarity")
-                cf_score = row.get("cf_score")
                 if score is not None:
                     citations.append(f"hybrid_recommend.score={score}")
                     evidence["hybrid_score"] = float(cast(float, score))
                 if sem_sim is not None:
                     evidence["semantic_similarity"] = float(cast(float, sem_sim))
-                if cf_score is not None:
-                    evidence["cf_score"] = float(cast(float, cf_score))
                 sources_list = _as_list(sources)
                 if sources_list:
                     source_names = [
@@ -1309,8 +1274,6 @@ class Orchestrator:
                 seed_row["score"] = evidence["similarity"]
             elif "hybrid_score" in evidence:
                 seed_row["score"] = evidence["hybrid_score"]
-            elif "cf_score" in evidence:
-                seed_row["score"] = evidence["cf_score"]
 
             is_playable = row.get("is_playable")
             audio_url = row.get("audio_url")

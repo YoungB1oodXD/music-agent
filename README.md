@@ -1,41 +1,60 @@
-# 🎵 Music Agent - 智能音乐推荐系统
+# 🎵 Music Agent - 智能音乐推荐对话助手
 
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
+[![React 19](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> 基于「双脑架构」的智能音乐推荐系统：结合**语义搜索**与**协同过滤**，通过 LLM Agent 编排实现自然语言交互式推荐。
+> 基于**双脑架构**的智能音乐推荐对话助手，结合语义搜索与内容相似度匹配，通过 LLM Agent 编排实现自然语言交互式推荐。
+
+![Demo](docs/demo.gif)
 
 ---
 
 ## ✨ 核心特性
 
-- 🧠 **双脑架构** - 语义搜索（BGE-M3）+ 协同过滤（Implicit ALS）
-- 🤖 **LLM Agent 编排** - 意图识别 → 槽位填充 → 工具调度 → 响应生成
-- 💬 **自然语言交互** - 支持中英文对话式推荐
-- 🎧 **试听功能** - 8000+ 歌曲可在线试听
-- 📊 **展示分数校准** - 用户友好的匹配指数显示
-- 🌐 **Web 界面** - React 前端 + FastAPI 后端
+- 🧠 **双脑推荐架构**
+  - **左脑**：BGE-M3 向量检索 + ChromaDB 语义匹配
+  - **右脑**：基于 FMA 元数据的内容相似度（genre/mood/energy/tags）
+  - **融合**：加权混合推荐，平衡语义相关性与内容多样性
+- 🤖 **LLM Agent 编排** - 意图识别 → 槽位填充 → 工具调度 → RAG 上下文 → 响应生成
+- 💬 **自然语言交互** - 中文/英文对话式推荐，支持多轮上下文
+- 🎧 **在线试听** - 8000+ 首歌曲可直接在线播放
+- 📊 **智能分数** - 基于排名和相似度的校准匹配指数（65-98%）
+- 🌐 **现代 Web 界面** - React 19 + TailwindCSS v4 暗色主题
 
 ---
 
-## 🧠 双脑架构
+## 🏗️ 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Music Agent 双脑架构                        │
-├─────────────────────────────┬───────────────────────────────────┤
-│       🧠 Left Brain         │         🧠 Right Brain            │
-│      (语义理解)              │        (行为学习)                  │
-├─────────────────────────────┼───────────────────────────────────┤
-│  ✦ BGE-M3 向量模型           │  ✦ Implicit ALS 协同过滤           │
-│  ✦ ChromaDB 向量数据库       │  ✦ Last.fm 用户行为数据            │
-│  ✦ FMA 音乐元数据 (106K)     │  ✦ 839K+ 歌曲交互数据              │
-├─────────────────────────────┼───────────────────────────────────┤
-│  📝 "relaxing jazz music"   │  🎧 "喜欢这首歌的人还喜欢..."       │
-│  📝 "适合学习的轻音乐"        │  🎧 基于历史听歌行为推荐            │
-└─────────────────────────────┴───────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Music Agent 系统架构                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐        │
+│  │   Frontend   │────▶│  FastAPI    │────▶│ Orchestrator │        │
+│  │   (React)    │◀────│  Backend    │◀────│   (LLM)     │        │
+│  └──────────────┘     └──────────────┘     └──────┬───────┘        │
+│                                                      │               │
+│                                    ┌─────────────────┼───────────┐   │
+│                                    │                 │           │   │
+│                                    ▼                 ▼           ▼   │
+│                           ┌──────────────┐  ┌────────────┐ ┌─────┐ │
+│                           │   Semantic   │  │   RAG     │ │Token│ │
+│                           │   Search    │  │  Context  │ │Store│ │
+│                           └──────┬───────┘  └────────────┘ └─────┘ │
+│                                  │                                 │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │                     双脑推荐引擎                               │ │
+│  ├────────────────────────────┬─────────────────────────────────┤ │
+│  │      🧠 Left Brain        │        🧠 Right Brain            │ │
+│  │   BGE-M3 + ChromaDB       │   Content-Based (FMA Metadata)   │ │
+│  │   语义向量检索             │   流派/情绪/能量/标签匹配          │ │
+│  └────────────────────────────┴─────────────────────────────────┘ │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -44,66 +63,82 @@
 
 ```
 music_agent/
-├── 📁 src/                         # 核心模块
-│   ├── 📁 agent/                   # LLM Agent 编排层
-│   │   └── orchestrator.py         # 意图识别、工具调度、响应生成
-│   ├── 📁 api/                     # FastAPI 应用
-│   │   └── app.py                  # /chat, /recommend, /search 端点
-│   ├── 📁 llm/                     # LLM 客户端
-│   │   └── clients/                # Qwen (OpenAI-compatible), Mock
-│   ├── 📁 rag/                     # 检索增强生成
-│   │   ├── context_builder.py      # 上下文构建
-│   │   └── retriever.py            # 相关文档检索
-│   ├── 📁 tools/                   # 工具注册
-│   │   ├── semantic_search_tool.py # 语义搜索工具
-│   │   ├── cf_recommend_tool.py    # 协同过滤工具
-│   │   └── hybrid_recommend_tool.py# 混合推荐工具
-│   ├── 📁 manager/                 # 会话状态管理
-│   ├── 📁 recommender/             # 协同过滤 (Right Brain)
-│   └── 📁 searcher/                # 语义搜索 (Left Brain)
+├── src/                         # Python 后端源码
+│   ├── agent/                   # LLM Agent 编排层
+│   │   ├── orchestrator.py      # 意图识别、工具调度、响应合成
+│   │   └── mock_llm.py          # Mock LLM（开发测试用）
+│   ├── api/                     # FastAPI 应用
+│   │   ├── app.py               # 主应用、路由、中间件
+│   │   ├── auth.py              # 认证
+│   │   ├── session_store.py    # 会话存储
+│   │   └── playlist.py          # 歌单管理
+│   ├── llm/                     # LLM 客户端
+│   │   ├── clients/
+│   │   │   └── qwen_openai_compat.py  # Qwen (OpenAI-compatible)
+│   │   └── prompts/             # Prompt 模板
+│   ├── rag/                     # 检索增强生成
+│   │   ├── context_builder.py   # 上下文构建
+│   │   ├── retriever.py         # 文档检索
+│   │   └── sanitize.py          # 注入防护
+│   ├── tools/                  # 工具层
+│   │   ├── registry.py          # 工具注册表
+│   │   ├── semantic_search_tool.py  # 语义搜索
+│   │   └── hybrid_recommend_tool.py # 混合推荐
+│   ├── searcher/                # 向量搜索
+│   │   └── music_searcher.py    # ChromaDB + BGE-M3
+│   ├── manager/                # 状态管理
+│   │   └── session_state.py     # 会话状态
+│   └── models/                 # 数据模型
 │
-├── 📁 frontend/                    # React 前端
-│   ├── 📁 src/
-│   │   ├── 📁 components/          # UI 组件
-│   │   ├── 📁 contexts/            # React Context
-│   │   ├── 📁 mappers/             # 数据映射
-│   │   └── 📁 services/            # API 服务
-│   └── vite.config.ts              # Vite 配置
+├── frontend/                    # React 前端
+│   ├── src/
+│   │   ├── components/         # React 组件
+│   │   │   ├── pages/          # 页面组件
+│   │   │   │   ├── ChatPage.tsx
+│   │   │   │   └── PlaylistPage.tsx
+│   │   │   └── layout/         # 布局组件
+│   │   ├── services/           # API 服务
+│   │   │   ├── api.ts         # API 客户端
+│   │   │   ├── chat.ts        # 对话服务
+│   │   │   └── feedback.ts    # 反馈服务
+│   │   ├── store/             # Zustand 状态
+│   │   │   ├── useChatStore.ts
+│   │   │   └── useAuthStore.ts
+│   │   └── contexts/          # React Context
+│   │       └── AudioPlayerContext.tsx
+│   └── vite.config.ts          # Vite 配置
 │
-├── 📁 scripts/                     # 入口脚本
-│   ├── run_api.py                  # 启动 API 服务
-│   ├── chat_cli.py                 # 命令行聊天
-│   ├── train_cf.py                 # 训练协同过滤模型
-│   ├── vectorizer_bge.py           # 构建向量索引
-│   └── data_processor_bge.py       # 数据预处理
+├── scripts/                     # 数据处理脚本
+│   ├── run_api.py              # 启动 API 服务
+│   ├── chat_cli.py            # 命令行对话
+│   ├── vectorizer_bge.py      # 构建向量索引
+│   └── data_processor_bge.py  # 数据预处理
 │
-├── 📁 data/                        # 模型产物
-│   ├── models/                     # 训练好的模型
-│   └── processed/                  # 处理后的数据
+├── tests/                      # 测试脚本
+│   ├── agent_orchestrator_smoke.py
+│   └── tool_registry_unit.py
 │
-├── 📁 dataset/                     # 原始数据
-│   └── raw/fma_small/              # FMA 音频文件 (8000+ MP3)
-│
-├── 📁 index/                       # 向量索引
-│   └── chroma_bge_m3/              # ChromaDB 持久化
-│
-├── 📁 docs/                        # 文档
-│   ├── 阶段性总结报告_v2.md
-│   ├── 试听功能修复报告_20260324.md
-│   └── score_calibration_analysis.md
-│
-├── 📁 tests/                       # 测试脚本
-└── 📄 AGENTS.md                    # Agent 开发指南
+└── docs/                       # 文档
 ```
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 环境准备
+### 前置依赖
+
+- Python 3.11+
+- Node.js 18+
+- [FMA Small Dataset](https://github.com/mdeff/fma) (需手动下载)
+- [Qwen API Key](https://dashscope.console.aliyun.com/) (可选，mock 模式无需)
+
+### 1. 克隆与安装
 
 ```bash
-# 创建 Conda 环境
+git clone https://github.com/YOUR_USERNAME/music_agent.git
+cd music_agent
+
+# 创建 Python 环境
 conda create -n music_agent python=3.11 -y
 conda activate music_agent
 
@@ -111,267 +146,213 @@ conda activate music_agent
 pip install -r requirements.txt
 
 # 安装前端依赖
-cd frontend && npm install
+cd frontend && npm install && cd ..
 ```
 
-### 2. 配置环境变量
+### 2. 数据准备
 
 ```bash
-# Windows BLAS 线程固定（推荐）
-set OPENBLAS_NUM_THREADS=1
-set MKL_NUM_THREADS=1
+# 下载 FMA Small 数据集到 dataset/raw/fma_small/
 
-# DashScope API Key（Qwen 模式必需）
-set DASHSCOPE_API_KEY_BAILIAN=your_api_key
-# 或
-set DASHSCOPE_API_KEY=your_api_key
+# 数据预处理
+python scripts/data_processor_bge.py
 
-# LLM 模式选择
-set MUSIC_AGENT_LLM_MODE=qwen  # 使用 Qwen
-# set MUSIC_AGENT_LLM_MODE=mock  # 使用 Mock（无需 API Key）
+# 构建向量索引
+python scripts/vectorizer_bge.py
+
+# 构建元数据映射
+python scripts/build_metadata_from_json.py
+
+# 构建音频映射
+python scripts/build_audio_mapping.py
 ```
 
-### 3. 启动服务
+### 3. 配置与启动
 
 ```bash
-# 启动后端 API (端口 8000)
+# 配置环境变量
+# Windows
+set MUSIC_AGENT_LLM_MODE=mock
+set MUSIC_AGENT_LLM_MODE=qwen   # 需要真实 API Key
+
+# Linux/Mac
+export MUSIC_AGENT_LLM_MODE=mock
+
+# 启动后端 (端口 8000)
 python scripts/run_api.py
 
 # 新终端：启动前端 (端口 3000)
 cd frontend && npm run dev
 ```
 
-### 4. 访问应用
+### 4. 访问
 
-打开浏览器访问 http://localhost:3000
-
----
-
-## 💡 功能演示
-
-### 🤖 智能对话推荐
-
-通过自然语言与系统交互：
-
-```
-用户：推荐一些适合学习的歌
-Agent：我为你找到 5 首适合学习的歌曲：
-       1. Quiet Pages - Paper Lanterns (匹配度: 92%)
-       2. Soft Rain Notes - Window Seat (匹配度: 89%)
-       ...
-
-用户：我想要更欢快一点的
-Agent：好的，我为你推荐更欢快的歌曲：
-       1. Caffeine Loop - Night Library (匹配度: 91%)
-       ...
-```
-
-### 🎧 试听功能
-
-- 推荐卡片显示「可试听」标签
-- 点击播放按钮即可在线试听
-- 支持单实例播放（自动暂停前一首）
-
-### 📊 匹配指数
-
-- 每首推荐歌曲显示匹配百分比
-- 分数范围 65%~98%
-- 基于排名和原始分数校准
+打开 http://localhost:3000
 
 ---
 
-## 🔧 API 接口
+## 💡 使用示例
 
-### POST /chat
+### 对话式推荐
 
-智能对话接口
+```
+你：推荐一些适合晚上一个人听的音乐
+助手：为你找到以下适合夜间独处的歌曲：
 
-```json
-{
-  "session_id": "optional-session-id",
-  "message": "推荐适合学习的歌"
-}
+🎵 Quiet Pages - Paper Lanterns
+   流派：Lo-fi / 匹配度：91%
+   理由：旋律轻柔、节奏缓慢，符合夜间放松的氛围
+
+🎵 Soft Rain Notes - Window Seat  
+   流派：Ambient / 匹配度：88%
+   理由：环境音乐风格，适合安静的夜晚
+
+你：换成更欢快的
+助手：好的，为你推荐更欢快的歌曲：
+...
 ```
 
-响应：
-```json
-{
-  "session_id": "xxx",
-  "assistant_text": "我为你找到了...",
-  "recommendations": [
-    {
-      "id": "fma_123",
-      "name": "Song Name",
-      "reason": "适合学习的轻松音乐",
-      "is_playable": true,
-      "audio_url": "/audio/fma_small/000/000123.mp3",
-      "display_score": 92
-    }
-  ],
-  "state": { "mood": "calm", "scene": "study" }
-}
+### 偏好调整
+
 ```
+你：来点高能量的跑步音乐
+助手：已更新你的偏好（能量：高），为你推荐：
 
-### GET /audio/{path}
-
-静态音频文件服务
-
----
-
-## 📊 技术参数
-
-### 协同过滤 (Implicit ALS)
-
-| 参数 | 值 | 说明 |
-|------|-----|------|
-| factors | 64 | 隐向量维度 |
-| regularization | 0.01 | L2 正则化 |
-| iterations | 15 | 训练迭代次数 |
-| 训练数据 | 839K | Last.fm 交互记录 |
-
-### 语义向量 (BGE-M3)
-
-| 参数 | 值 | 说明 |
-|------|-----|------|
-| model | BAAI/bge-m3 | 多语言向量模型 |
-| dimension | 1024 | 向量维度 |
-| 索引数据 | 106K | FMA 音乐元数据 |
-
-### 试听功能
-
-| 参数 | 值 |
-|------|-----|
-| 可试听歌曲数 | 8000+ |
-| 音频格式 | MP3 |
-| 数据来源 | FMA Small |
-
----
-
-## 🛠️ 开发指南
-
-### 运行测试
-
-```bash
-# 测试模块
-python src/recommender/music_recommender.py
-python src/searcher/music_searcher.py
-
-# 测试 Agent
-python tests/agent_orchestrator_smoke.py
-python tests/tool_registry_unit.py
-```
-
-### 构建系统
-
-```bash
-# 1. 数据预处理
-python scripts/data_processor_bge.py
-
-# 2. 构建元数据映射
-python scripts/build_metadata_from_json.py
-
-# 3. 训练协同过滤模型
-python scripts/train_cf.py
-
-# 4. 构建向量索引
-python scripts/vectorizer_bge.py
-
-# 5. 构建音频映射
-python scripts/build_audio_mapping.py
+🎵 Caffeine Loop - Night Library
+   流派：Electronic / 匹配度：93%
+   理由：节奏明快、能量充沛，适合运动场景
 ```
 
 ---
 
-## 🔧 API 接口文档
+## 🔧 API 参考
 
 ### 核心端点
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | /chat | 对话式推荐 |
-| POST | /feedback | 用户反馈（喜欢/不喜欢） |
-| GET | /session/{session_id} | 获取会话状态 |
-| POST | /reset_session | 重置会话 |
-| GET | /health | 基础健康检查 |
-| GET | /health/verbose | 详细组件状态 |
-| GET | /health/llm | LLM 服务健康检查 |
-| GET | /behavior/stats | 用户行为统计 |
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/chat` | 对话式推荐 | 可选 |
+| POST | `/feedback` | 反馈（喜欢/不喜欢） | 必需 |
+| GET | `/sessions` | 会话列表 | 必需 |
+| GET | `/sessions/{id}` | 会话详情 | 必需 |
+| POST | `/sessions/{id}/reset` | 重置会话 | 必需 |
+| GET | `/playlists` | 歌单列表 | 必需 |
+| GET | `/health` | 健康检查 | 否 |
 
-### 响应示例
+### `/chat` 请求示例
 
 ```json
-// GET /health/verbose
 {
-  "status": "ok",
-  "llm_mode": "qwen",
-  "components": {
-    "llm": {"status": "ok", "mode": "qwen", "provider": "qwen"},
-    "cf_model": {"status": "not_loaded", "ready": false},
-    "vector_index": {"status": "ok", "exists": true},
-    "audio_files": {"status": "ok", "exists": true}
+  "session_id": "abc123",
+  "message": "推荐适合学习的轻音乐"
+}
+```
+
+### `/chat` 响应示例
+
+```json
+{
+  "session_id": "abc123",
+  "assistant_text": "为你找到以下适合学习的歌曲：",
+  "recommendations": [
+    {
+      "id": "fma_000123",
+      "name": "Quiet Pages - Paper Lanterns",
+      "reason": "旋律轻柔、节奏缓慢，适合学习场景",
+      "is_playable": true,
+      "audio_url": "/audio/fma_small/000/000123.mp3",
+      "display_score": 91,
+      "genre": "Lo-fi"
+    }
+  ],
+  "state": {
+    "current_scene": "学习",
+    "current_mood": "平静"
   }
 }
 ```
 
 ---
 
-## ⚙️ 配置说明
+## 📊 技术栈
 
-### 环境变量
+### 后端
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| MUSIC_AGENT_LLM_MODE | mock | LLM 模式：mock / qwen |
-| MUSIC_AGENT_LLM_TIMEOUT | 30 | LLM 请求超时（秒） |
-| DASHSCOPE_API_KEY | - | Qwen API Key |
-| LOG_LEVEL | INFO | 日志级别：DEBUG/INFO/WARNING/ERROR |
+| 技术 | 用途 |
+|------|------|
+| Python 3.11 | 运行环境 |
+| FastAPI | Web 框架 |
+| ChromaDB | 向量数据库 |
+| BGE-M3 | 多语言向量模型 |
+| Qwen (DashScope) | 大语言模型 |
+| SQLAlchemy + SQLite | 数据持久化 |
 
-### 全局配置
+### 前端
 
-项目配置集中管理在 `src/config.py`：
+| 技术 | 用途 |
+|------|------|
+| React 19 | UI 框架 |
+| TypeScript | 类型安全 |
+| Vite | 构建工具 |
+| TailwindCSS v4 | 样式 |
+| Zustand | 状态管理 |
 
-- 数据目录：`data/models`, `data/processed`, `index/chroma_bge_m3`
-- 向量索引：`index/chroma_bge_m3`
-- 音频文件：`dataset/raw/fma_small`
-- 推荐参数：top_k 默认 5，排除列表上限 100
+### 关键参数
 
----
-
-## 🆕 Recent Updates
-
-### v1.1.0 (2026-03-24)
-
-#### Audio Playback Fixes
-- Fixed audio 404 errors (path prefix mismatch in `audio_mapping.json`)
-- Fixed no sound issue (Vite proxy missing `/audio` route)
-- Fixed multiple simultaneous playback (global `AudioPlayerContext` singleton)
-- Added file existence verification before marking songs as playable
-
-#### Match Score Fixes
-- Fixed match score always showing 0%
-- Added `score` field extraction from `evidence` to top-level
-- Added `display_score` calibration (65-98% range)
-- Fixed bottom match bar not syncing with score
-
-#### UI Improvements
-- Added toast notifications for playback errors
-- Added development logging for score mapping
-
-### Roadmap
-
-- [ ] Offline evaluation metrics (Precision@K, NDCG)
-- [ ] Multi-turn dialogue test suite
-- [ ] Recommendation robustness optimization
-- [ ] User preference persistence across sessions
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 向量维度 | 1024 | BGE-M3 输出维度 |
+| 音乐规模 | 106,573 首 | FMA 元数据 |
+| 可试听 | 8,000+ 首 | FMA Small |
+| 推荐 Top-K | 5-20 | 可配置 |
+| 匹配分数 | 65-98% | 校准后显示 |
 
 ---
 
-## 📝 注意事项
+## 🧪 测试
 
-1. **Windows 用户**：建议设置 `OPENBLAS_NUM_THREADS=1` 避免 implicit 库问题
-2. **GPU 加速**：向量化过程支持 CUDA，建议使用 GPU
-3. **内存要求**：加载完整模型约需 2-4 GB 内存
-4. **API Key**：Qwen 模式需要 DashScope API Key
+```bash
+# 后端测试
+python -m compileall src scripts tests
+
+# Agent 编排测试
+python tests/agent_orchestrator_smoke.py
+
+# 工具注册测试
+python tests/tool_registry_unit.py
+
+# 工具排除测试
+python tests/tool_exclude_ids_smoke.py
+
+# 前端类型检查
+cd frontend && npm run lint
+```
+
+---
+
+## 🛠️ 开发
+
+### 项目规范
+
+- **Python**: 4 空格缩进，类型提示，snake_case
+- **TypeScript**: 2 空格缩进，PascalCase 组件
+- **提交**: 使用 `git commit` (非必须)
+- **测试**: 独立 smoke 脚本，非 pytest
+
+### 相关文档
+
+- [AGENTS.md](AGENTS.md) - 开发规范
+- [CLAUDE.md](CLAUDE.md) - AI 助手指南
+- `src/tools/AGENTS.md` - 工具层规范
+- `src/agent/AGENTS.md` - 编排层规范
+
+---
+
+## ⚠️ 已知限制
+
+- **会话存储**：内存存储，重启后会话丢失（生产环境建议用 Redis）
+- **LLM 模式**：mock 模式使用确定性回复，qwen 模式需要 API Key
+- **数据规模**：FMA Small 子集，非完整数据集
 
 ---
 
@@ -384,8 +365,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ## 🙏 致谢
 
 - [FMA Dataset](https://github.com/mdeff/fma) - Free Music Archive 数据集
-- [Last.fm Dataset](http://ocelma.net/MusicRecommendationDataset/) - 音乐推荐数据集
-- [Implicit](https://github.com/benfred/implicit) - 隐式反馈推荐库
+- [BGE-M3](https://github.com/BAAI-bge/bge-m3) - BAAI 多语言向量模型
 - [ChromaDB](https://www.trychroma.com/) - 向量数据库
-- [BGE-M3](https://huggingface.co/BAAI/bge-m3) - 多语言向量模型
-- [Qwen](https://tongyi.aliyun.com/) - 通义千问大模型
+- [Qwen](https://tongyi.aliyun.com/) - 阿里通义千问大模型
+- [React](https://react.dev/) - UI 框架
