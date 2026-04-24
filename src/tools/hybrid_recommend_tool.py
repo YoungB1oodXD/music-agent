@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import TypedDict, cast
 
-from .semantic_search_tool import _derive_explanation_fields, semantic_search
+from .semantic_search_tool import semantic_search
 
 
 logger = logging.getLogger(__name__)
@@ -12,7 +12,6 @@ HYBRID_RECOMMEND_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
         "query_text": {"type": "string"},
-        "seed_song_name": {"type": "string"},
         "top_k": {"type": "integer"},
         "exclude_ids": {"type": "array"},
         "intent": {"type": "string"},
@@ -195,6 +194,7 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
             "is_playable": payload.get("is_playable"),
             "audio_url": payload.get("audio_url"),
             "genre_description": payload.get("genre_description"),
+            "style": payload.get("style"),
             "mood_tags": payload.get("mood_tags"),
             "scene_tags": payload.get("scene_tags"),
             "instrumentation": payload.get("instrumentation"),

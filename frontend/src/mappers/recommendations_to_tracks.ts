@@ -84,14 +84,17 @@ export const mapRecommendationsToTracks = (recommendations: (RecommendationRecor
     let artist = (rec as RecommendationRecord).artist || 'Unknown Artist';
 
     const recAny = rec as Record<string, unknown>;
-    if (recAny.name && typeof recAny.name === 'string' && recAny.name.includes(' - ')) {
+    if (!recAny.title && recAny.name && typeof recAny.name === 'string' && recAny.name.includes(' - ')) {
       const parts = recAny.name.split(' - ');
       artist = parts[0].trim();
       title = parts.slice(1).join(' - ').trim();
+    } else if (recAny.title && recAny.name && typeof recAny.name === 'string' && recAny.name.includes(' - ') && !recAny.artist) {
+      const parts = recAny.name.split(' - ');
+      artist = parts[0].trim();
     }
 
     const genre = (rec as RecommendationRecord).genre || undefined;
-    const style = (rec as RecommendationRecord).genre_description || (rec as RecommendationRecord).style || undefined;
+    const style = (rec as RecommendationRecord).style || undefined;
 
     const allTags: string[] = [];
     const tags = (rec as RecommendationRecord).tags;

@@ -40,6 +40,7 @@ def init_db() -> None:
     from src.models.user_behavior import UserBehavior
     from src.models.user_preference import UserPreference
     from src.models.auth_token import AuthToken
+    from src.models.session_persistence import SessionPersistence
 
     Base.metadata.create_all(bind=engine)
     logger.info(f"Database initialized at {DB_PATH}")

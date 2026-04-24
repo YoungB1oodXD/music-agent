@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Heart, ThumbsDown, Plus, Music, RefreshCw, TrendingUp } from 'lucide-react';
+import { Play, Pause, Heart, ThumbsDown, Plus, Music, RefreshCw, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useChatStore } from '../../store/useChatStore';
 import { usePlaylistStore } from '../../store/usePlaylistStore';
@@ -33,7 +33,7 @@ export default function RecommendationPanel() {
   };
 
   return (
-    <aside className="w-80 bg-[#EBECE7] border-l border-gray-200 flex flex-col h-full overflow-hidden">
+    <aside className="w-96 shrink-0 bg-[#EBECE7] border-l border-gray-200 flex flex-col h-full overflow-hidden">
       <div className="p-6 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="text-[#1C1D1C] w-5 h-5" />
@@ -109,11 +109,14 @@ const SongCard: React.FC<SongCardProps> = ({
   playTrack,
 }: SongCardProps & { playingTrackId: string | null; playTrack: (id: string, url: string) => Promise<{ success: boolean; error?: string }> }) => {
   const [isLiked, setIsLiked] = React.useState(false);
-  const isCurrentlyPlaying = playingTrackId === song.id;
-
+  const isThisPlaying = playingTrackId === song.id;
   const handlePlay = async () => {
-    if (song.audioUrl) {
-      await playTrack(song.id, song.audioUrl);
+    if (!song.audioUrl) {
+      return;
+    }
+    const result = await playTrack(song.id, song.audioUrl);
+    if (!result.success && result.error) {
+      console.error('Play failed:', result.error);
     }
   };
 
@@ -137,27 +140,41 @@ const SongCard: React.FC<SongCardProps> = ({
               onClick={handlePlay}
               className="w-8 h-8 bg-[#D1E8C5] rounded-full flex items-center justify-center text-[#1C1D1C] shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300"
             >
-              <Play size={16} fill="currentColor" className="ml-0.5" />
+              {isThisPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" className="ml-0.5" />}
             </button>
           </div>
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="relative flex-1 min-w-0">
+          <span className="absolute top-0 right-0 text-[10px] font-mono text-[#1C1D1C] bg-[#D1E8C5] px-1.5 py-0.5 rounded">
+            {song.matchScore}%
+          </span>
           {song.isPlayable && (
             <span className="inline-block text-[9px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded mb-1">
               可试听
             </span>
           )}
-          <h3 className="text-sm font-bold text-[#1A1A1A] leading-snug break-words">{song.title}</h3>
-          <p className="text-xs text-gray-500 truncate mt-0.5">{song.artist}</p>
+          <h3 className="text-sm font-bold text-[#1A1A1A] leading-snug break-words pr-16">{song.title}</h3>
+          <p className="text-xs text-gray-500 truncate mt-0.5 pr-16">{song.artist}</p>
+          {(song.genre || song.style) && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {song.genre && (
+                <span className="text-[9px] font-medium text-white bg-[#5B8C5A] px-1.5 py-0.5 rounded">
+                  {song.genre}
+                </span>
+              )}
+              {song.style && song.style !== song.genre && (
+                <span className="text-[9px] font-medium text-[#5B8C5A] bg-[#E8F5E2] border border-[#5B8C5A] px-1.5 py-0.5 rounded">
+                  {song.style}
+                </span>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1 mt-2">
             {(song.tags || []).slice(0, 4).map(tag => (
               <span key={tag} className="text-[9px] text-gray-600 border border-gray-200 bg-gray-50 px-1.5 py-0.5 rounded-full">
                 {tag}
               </span>
             ))}
-            <span className="text-[10px] font-mono text-[#1C1D1C] bg-[#D1E8C5] px-1.5 py-0.5 rounded">
-              {song.matchScore}%
-            </span>
           </div>
         </div>
       </div>

@@ -40,6 +40,6 @@ export const sendChatMessage = async (params: ChatRequest): Promise<ChatResponse
 };
 
 export const refreshRecommendations = async (sessionId: string): Promise<RefreshResponse> => {
-  const response = await api.post<RefreshResponse>('/recommend_refresh', { session_id: sessionId });
+  const response = await api.post<RefreshResponse>('/recommend/refresh', { session_id: sessionId });
   return response.data;
 };

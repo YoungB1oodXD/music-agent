@@ -39,6 +39,7 @@ class SessionDetail(BaseModel):
     updated_at: datetime
     messages: List[TurnMessage]
     session_state: SessionStateAPI
+    recommendations: List[Any] = Field(default_factory=list)
 
 
 class SessionSummary(BaseModel):
@@ -115,7 +116,7 @@ def get_session(
         db.query(ChatHistory)
         .filter(
             ChatHistory.session_id == session_id,
-            ChatHistory.user_id == user_id_str,
+            (ChatHistory.user_id == user_id_str) | (ChatHistory.user_id == None),
         )
         .order_by(ChatHistory.turn_id)
         .all()
@@ -125,6 +126,7 @@ def get_session(
 
     # Build messages from user_input / system_response pairs
     messages: List[TurnMessage] = []
+    last_recommendations = []
     for i, row in enumerate(rows):
         user_turn = TurnMessage(
             id=f"{session_id}-{i}-u",
@@ -133,13 +135,17 @@ def get_session(
             timestamp=int(row.timestamp.timestamp() * 1000),
         )
         messages.append(user_turn)
+        recs = row.recommendations if row.recommendations else []
         if row.system_response:
             assistant_turn = TurnMessage(
                 id=f"{session_id}-{i}-a",
                 role="assistant",
                 content=row.system_response,
                 timestamp=int(row.timestamp.timestamp() * 1000) + 1,
+                recommendations=recs,
             )
+            if recs:
+                last_recommendations = recs
             messages.append(assistant_turn)
 
     first = rows[0]
@@ -163,6 +169,7 @@ def get_session(
         updated_at=last.timestamp,
         messages=messages,
         session_state=session_state,
+        recommendations=last_recommendations,
     )
 
 

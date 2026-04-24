@@ -346,6 +346,7 @@ class RecommendationObject(BaseModel):
     scene_tags: list[str] = Field(default_factory=list)
     instrumentation: list[str] = Field(default_factory=list)
     genre: str | None = None
+    style: str | None = None
     genre_description: str | None = None
 
 
@@ -512,12 +513,17 @@ def chat(payload: ChatRequest, request: Request) -> ChatResponseModel:
                         "system_response": turn.system_response,
                         "intent": turn.intent,
                         "entities": turn.entities,
+                        "recommendations": recommendations
+                        if idx == len(new_turns) - 1
+                        else [],
                     }
-                    for turn in new_turns
+                    for idx, turn in enumerate(new_turns)
                 ],
             )
         finally:
             db.close()
+
+    SESSION_STORE.save_state(session_id)
 
     return ChatResponseModel(
         session_id=session_id,
@@ -1011,127 +1017,72 @@ def recommend_refresh(payload: RefreshRequest) -> RefreshResponse:
             except StopIteration:
                 pass
 
-    base_query = ""
-    if state.last_recommendation and state.last_recommendation.query:
-        base_query = state.last_recommendation.query
-    else:
-        parts = []
-        if state.current_mood:
-            parts.append(state.current_mood)
-        if state.current_scene:
-            parts.append(state.current_scene)
-        if state.current_genre:
-            parts.append(state.current_genre)
-        base_query = " ".join(parts)
+    parts = []
+    if state.current_mood:
+        parts.append(state.current_mood)
+    if state.current_scene:
+        parts.append(state.current_scene)
+    if state.current_genre:
+        parts.append(state.current_genre)
+    synthetic_message = "继续推荐" if not parts else " ".join(parts) + "风格的音乐"
 
-    preference_suffix = _build_preference_suffix(state)
-    liked_suffix = _build_liked_context(state)
-    effective_query = base_query
-    if preference_suffix and preference_suffix not in effective_query:
-        effective_query = f"{effective_query} {preference_suffix}".strip()
-    if liked_suffix and liked_suffix not in effective_query:
-        effective_query = f"{effective_query} {liked_suffix}".strip()
-
-    top_k = 5
-    seed_song = _get_seed_song(state)
-
-    tool_args: dict[str, object] = {
-        "query_text": effective_query,
-        "top_k": top_k,
-        "exclude_ids": list(state.exclude_ids),
-        "intent": "recommend_music",
-    }
-    if seed_song:
-        tool_args["seed_song_name"] = seed_song
-
-    tool_result = TOOL_REGISTRY.dispatch("hybrid_recommend", tool_args)
-    raw_items: list[dict[str, object]] = []
-    if tool_result.get("ok") is True:
-        data = tool_result.get("data")
-        if isinstance(data, list):
-            raw_items = list(data)
-        elif isinstance(data, dict):
-            recs = data.get("recommendations")
-            if isinstance(recs, list):
-                raw_items = list(recs)
-
+    turn_result = ORCHESTRATOR.handle_turn(synthetic_message, state)
     recommendations: list[RecommendationObject] = []
-    seen_ids: set[str] = set()
-    for item in raw_items:
-        if not isinstance(item, dict):
-            continue
-        rec_id = str(item.get("track_id") or item.get("id") or "")
-        if not rec_id or rec_id in seen_ids:
-            continue
-        seen_ids.add(rec_id)
-        title = str(item.get("title") or "")
-        artist = str(item.get("artist") or "")
-        name = f"{artist} - {title}" if artist else title
-        raw_score = item.get("score")
-        score_float = float(raw_score) if isinstance(raw_score, (int, float)) else None
-        display = _calibrate_display_score(score_float, len(recommendations), top_k)
-        sources: list[str] = list(item.get("sources") or [])
-        genre_desc_val = item.get("genre_description")
-        genre_val = str(item.get("genre") or "")
-        mood_tags_val = item.get("mood_tags")
-        scene_tags_val = item.get("scene_tags")
-        instrumentation_val = item.get("instrumentation")
-        mood_tags: list[str] = (
-            list(mood_tags_val) if isinstance(mood_tags_val, list) else []
-        )
-        scene_tags: list[str] = (
-            list(scene_tags_val) if isinstance(scene_tags_val, list) else []
-        )
-        instrumentation: list[str] = (
-            list(instrumentation_val) if isinstance(instrumentation_val, list) else []
-        )
-        tags: list[str] = (
-            list(item.get("tags") or []) + mood_tags + scene_tags + instrumentation
-        )
-        tags = list(dict.fromkeys(tags))
-        if genre_val and not genre_desc_val:
-            from src.tools.semantic_search_tool import _derive_explanation_fields
+    if isinstance(turn_result, dict):
+        recs = turn_result.get("recommendations")
+        if isinstance(recs, list):
+            for rec in recs:
+                rec = dict(rec)
+                evidence = rec.get("evidence")
+                if isinstance(evidence, dict):
+                    if rec.get("genre") is None:
+                        rec["genre"] = evidence.get("genre")
+                    if rec.get("genre_description") is None:
+                        rec["genre_description"] = evidence.get("genre_description")
+                    if not rec.get("tags"):
+                        rec["tags"] = []
+                    if isinstance(evidence.get("mood_tags"), list):
+                        rec["tags"] = rec["tags"] + evidence["mood_tags"]
+                    if isinstance(evidence.get("scene_tags"), list):
+                        rec["tags"] = rec["tags"] + evidence["scene_tags"]
+                    if isinstance(evidence.get("instrumentation"), list):
+                        rec["tags"] = rec["tags"] + evidence["instrumentation"]
+                    if evidence.get("energy_note"):
+                        rec["tags"] = rec["tags"] + [evidence["energy_note"]]
+                    rec["tags"] = list(dict.fromkeys(rec["tags"]))
+                    if not rec.get("title"):
+                        rec["title"] = evidence.get("title")
+                    if not rec.get("artist"):
+                        rec["artist"] = evidence.get("artist")
 
-            derived = _derive_explanation_fields(genre_val)
-            genre_desc_val = derived.get("genre_description")
-        rec_reason = item.get("reason")
-        if not rec_reason:
-            if "content" in sources and "semantic" in sources:
-                rec_reason = (
-                    f"融合风格推荐：{genre_val}" if genre_val else "融合风格推荐"
+                rec_id = str(rec.get("id") or rec.get("track_id") or "")
+                title = str(rec.get("title") or "")
+                artist = str(rec.get("artist") or "")
+                name = f"{artist} - {title}" if artist else title
+
+                recommendations.append(
+                    RecommendationObject(
+                        id=rec_id,
+                        name=name,
+                        reason=str(rec.get("reason", "")),
+                        citations=rec.get("citations") or [],
+                        is_playable=rec.get("is_playable"),
+                        audio_url=rec.get("audio_url"),
+                        score=rec.get("score"),
+                        display_score=rec.get("display_score"),
+                        tags=rec.get("tags", []),
+                        mood_tags=rec.get("mood_tags", []),
+                        scene_tags=rec.get("scene_tags", []),
+                        instrumentation=rec.get("instrumentation", []),
+                        genre=str(rec.get("genre", "")),
+                        style=rec.get("style"),
+                        genre_description=rec.get("genre_description"),
+                    )
                 )
-            elif "content" in sources:
-                rec_reason = f"内容推荐：{genre_val}" if genre_val else "内容推荐"
-            else:
-                rec_reason = f"推荐歌曲：{genre_val}" if genre_val else "为你推荐"
-        recommendations.append(
-            RecommendationObject(
-                id=rec_id,
-                name=name,
-                reason=rec_reason,
-                citations=item.get("citations") or [],
-                is_playable=item.get("is_playable"),
-                audio_url=item.get("audio_url"),
-                score=score_float,
-                display_score=display,
-                tags=tags,
-                mood_tags=mood_tags,
-                scene_tags=scene_tags,
-                instrumentation=instrumentation,
-                genre=genre_val,
-                genre_description=genre_desc_val,
-            )
-        )
 
-    state.add_recommendation(
-        query=base_query,
-        results=[{"id": r.id, "name": r.name} for r in recommendations],
-        method="hybrid",
-    )
+    SESSION_STORE.save_state(session_id=payload.session_id)
 
-    logger.info(
-        f"[REFRESH] session={payload.session_id} query='{effective_query}' recs={len(recommendations)}"
-    )
+    logger.info(f"[REFRESH] session={payload.session_id} recs={len(recommendations)}")
 
     return RefreshResponse(
         session_id=payload.session_id,

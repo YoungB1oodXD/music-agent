@@ -185,6 +185,21 @@ _GENRE_ENERGY: dict[str, str] = {
     "experimental": "能量不定，探索性强",
 }
 
+_GENRE_TO_STYLE: dict[str, str] = {
+    "氛围音乐": "Ambient",
+    "电子音乐": "Electronic",
+    "器乐作品": "Instrumental",
+    "古典音乐": "Classical",
+    "爵士乐": "Jazz",
+    "摇滚乐": "Rock",
+    "流行音乐": "Pop",
+    "民谣风格": "Folk",
+    "嘻哈音乐": "Hip-Hop",
+    "低保真音乐": "Lo-Fi",
+    "轻松舒缓": "Chill",
+    "实验音乐": "Experimental",
+}
+
 
 def _derive_explanation_fields(genre: str | None) -> dict[str, object]:
     if not genre:
@@ -198,12 +213,19 @@ def _derive_explanation_fields(genre: str | None) -> dict[str, object]:
             break
 
     if not matched_key:
+        for chinese_genre, english_style in _GENRE_TO_STYLE.items():
+            if chinese_genre in genre_lower or genre_lower in chinese_genre:
+                matched_key = english_style.lower()
+                break
+
+    if not matched_key:
         return {}
 
     fields: dict[str, object] = {}
 
     if matched_key in _GENRE_DESCRIPTIONS:
         fields["genre_description"] = _GENRE_DESCRIPTIONS[matched_key]
+        fields["style"] = matched_key.capitalize()
     if matched_key in _GENRE_MOOD_TAGS:
         fields["mood_tags"] = _GENRE_MOOD_TAGS[matched_key]
     if matched_key in _GENRE_SCENE_TAGS:
@@ -226,8 +248,12 @@ def _get_audio_mapping() -> dict[str, str]:
             / "audio_mapping.json"
         )
         if mapping_path.exists():
-            with open(mapping_path, "r", encoding="utf-8") as f:
-                _audio_mapping = json.load(f)
+            try:
+                with open(mapping_path, "r", encoding="utf-8") as f:
+                    _audio_mapping = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(f"[AUDIO MAPPING] Failed to load {mapping_path}: {e}")
+                _audio_mapping = {}
         else:
             _audio_mapping = {}
     return _audio_mapping or {}

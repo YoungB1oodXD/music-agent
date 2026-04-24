@@ -19,6 +19,7 @@ class ChatHistory(Base):
     system_response = Column(String(5000), nullable=False)
     intent = Column(String(50), nullable=True)
     entities = Column(JSON, default=dict)
+    recommendations = Column(JSON, default=list)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     @staticmethod
@@ -37,6 +38,7 @@ class ChatHistory(Base):
                 system_response=turn_data["system_response"],
                 intent=turn_data.get("intent"),
                 entities=turn_data.get("entities", {}),
+                recommendations=turn_data.get("recommendations", []),
             )
             db.add(entry)
         db.commit()

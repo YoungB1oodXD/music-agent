@@ -925,7 +925,11 @@ class Orchestrator:
     ) -> list[dict[str, object]]:
         records: list[dict[str, object]] = []
         for tool_name, args in tool_plan[: self.max_tool_calls]:
-            dispatch_result = self.tools.dispatch(tool_name, args)
+            try:
+                dispatch_result = self.tools.dispatch(tool_name, args)
+            except Exception as e:
+                logger.error(f"[TOOL DISPATCH] {tool_name} failed: {e}", exc_info=True)
+                dispatch_result = {"ok": False, "error": str(e)}
             records.append({"name": tool_name, "args": args, "result": dispatch_result})
         return records
 
@@ -1637,10 +1641,24 @@ class Orchestrator:
 
             result: dict[str, object] = {
                 "id": rec_id,
-                "name": name or rec_id,
+                "name": name if name else rec_id,
                 "reason": reason,
                 "citations": citations,
             }
+            ev = seed.get("evidence") or {}
+            result["title"] = seed.get("title") or ev.get("title")
+            result["artist"] = seed.get("artist") or ev.get("artist")
+            result["genre"] = seed.get("genre") or ev.get("genre")
+            result["style"] = seed.get("style") or ev.get("style")
+            result["genre_description"] = seed.get("genre_description") or ev.get(
+                "genre_description"
+            )
+            result["tags"] = seed.get("tags") or []
+            result["mood_tags"] = seed.get("mood_tags") or ev.get("mood_tags") or []
+            result["scene_tags"] = seed.get("scene_tags") or ev.get("scene_tags") or []
+            result["instrumentation"] = (
+                seed.get("instrumentation") or ev.get("instrumentation") or []
+            )
 
             if seed.get("is_playable") is not None:
                 result["is_playable"] = seed["is_playable"]
@@ -1650,6 +1668,10 @@ class Orchestrator:
                 result["score"] = seed["score"]
             if seed.get("display_score") is not None:
                 result["display_score"] = seed["display_score"]
+            if ev.get("similarity") is not None and result.get("score") is None:
+                result["score"] = ev.get("similarity")
+            if ev.get("hybrid_score") is not None and result.get("score") is None:
+                result["score"] = ev.get("hybrid_score")
 
             validated.append(result)
 

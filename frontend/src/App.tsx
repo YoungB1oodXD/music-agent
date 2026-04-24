@@ -8,6 +8,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import HistoryPage from './components/pages/HistoryPage';
 import PlaylistPage from './components/pages/PlaylistPage';
+import LandingPage from './components/pages/LandingPage';
 import { Loader2 } from 'lucide-react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -26,7 +27,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/welcome" />;
   }
 
   return <>{children}</>;
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="history" element={<HistoryPage />} />
           <Route path="playlists/:id" element={<PlaylistPage />} />
         </Route>
+        <Route path="/welcome" element={<LandingPage />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

@@ -90,7 +90,7 @@ export const useChatStore = create<ChatState>()(
             role: m.role,
             content: m.content,
             timestamp: m.timestamp || Date.now(),
-            recommendations: [],
+            recommendations: m.recommendations || [],
           }));
           const sessionState: SessionState = {
             mood: data.session_state?.mood || '未知',
@@ -99,11 +99,14 @@ export const useChatStore = create<ChatState>()(
             energy: data.session_state?.energy || '未知',
             vocal: data.session_state?.vocal || '未知',
           };
+          const recommendations = data.recommendations?.length > 0
+            ? mapRecommendationsToTracks(data.recommendations)
+            : [];
           set({
             currentSessionId: sessionId,
             messages,
             sessionState,
-            recommendations: [],
+            recommendations,
           });
         } catch (err) {
           console.error('Failed to load session', err);

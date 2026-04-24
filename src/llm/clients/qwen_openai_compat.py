@@ -26,6 +26,7 @@ Qwen 大模型客户端（OpenAI 兼容接口）
     export DASHSCOPE_BASE_URL="https://coding.dashscope.aliyuncs.com/v1"
     client = QwenClient()
 """
+
 import importlib
 import json
 import logging
@@ -44,7 +45,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 默认使用百炼普通接口，可通过 DASHSCOPE_BASE_URL 覆盖
-DEFAULT_BASE_URL = os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+DEFAULT_BASE_URL = os.getenv(
+    "DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"
+)
 
 # 默认模型，可通过 DASHSCOPE_MODEL 覆盖
 DEFAULT_MODEL = os.getenv("DASHSCOPE_MODEL", "qwen3.5-plus")
@@ -75,9 +78,10 @@ class _OpenAIConstructor(Protocol):
 class QwenClient(BaseLLMClient):
     """
     Qwen 大模型客户端
-    
+
     API Key 优先级：显式参数 > DASHSCOPE_API_KEY_BAILIAN > DASHSCOPE_API_KEY
     """
+
     def __init__(
         self,
         api_key: str | None = None,
@@ -114,7 +118,7 @@ class QwenClient(BaseLLMClient):
             # sk- 开头的 Key 显示前9位，其他显示前6位
             prefix_len = 9 if self.api_key.startswith("sk-") else 6
             api_key_prefix = self.api_key[:prefix_len]
-        
+
         logger.info(
             f"[LLM INIT]\n"
             f"provider=qwen\n"
@@ -137,9 +141,7 @@ class QwenClient(BaseLLMClient):
             try:
                 openai_module = importlib.import_module("openai")
             except ImportError as exc:
-                raise ImportError(
-                    "openai 未安装。请运行: pip install openai"
-                ) from exc
+                raise ImportError("openai 未安装。请运行: pip install openai") from exc
 
             openai_cls_obj = getattr(openai_module, "OpenAI", None)
             if openai_cls_obj is None:
@@ -227,11 +229,7 @@ class QwenClient(BaseLLMClient):
         try:
             completion_obj = self._get_client().chat.completions.create(**payload)
             latency_ms = int((time.perf_counter() - start_time) * 1000)
-            logger.info(
-                f"[LLM SUCCESS]\n"
-                f"model={self.model}\n"
-                f"latency_ms={latency_ms}"
-            )
+            logger.info(f"[LLM SUCCESS]\nmodel={self.model}\nlatency_ms={latency_ms}")
         except Exception as e:
             # 错误处理：提取关键信息并打印详细日志（用于调试 API 问题）
             status_code = getattr(e, "status_code", "N/A")
@@ -246,12 +244,16 @@ class QwenClient(BaseLLMClient):
                 elif hasattr(resp, "content"):
                     try:
                         response_text = resp.content.decode("utf-8", errors="replace")
-                    except:
+                    except (UnicodeDecodeError, AttributeError, OSError):
                         response_text = str(resp.content)
-                
+
                 # 从响应头提取 request_id（用于向阿里云反馈问题）
                 if hasattr(resp, "headers"):
-                    request_id = resp.headers.get("x-request-id") or resp.headers.get("request-id") or "N/A"
+                    request_id = (
+                        resp.headers.get("x-request-id")
+                        or resp.headers.get("request-id")
+                        or "N/A"
+                    )
 
             # 如果响应体是 JSON，尝试从 body 提取 request_id
             if request_id == "N/A" and response_text != "N/A":
@@ -259,12 +261,16 @@ class QwenClient(BaseLLMClient):
                     body = json.loads(response_text)
                     if isinstance(body, dict):
                         request_id = (
-                            body.get("request_id") 
-                            or body.get("requestId") 
-                            or (body.get("error", {}) if isinstance(body.get("error"), dict) else {}).get("request_id")
+                            body.get("request_id")
+                            or body.get("requestId")
+                            or (
+                                body.get("error", {})
+                                if isinstance(body.get("error"), dict)
+                                else {}
+                            ).get("request_id")
                             or "N/A"
                         )
-                except:
+                except (json.JSONDecodeError, ValueError, TypeError):
                     pass
 
             # 打印详细错误日志（包含 status_code、model、base_url、响应体、request_id）
@@ -295,7 +301,9 @@ class QwenClient(BaseLLMClient):
 
         for idx, item in enumerate(tool_call_items):
             item_dict = self._as_dict(item, f"message.tool_calls[{idx}]")
-            function_dict = self._as_dict(item_dict.get("function") or {}, "tool_call.function")
+            function_dict = self._as_dict(
+                item_dict.get("function") or {}, "tool_call.function"
+            )
 
             parsed_tool_calls.append(
                 ToolCall(
@@ -317,10 +325,13 @@ class QwenClient(BaseLLMClient):
         try:
             return json.loads(content), content
         except json.JSONDecodeError:
-            assistant_message: dict[str, object] = {"role": "assistant", "content": content}
+            assistant_message: dict[str, object] = {
+                "role": "assistant",
+                "content": content,
+            }
             repair_instruction: dict[str, object] = {
-                "role": "user", 
-                "content": "The previous output is not valid JSON. Output ONLY a valid JSON object with no markdown, no code fences, no explanation. Fix all syntax errors: unclosed quotes, missing commas, unescaped characters."
+                "role": "user",
+                "content": "The previous output is not valid JSON. Output ONLY a valid JSON object with no markdown, no code fences, no explanation. Fix all syntax errors: unclosed quotes, missing commas, unescaped characters.",
             }
             repair_messages = [
                 *request_messages,
@@ -336,13 +347,19 @@ class QwenClient(BaseLLMClient):
                     stream=False,
                 )
 
-                choices = self._as_list(repair_completion.get("choices"), "completion.choices")
+                choices = self._as_list(
+                    repair_completion.get("choices"), "completion.choices"
+                )
                 if not choices:
-                    logger.warning("Model returned no choices while repairing JSON, returning None")
+                    logger.warning(
+                        "Model returned no choices while repairing JSON, returning None"
+                    )
                     return None, content
 
                 repair_choice = self._as_dict(choices[0], "completion.choices[0]")
-                repair_message = self._as_dict(repair_choice.get("message") or {}, "choice.message")
+                repair_message = self._as_dict(
+                    repair_choice.get("message") or {}, "choice.message"
+                )
                 repaired_content = str(repair_message.get("content") or "")
 
                 try:
@@ -364,7 +381,9 @@ class QwenClient(BaseLLMClient):
         stream: bool = False,
     ) -> ChatResponse:
         validated_messages = self.validate_messages(messages)
-        request_messages = self._prepare_messages(validated_messages, json_output=json_output)
+        request_messages = self._prepare_messages(
+            validated_messages, json_output=json_output
+        )
 
         completion = self._create_completion(
             messages=request_messages,

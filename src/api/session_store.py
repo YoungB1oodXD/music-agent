@@ -15,7 +15,9 @@ def _load_history_to_state(state: SessionState, user_id: str | None = None) -> N
     try:
         query = db.query(ChatHistory).filter(ChatHistory.session_id == state.session_id)
         if user_id is not None:
-            query = query.filter(ChatHistory.user_id == user_id)
+            query = query.filter(
+                (ChatHistory.user_id == user_id) | (ChatHistory.user_id == None)
+            )
         rows = query.order_by(ChatHistory.turn_id).all()
         for row in rows:
             state.add_dialogue_turn(
@@ -24,6 +26,14 @@ def _load_history_to_state(state: SessionState, user_id: str | None = None) -> N
                 intent=str(row.intent) if row.intent else None,
                 entities=dict(row.entities) if row.entities else {},
             )
+        if rows and rows[-1].recommendations:
+            last_recs = rows[-1].recommendations
+            if isinstance(last_recs, list) and len(last_recs) > 0:
+                state.add_recommendation(
+                    query=getattr(rows[-1], "query", "") or "",
+                    results=last_recs,
+                    method="hybrid",
+                )
     finally:
         db.close()
 
@@ -86,7 +96,41 @@ class SessionStore:
             self._sessions[new_id] = new_state
             if user_id:
                 self._user_sessions.setdefault(user_id, []).append(new_id)
+            self._load_persisted_state(new_state)
             return new_id, new_state
+
+    def _load_persisted_state(self, state: SessionState) -> None:
+        from src.database import get_db
+        from src.models.session_persistence import SessionPersistence
+
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            record = SessionPersistence.load_from_db(db, state.session_id)
+            if record:
+                record.apply_to_state(state)
+                logger.info(f"[SessionStore] loaded persisted state for sid={state.session_id}")
+        finally:
+            db.close()
+
+    def save_state(self, session_id: str) -> None:
+        state = self._sessions.get(session_id)
+        if state is None:
+            return
+        from src.database import get_db
+        from src.models.session_persistence import SessionPersistence
+
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            record = SessionPersistence.get_or_create(db, state.session_id, state.user_id)
+            updates = SessionPersistence.state_to_dict(state)
+            for key, value in updates.items():
+                setattr(record, key, value)
+            db.commit()
+            logger.info(f"[SessionStore] saved state for sid={session_id}")
+        finally:
+            db.close()
 
     def get_by_user(self, user_id: str) -> list[SessionState]:
         with self._lock:

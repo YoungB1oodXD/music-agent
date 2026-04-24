@@ -121,12 +121,12 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespon
     db.add(liked_playlist)
     db.commit()
 
-    token = create_token(db, user.id)
+    token = create_token(db, int(user.id))
     logger.info(f"[AUTH] User registered: {user.username}")
     return TokenResponse(
         access_token=token,
         user=UserResponse(
-            id=user.id, username=user.username, created_at=user.created_at
+            id=int(user.id), username=str(user.username), created_at=user.created_at
         ),
     )
 
@@ -137,12 +137,12 @@ def login(req: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     if user is None or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    token = create_token(db, user.id)
+    token = create_token(db, int(user.id))
     logger.info(f"[AUTH] User logged in: {user.username}")
     return TokenResponse(
         access_token=token,
         user=UserResponse(
-            id=user.id, username=user.username, created_at=user.created_at
+            id=int(user.id), username=str(user.username), created_at=user.created_at
         ),
     )
 
@@ -168,8 +168,8 @@ def logout(
 @auth_router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)) -> UserResponse:
     return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
+        id=int(current_user.id),
+        username=str(current_user.username),
         created_at=current_user.created_at,
     )
 
@@ -198,7 +198,7 @@ def update_me(
     db.refresh(current_user)
     logger.info(f"[AUTH] User updated: {current_user.username}")
     return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
+        id=int(current_user.id),
+        username=str(current_user.username),
         created_at=current_user.created_at,
     )

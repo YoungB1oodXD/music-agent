@@ -60,7 +60,7 @@ export default function ChatArea() {
                 msg.role === 'user' ? "items-end" : "items-start"
               )}>
                 <div className={cn(
-                  "px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm",
+                  "px-5 py-4 rounded-2xl text-xs leading-relaxed shadow-sm",
                   msg.role === 'user' 
                     ? "bg-[#1C1D1C] text-[#D1E8C5] rounded-tr-none" 
                     : "bg-white text-[#1A1A1A] border border-gray-100 rounded-tl-none"

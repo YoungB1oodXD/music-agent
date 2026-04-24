@@ -18,6 +18,8 @@ export interface Song {
   matchScore?: number; // 0-100
   score?: number;
   tags?: string[];
+  genre?: string; // 流派
+  style?: string; // 风格
   reason?: string;
   recommendationReason?: string;
   isPlayable?: boolean;
