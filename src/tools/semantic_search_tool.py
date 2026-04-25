@@ -123,6 +123,14 @@ _GENRE_DESCRIPTIONS: dict[str, str] = {
     "lo-fi": "低保真音乐带有温暖的噪点与松散节拍，适合放松与陪伴",
     "chill": "轻松舒缓的音乐，节奏平稳，适合日常背景",
     "experimental": "实验音乐突破传统结构，探索新声音与表达方式",
+    # 新增流派
+    "international": "世界音乐融合多元文化元素，涵盖民族、拉丁、非洲等风格",
+    "country": "乡村音乐以吉他为核心，旋律简洁情感真挚，表达生活与乡愁",
+    "old-time / historic": "复古音乐保留传统风格与历史质感，承载时代的记忆与情怀",
+    "spoken": "口语/ spoken word 强调语言表达与叙事，介于音乐与朗诵之间",
+    "blues": "蓝调音乐源自非洲裔美国人劳动歌曲，情感深沉以表达忧郁与希望",
+    "soul-rnb": "灵魂/R&B 强调情感表达与声乐技巧，融合节奏与旋律",
+    "easy listening": "轻音乐轻松愉悦，节奏舒缓，适合作为背景音乐放松身心",
 }
 
 _GENRE_MOOD_TAGS: dict[str, list[str]] = {
@@ -138,6 +146,14 @@ _GENRE_MOOD_TAGS: dict[str, list[str]] = {
     "lo-fi": ["cozy", "nostalgic", "relaxed"],
     "chill": ["relaxed", "easygoing", "mellow"],
     "experimental": ["curious", "unconventional", "exploratory"],
+    # 新增流派
+    "international": ["eclectic", "cultural", "worldly", "diverse"],
+    "country": ["heartfelt", "nostalgic", " storytelling", " roots"],
+    "old-time / historic": ["vintage", "nostalgic", "authentic", "traditional"],
+    "spoken": ["narrative", "reflective", "intimate", "poetic"],
+    "blues": ["melancholic", "soulful", "passionate", "raw"],
+    "soul-rnb": ["soulful", "emotional", "sensual", "groovy"],
+    "easy listening": ["relaxed", "smooth", "pleasant", "mellow"],
 }
 
 _GENRE_SCENE_TAGS: dict[str, list[str]] = {
@@ -153,6 +169,14 @@ _GENRE_SCENE_TAGS: dict[str, list[str]] = {
     "lo-fi": ["study", "late-night", "chill"],
     "chill": ["anytime", "background", "relaxation"],
     "experimental": ["focus", "creative-work", "discovery"],
+    # 新增流派
+    "international": ["travel", "cultural", "world", "exploration"],
+    "country": ["road-trip", "outdoor", " Americana", " storytelling"],
+    "old-time / historic": ["vintage", "retro", "classic", "memories"],
+    "spoken": ["reading", "podcast", "quiet", "contemplation"],
+    "blues": ["late-night", "reflective", "heartbreak", "resilience"],
+    "soul-rnb": ["romance", "date-night", "groove", "dance"],
+    "easy listening": ["dinner", "background", "chill", "hospitality"],
 }
 
 _GENRE_INSTRUMENTATION: dict[str, list[str]] = {
@@ -168,6 +192,14 @@ _GENRE_INSTRUMENTATION: dict[str, list[str]] = {
     "lo-fi": ["soft drums", "piano", "vinyl crackle"],
     "chill": ["soft keys", "gentle beats", "ambient textures"],
     "experimental": ["varied and unconventional", "found sounds", "synthesis"],
+    # 新增流派
+    "international": ["ethnic instruments", "percussion", "traditional sounds"],
+    "country": ["acoustic guitar", "pedal steel", "fiddle", "banjo"],
+    "old-time / historic": ["banjo", "fiddle", "acoustic", "harmonica"],
+    "spoken": ["voice", "minimal", "spoken word", "poetry"],
+    "blues": ["guitar", "harmonica", "piano", "brass"],
+    "soul-rnb": ["vocals", "drums", "bass", "brass"],
+    "easy listening": ["smooth", "soft", "orchestral", "light"],
 }
 
 _GENRE_ENERGY: dict[str, str] = {
@@ -183,6 +215,14 @@ _GENRE_ENERGY: dict[str, str] = {
     "lo-fi": "低能量，适合放松陪伴",
     "chill": "低能量，轻松舒适",
     "experimental": "能量不定，探索性强",
+    # 新增流派
+    "international": "能量多变，风格跨度大",
+    "country": "中等能量，真挚朴实",
+    "old-time / historic": "低能量，复古怀旧",
+    "spoken": "低能量，平静叙事",
+    "blues": "中等能量，情感深沉",
+    "soul-rnb": "中等能量，律动舒适",
+    "easy listening": "低能量，轻松愉悦",
 }
 
 _GENRE_TO_STYLE: dict[str, str] = {
@@ -198,6 +238,14 @@ _GENRE_TO_STYLE: dict[str, str] = {
     "低保真音乐": "Lo-Fi",
     "轻松舒缓": "Chill",
     "实验音乐": "Experimental",
+    # 新增流派
+    "世界音乐": "International",
+    "乡村音乐": "Country",
+    "复古音乐": "Old-Time / Historic",
+    "口语": "Spoken",
+    "蓝调": "Blues",
+    "灵魂": "Soul-RnB",
+    "轻音乐": "Easy Listening",
 }
 
 

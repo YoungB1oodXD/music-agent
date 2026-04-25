@@ -15,6 +15,7 @@ HYBRID_RECOMMEND_SCHEMA: dict[str, object] = {
         "top_k": {"type": "integer"},
         "exclude_ids": {"type": "array"},
         "intent": {"type": "string"},
+        "user_id": {"type": "string"},  # string类型，orchestrator传递的是字符串
     },
     "required": ["query_text", "top_k"],
 }
@@ -116,11 +117,80 @@ def _collect_result_ids(item: Mapping[str, object]) -> set[str]:
     return comparable_ids
 
 
+def _load_user_preference(user_id: str | int) -> dict | None:
+    """加载用户偏好设置"""
+    try:
+        from src.database.db import get_db
+        from src.models.user_preference import UserPreference
+
+        # 转换为 int（如果需要）
+        if isinstance(user_id, str):
+            if not user_id.isdigit():
+                return None
+            user_id = int(user_id)
+
+        db_gen = get_db()
+        db = next(db_gen)
+        try:
+            pref = UserPreference.get_or_create(db, user_id)
+            return {
+                "liked_genres": pref.liked_genre_counts or {},
+                "disliked_genres": pref.disliked_genre_counts or {},
+            }
+        finally:
+            try:
+                next(db_gen)
+            except StopIteration:
+                pass
+    except Exception as e:
+        logger.warning(f"[PREFERENCE] Failed to load preference: {e}")
+        return None
+
+
+def _apply_genre_adjustment(
+    score: float, genre: str, user_prefs: dict | None, dislike_threshold: int = 3
+) -> float:
+    """
+    应用流派偏好调整（加法融合）
+    - liked genres: +0.03 ~ +0.15
+    - disliked genres (>= threshold): -0.1 ~ -0.2
+    """
+    if not user_prefs:
+        return score
+
+    liked = user_prefs.get("liked_genres", {})
+    disliked = user_prefs.get("disliked_genres", {})
+
+    # 喜欢加分
+    like_count = liked.get(genre, 0)
+    if like_count > 0:
+        adjustment = min(0.15, like_count * 0.03)  # 最多加 0.15
+        score += adjustment
+
+    # 不喜欢减分（需要超过阈值）
+    dislike_count = disliked.get(genre, 0)
+    if dislike_count >= dislike_threshold:
+        adjustment = -min(0.2, dislike_count * 0.05)  # 3次→-0.15, 4次→-0.2
+        score += adjustment
+
+    return score
+
+
 def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
     query_text = str(args["query_text"])
     top_k = max(1, _to_int(args["top_k"], default=5))
     sem_top_k = min(_HYBRID_CANDIDATE_CAP, top_k * _HYBRID_CANDIDATE_MULTIPLIER)
     exclude_ids = _parse_exclude_ids(args)
+
+    # 加载用户偏好（新增）
+    user_id = args.get("user_id")
+    user_prefs = None
+    if user_id:
+        user_prefs = _load_user_preference(user_id)
+        if user_prefs:
+            logger.info(
+                f"[Hybrid] Loaded user preferences: liked={len(user_prefs.get('liked_genres', {}))}, disliked={len(user_prefs.get('disliked_genres', {}))}"
+            )
 
     logger.info(
         f"[Hybrid] query='{query_text}', top_k={top_k}, exclude={len(exclude_ids)}"
@@ -181,6 +251,14 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
     for row in sem_scored:
         item_id = row["id"]
         payload = row["payload"]
+
+        # 计算基础分数
+        base_score = sem_norm.get(item_id, 0.0)
+
+        # 应用流派偏好调整（加法融合，新增）
+        genre = str(payload.get("genre") or "")
+        adjusted_score = _apply_genre_adjustment(base_score, genre, user_prefs)
+
         merged[item_id] = {
             "id": payload.get("id"),
             "title": payload.get("title"),
@@ -189,7 +267,9 @@ def hybrid_recommend(args: dict[str, object]) -> dict[str, object]:
             "track_id": payload.get("track_id"),
             "semantic_similarity": payload.get("similarity"),
             "distance": payload.get("distance"),
-            "score": sem_norm.get(item_id, 0.0),
+            "score": adjusted_score,
+            "base_score": base_score,  # 保留原始分数用于调试
+            "preference_adjustment": adjusted_score - base_score,  # 偏好调整量
             "sources": ["semantic"],
             "is_playable": payload.get("is_playable"),
             "audio_url": payload.get("audio_url"),

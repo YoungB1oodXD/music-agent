@@ -1,5 +1,5 @@
 {
   "name": "Melodia - AI Music Assistant",
-  "description": "A smart music recommendation system with a dual-brain architecture, featuring multi-turn chat, personalized playlists, and real-time feedback.",
+  "description": "A smart music recommendation system with a hybrid architecture, featuring multi-turn chat, personalized playlists, and real-time feedback.",
   "requestFramePermissions": []
 }

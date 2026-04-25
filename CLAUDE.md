@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A conversational music recommendation agent using semantic search and content-based similarity: Left Brain (semantic search via BGE-M3 + ChromaDB) and Right Brain (content-based metadata similarity). The agent uses a LLM orchestrator for intent routing and response synthesis.
+A conversational music recommendation agent using semantic search and content-based similarity: 语义检索 (semantic search via BGE-M3 + ChromaDB) and 内容匹配 (content-based metadata similarity). The agent uses a LLM orchestrator for intent routing and response synthesis.
 
 ## Stack
 
@@ -59,8 +59,8 @@ User → FastAPI (/chat) → Orchestrator → ToolRegistry → [HybridRecommende
 
 ### Dual-Brain Architecture
 
-- **Left Brain** (`src/searcher/music_searcher.py`): BGE-M3 embeddings + ChromaDB semantic search
-- **Right Brain** (`src/tools/hybrid_recommend_tool.py`): Content-based metadata similarity (genre, mood, energy tags)
+- **语义检索** (`src/searcher/music_searcher.py`): BGE-M3 embeddings + ChromaDB semantic search
+- **内容匹配** (`src/tools/hybrid_recommend_tool.py`): Content-based metadata similarity (genre, mood, energy tags)
 - **Hybrid** (`src/tools/hybrid_recommend_tool.py`): Blends both streams using weighted scoring
 
 ### Intent Routing

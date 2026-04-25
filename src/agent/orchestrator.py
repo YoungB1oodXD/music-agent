@@ -917,6 +917,9 @@ class Orchestrator:
         }
         if exclude_artists:
             tool_args["exclude_artists"] = exclude_artists
+        # 传递 user_id 以便 hybrid_recommend 获取用户偏好
+        if state.user_id:
+            tool_args["user_id"] = state.user_id
 
         return [("hybrid_recommend", tool_args)]
 

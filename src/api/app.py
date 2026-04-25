@@ -18,6 +18,7 @@ from src.agent import MockLLMClient, Orchestrator
 from src.api.auth import auth_router, get_current_user
 from src.api.playlist import playlist_router, like_router
 from src.api.sessions import session_router
+from src.models.user_preference import UserPreference
 from src.api.session_store import SessionStore
 from src.api.user import user_router
 from src.database import get_db, init_db
@@ -795,10 +796,19 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
         track_artist = (
             payload.track_metadata.get("artist", "") if payload.track_metadata else ""
         )
+        track_genre = (
+            payload.track_metadata.get("genre", "") if payload.track_metadata else ""
+        )
+        track_energy = (
+            payload.track_metadata.get("energy_note", "none")
+            if payload.track_metadata
+            else "none"
+        )
         song_name = f"{track_artist} - {track_title}" if track_artist else track_title
         _db_gen = get_db()
         _db = next(_db_gen)
         try:
+            # 1. 记录行为到 user_behaviors 表
             record_behavior(
                 user_id=str(state.user_id) if state.user_id else payload.session_id,
                 song_id=payload.track_id or "",
@@ -811,6 +821,50 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
                 },
                 db=_db,
             )
+            # 2. 更新用户偏好（新增）
+            # state.user_id 是 str，需要转换为 int
+            _user_id = state.user_id
+            if _user_id and _user_id.isdigit():
+                _user_id_int = int(_user_id)
+                try:
+                    UserPreference.record_like(
+                        db=_db,
+                        user_id=_user_id_int,
+                        genre=track_genre,
+                        energy=track_energy,
+                    )
+                    logger.info(
+                        f"[PREFERENCE] liked genre={track_genre}, energy={track_energy} for user_id={_user_id_int}"
+                    )
+                except Exception as e:
+                    logger.warning(f"[PREFERENCE] Failed to record like: {e}")
+            # 3. 添加到"我喜欢的音乐"歌单（新增）
+            if _user_id and _user_id.isdigit() and payload.track_id:
+                try:
+                    from src.api.playlist import get_or_create_liked_playlist
+                    from src.models.playlist import PlaylistSong
+
+                    _user_id_int = int(_user_id)
+                    playlist = get_or_create_liked_playlist(_user_id_int, _db)
+                    existing = (
+                        _db.query(PlaylistSong)
+                        .filter(
+                            PlaylistSong.playlist_id == playlist.id,
+                            PlaylistSong.track_id == payload.track_id,
+                        )
+                        .first()
+                    )
+                    if not existing:
+                        song = PlaylistSong(
+                            playlist_id=playlist.id, track_id=payload.track_id
+                        )
+                        _db.add(song)
+                        _db.commit()
+                        logger.info(
+                            f"[PLAYLIST] Added track {payload.track_id} to liked playlist for user {_user_id_int}"
+                        )
+                except Exception as e:
+                    logger.warning(f"[PLAYLIST] Failed to add to liked playlist: {e}")
         finally:
             try:
                 next(_db_gen)
@@ -834,6 +888,33 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
                     session_id=payload.session_id,
                     db=_db2,
                 )
+                # 更新用户偏好（新增）
+                _user_id_str = state.user_id
+                _user_id_int = (
+                    int(_user_id_str)
+                    if _user_id_str and _user_id_str.isdigit()
+                    else None
+                )
+                if _user_id_int:
+                    track_genre = (
+                        payload.track_metadata.get("genre", "")
+                        if payload.track_metadata
+                        else ""
+                    )
+                    if track_genre:
+                        try:
+                            UserPreference.record_dislike(
+                                db=_db2,
+                                user_id=_user_id_int,
+                                genre=track_genre,
+                            )
+                            logger.info(
+                                f"[PREFERENCE] disliked genre={track_genre} for user_id={_user_id_int}"
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"[PREFERENCE] Failed to record dislike: {e}"
+                            )
             finally:
                 try:
                     next(_db_gen2)

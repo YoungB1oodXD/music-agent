@@ -1,4 +1,4 @@
-# AGENTS.md — Searcher (Left Brain / Semantic)
+# AGENTS.md — Searcher (语义检索 / Semantic)
 <!-- OMO_INTERNAL_INITIATOR -->
 
 ## OVERVIEW
