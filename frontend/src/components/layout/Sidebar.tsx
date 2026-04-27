@@ -15,6 +15,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { usePlaylistStore } from '../../store/usePlaylistStore';
 import { useChatStore } from '../../store/useChatStore';
 import { cn } from '../../lib/utils';
+import UserProfileModal from '../profile/UserProfileModal';
 
 export default function Sidebar() {
   const { user, logout, isAuthenticated } = useAuthStore();
@@ -24,6 +25,7 @@ export default function Sidebar() {
   const location = useLocation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('');
 
@@ -60,7 +62,7 @@ export default function Sidebar() {
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto mt-2">
           <div className="pb-4">
-            <p className="px-2 text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+            <p className="px-2 text-sm font-semibold text-stone-500 uppercase tracking-wider mb-2">
               主菜单
             </p>
             <NavItem 
@@ -75,17 +77,23 @@ export default function Sidebar() {
               active={location.pathname === '/history'}
               onClick={() => navigate('/history')}
             />
+            <NavItem
+              icon={<UserIcon size={20} />}
+              label="我的画像"
+              active={isProfileModalOpen}
+              onClick={() => setIsProfileModalOpen(true)}
+            />
           </div>
 
           <div className="pt-4 border-t border-[#282928] pb-4">
-            <p className="px-2 text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">
+            <p className="px-2 text-sm font-semibold text-stone-500 uppercase tracking-wider mb-2">
               当前偏好
             </p>
             <div className="px-2 flex flex-wrap gap-2">
               {Object.entries(sessionState).map(([key, value]) => {
                 if (!value || value === '未知') return null;
                 return (
-                  <div key={key} className="flex items-center gap-1 text-[11px] bg-[#282928] text-stone-300 px-2 py-1 rounded-md border border-[#383938]">
+                  <div key={key} className="flex items-center gap-1 text-sm bg-[#282928] text-stone-200 px-2 py-1 rounded-md border border-[#383938]">
                     <Tag size={10} className="text-[#D1E8C5]" />
                     <span>{value}</span>
                   </div>
@@ -99,7 +107,7 @@ export default function Sidebar() {
 
           <div className="pt-4 border-t border-[#282928]">
             <div className="flex items-center justify-between px-2 mb-2">
-              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+              <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider">
                 我的歌单
               </p>
               <button 
@@ -195,6 +203,11 @@ export default function Sidebar() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* User Profile Modal */}
+      {isProfileModalOpen && (
+        <UserProfileModal onClose={() => setIsProfileModalOpen(false)} />
       )}
     </>
   );

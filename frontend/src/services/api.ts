@@ -30,4 +30,22 @@ api.interceptors.response.use(
   }
 );
 
+// Profile API client with extended timeout (30s) for LLM portrait generation
+const profileApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000,
+});
+
+profileApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('mustify_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export default api;
+export { profileApi };

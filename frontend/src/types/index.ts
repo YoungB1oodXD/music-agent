@@ -63,6 +63,11 @@ export interface ChatSession {
   id: string;
   title: string;
   createdAt: number;
+  mood: string | null;
+  scene: string | null;
+  style: string | null;
+  energy: string | null;
+  vocal: string | null;
   messages: Message[];
   sessionState: SessionState;
 }
@@ -98,4 +103,27 @@ export interface RefreshResponse {
   recommendations: Song[];
   state: SessionState;
   debug: DebugInfo;
+}
+
+export interface UserBehaviorStats {
+  totalLikes: number;
+  totalDislikes: number;
+  recentActivityCount: number;
+  activeGenres: string[];
+}
+
+export interface UserPreference {
+  user_id: number;
+  summary: string;
+  keywords: string[];
+  scene: string;
+  liked_genres: string[];
+  disliked_genres: string[];
+  liked_genre_counts: Record<string, number>;
+  disliked_genre_counts: Record<string, number>;
+  preferred_energy: string;
+  preferred_vocals: string;
+  deep_analysis?: string;
+  updated_at: string; // ISO 8601
+  generated_at?: string; // ISO 8601
 }

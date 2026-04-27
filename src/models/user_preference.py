@@ -23,11 +23,18 @@ class UserPreference(Base):
     # 不喜欢的流派及计数：{"Metal": 2, "Country": 1}
     disliked_genre_counts = Column(JSON, default=dict)
 
-    # 能量偏好：{"scores": [3, 2, 3], "count": 3} -> average = (3+2+3)/3 = 2.67 -> round -> "medium"
+    # 能量偏好：{"scores": [3, 2, 3], "count": 3}
     energy_scores = Column(JSON, default=dict)  # {"scores": [3, 2], "count": 2}
 
     # 声乐偏好：同上
     vocal_scores = Column(JSON, default=dict)  # {"scores": [1, 1], "count": 2}
+
+    # AI 用户画像（缓存）
+    ai_portrait_summary = Column(String(500), default="")
+    ai_portrait_keywords = Column(JSON, default=list)  # ["关键词1", "关键词2"]
+    ai_portrait_scene = Column(String(200), default="")
+    ai_portrait_deep_analysis = Column(String(2000), default="")
+    ai_portrait_generated_at = Column(DateTime, nullable=True)
 
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -141,3 +148,34 @@ class UserPreference(Base):
             return -min(0.2, dislike_count * 0.05)
 
         return 0.0
+
+    def save_portrait(
+        self,
+        db: Session,
+        summary: str = "",
+        keywords: list = None,
+        scene: str = "",
+        deep_analysis: str = "",
+    ) -> "UserPreference":
+        """保存 AI 生成的画像到缓存"""
+        self.ai_portrait_summary = summary
+        self.ai_portrait_keywords = keywords or []
+        self.ai_portrait_scene = scene
+        self.ai_portrait_deep_analysis = deep_analysis
+        self.ai_portrait_generated_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(self)
+        return self
+
+    def get_portrait(self) -> dict:
+        """获取缓存的画像"""
+        return {
+            "summary": self.ai_portrait_summary or "",
+            "keywords": self.ai_portrait_keywords or [],
+            "scene": self.ai_portrait_scene or "",
+            "deep_analysis": self.ai_portrait_deep_analysis or "",
+            "generated_at": self.ai_portrait_generated_at.isoformat()
+            if self.ai_portrait_generated_at
+            else None,
+        }

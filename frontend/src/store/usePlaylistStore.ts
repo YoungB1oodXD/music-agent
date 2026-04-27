@@ -83,8 +83,15 @@ export const usePlaylistStore = create<PlaylistState>((set, get) => ({
       });
       const response = await api.get('/playlists');
       set({ playlists: response.data });
-    } catch (err) {
-      console.error('Failed to add song to playlist', err);
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+      const status = error.response?.status;
+      const detail = error.response?.data?.detail;
+      if (status === 400 && detail === "Song already in playlist") {
+        console.warn('Song already in playlist:', song.id);
+      } else {
+        console.error('Failed to add song to playlist', err);
+      }
     }
   },
 

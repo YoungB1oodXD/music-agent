@@ -145,12 +145,12 @@ const SongCard: React.FC<SongCardProps> = ({
           </div>
         </div>
         <div className="relative flex-1 min-w-0">
-          <span className="absolute top-0 right-0 text-[10px] font-mono text-[#1C1D1C] bg-[#D1E8C5] px-1.5 py-0.5 rounded">
+          <span className="absolute top-0 right-0 text-xs font-black text-[#1C1D1C] bg-[#D1E8C5] px-2 py-0.5 rounded-md shadow-sm">
             {song.matchScore}%
           </span>
           {song.isPlayable && (
-            <span className="inline-block text-[9px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded mb-1">
-              可试听
+            <span className="inline-block text-[10px] font-bold text-white bg-emerald-500 px-2 py-0.5 rounded mb-1 shadow-sm">
+              ▶ 可试听
             </span>
           )}
           <h3 className="text-sm font-bold text-[#1A1A1A] leading-snug break-words pr-16">{song.title}</h3>
@@ -158,24 +158,26 @@ const SongCard: React.FC<SongCardProps> = ({
           {(song.genre || song.style) && (
             <div className="flex flex-wrap gap-1 mt-1.5">
               {song.genre && (
-                <span className="text-[9px] font-medium text-white bg-[#5B8C5A] px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-white bg-[#4A7C59] px-2 py-0.5 rounded-md shadow-sm">
                   {song.genre}
                 </span>
               )}
               {song.style && song.style !== song.genre && (
-                <span className="text-[9px] font-medium text-[#5B8C5A] bg-[#E8F5E2] border border-[#5B8C5A] px-1.5 py-0.5 rounded">
+                <span className="text-xs font-bold text-[#4A7C59] bg-[#E8F5E2] border border-[#4A7C59]/30 px-2 py-0.5 rounded-md">
                   {song.style}
                 </span>
               )}
             </div>
           )}
-          <div className="flex flex-wrap gap-1 mt-2">
-            {(song.tags || []).slice(0, 4).map(tag => (
-              <span key={tag} className="text-[9px] text-gray-600 border border-gray-200 bg-gray-50 px-1.5 py-0.5 rounded-full">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {(song.tags || []).length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {(song.tags || []).slice(0, 5).map(tag => (
+                <span key={tag} className="text-xs font-medium text-[#5B5B3A] bg-[#F5F0E0] border border-[#D4C97E]/40 px-2 py-0.5 rounded-full shadow-sm">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -221,10 +223,10 @@ const SongCard: React.FC<SongCardProps> = ({
       </div>
 
       {song.recommendationReason && (
-        <div className="mt-3 p-2.5 bg-[#F4F5F0] rounded-xl border border-gray-100/50">
-          <p className="text-[11px] text-gray-600 leading-relaxed">
-            <span className="font-bold text-[#1C1D1C] mr-1">AI 推荐理由：</span>
-            {song.recommendationReason}
+        <div className="mt-3 p-3 bg-gradient-to-r from-[#E8F0E0] to-[#F0F5E8] rounded-xl border border-[#4A7C59]/20 shadow-sm">
+          <p className="text-xs font-medium text-[#2D3A2A] leading-relaxed">
+            <span className="font-bold text-[#4A7C59] mr-1">✨ AI 推荐理由</span>
+            — {song.recommendationReason}
           </p>
         </div>
       )}

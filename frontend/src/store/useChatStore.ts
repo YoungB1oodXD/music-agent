@@ -71,7 +71,12 @@ export const useChatStore = create<ChatState>()(
           const sessions: ChatSession[] = raw.map((s: any) => ({
             id: s.session_id,
             title: s.first_message ? s.first_message.slice(0, 20) + (s.first_message.length > 20 ? '...' : '') : '新对话',
-            createdAt: new Date(s.created_at).getTime(),
+            createdAt: (s.created_at ?? Date.now() / 1000) * 1000,
+            mood: s.mood ?? null,
+            scene: s.scene ?? null,
+            style: s.style ?? null,
+            energy: s.energy ?? null,
+            vocal: s.vocal ?? null,
             messages: [],
             sessionState: { mood: '未知', scene: '未知', style: '未知', energy: '未知', vocal: '未知' },
           }));

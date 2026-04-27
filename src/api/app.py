@@ -20,7 +20,9 @@ from src.api.playlist import playlist_router, like_router
 from src.api.sessions import session_router
 from src.models.user_preference import UserPreference
 from src.api.session_store import SessionStore
+from src.manager.session_state import SessionState
 from src.api.user import user_router
+from src.api.ai_portrait import router as ai_portrait_router
 from src.database import get_db, init_db
 from src.llm.clients import QwenClient
 from src.llm.clients.base import ChatResponse
@@ -310,6 +312,7 @@ app.include_router(playlist_router)
 app.include_router(like_router)
 app.include_router(session_router)
 app.include_router(user_router)
+app.include_router(ai_portrait_router)
 
 init_db()
 
@@ -684,12 +687,15 @@ def behavior_stats():
 
 
 @app.post("/feedback", response_model=FeedbackResponse)
-def feedback(payload: FeedbackRequest) -> FeedbackResponse:
+def feedback(
+    payload: FeedbackRequest,
+    current_user: User = Depends(get_current_user),
+) -> FeedbackResponse:
     global LLM_DEBUG_INFO
     LLM_DEBUG_INFO = {
         "llm_enabled": LLM_MODE == "qwen",
         "llm_provider": "qwen" if LLM_MODE == "qwen" else "mock",
-        "llm_model": ORCHESTRATOR.llm.model
+        "model": ORCHESTRATOR.llm.model
         if hasattr(ORCHESTRATOR.llm, "model")
         else "mock",
         "llm_called": False,
@@ -699,9 +705,50 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
 
     state = SESSION_STORE.get(payload.session_id)
     if state is None:
-        raise HTTPException(
-            status_code=404, detail=f"Session not found: {payload.session_id}"
-        )
+        from src.models.session_persistence import SessionPersistence
+
+        _db = None
+        _db_gen = get_db()
+        try:
+            _db = next(_db_gen)
+            record = SessionPersistence.load_from_db(_db, payload.session_id)
+            if record:
+                recovered_state = SessionState(
+                    session_id=payload.session_id,
+                    user_id=record.user_id or str(current_user.id),
+                    current_mood=record.current_mood,
+                    current_scene=record.current_scene,
+                    current_genre=record.current_genre,
+                    last_recommendation=None,
+                )
+                record.apply_to_state(recovered_state)
+                with SESSION_STORE._lock:
+                    SESSION_STORE._sessions[payload.session_id] = recovered_state
+                state = recovered_state
+                logger.info(f"[FEEDBACK] Recovered session {payload.session_id}")
+            else:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Session not found: {payload.session_id}",
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[FEEDBACK] Failed to recover session: {e}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Session not found: {payload.session_id}",
+            )
+        finally:
+            if _db is not None:
+                _db.close()
+            try:
+                next(_db_gen)
+            except StopIteration:
+                pass
+
+    # 强制使用已登录用户的 user_id（session 可能无用户信息）
+    state.user_id = str(current_user.id)
 
     if LLM_MODE == "qwen":
         try:
@@ -754,6 +801,95 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
 
                     if payload.feedback_type == "like":
                         state.add_feedback(payload.track_id, "like")
+                        _db_gen = get_db()
+                        _db = next(_db_gen)
+                        try:
+                            _user_id_int = int(current_user.id)
+                            track_title = (
+                                payload.track_metadata.get("title", "")
+                                if payload.track_metadata
+                                else ""
+                            )
+                            track_artist = (
+                                payload.track_metadata.get("artist", "")
+                                if payload.track_metadata
+                                else ""
+                            )
+                            track_genre = (
+                                payload.track_metadata.get("genre", "")
+                                if payload.track_metadata
+                                else ""
+                            )
+                            track_energy = (
+                                payload.track_metadata.get("energy_note", "none")
+                                if payload.track_metadata
+                                else "none"
+                            )
+                            song_name = (
+                                f"{track_artist} - {track_title}"
+                                if track_artist
+                                else track_title
+                            )
+                            record_behavior(
+                                user_id=str(_user_id_int),
+                                song_id=payload.track_id or "",
+                                behavior_type="like",
+                                song_name=song_name,
+                                session_id=payload.session_id,
+                                metadata={
+                                    "title": track_title,
+                                    "artist": track_artist,
+                                },
+                                db=_db,
+                            )
+                            UserPreference.record_like(
+                                db=_db,
+                                user_id=_user_id_int,
+                                genre=track_genre,
+                                energy=track_energy,
+                            )
+                            logger.info(
+                                f"[PREFERENCE] liked genre={track_genre}, energy={track_energy} for user_id={_user_id_int}"
+                            )
+                            if payload.track_id:
+                                try:
+                                    from src.api.playlist import (
+                                        get_or_create_liked_playlist,
+                                    )
+                                    from src.models.playlist import PlaylistSong
+
+                                    playlist = get_or_create_liked_playlist(
+                                        _user_id_int, _db
+                                    )
+                                    existing = (
+                                        _db.query(PlaylistSong)
+                                        .filter(
+                                            PlaylistSong.playlist_id == playlist.id,
+                                            PlaylistSong.track_id == payload.track_id,
+                                        )
+                                        .first()
+                                    )
+                                    if not existing:
+                                        song = PlaylistSong(
+                                            playlist_id=playlist.id,
+                                            track_id=payload.track_id,
+                                        )
+                                        _db.add(song)
+                                        _db.commit()
+                                        logger.info(
+                                            f"[PLAYLIST] Added track {payload.track_id} to liked playlist for user {_user_id_int}"
+                                        )
+                                except Exception as e:
+                                    logger.warning(
+                                        f"[PLAYLIST] Failed to add to liked playlist: {e}"
+                                    )
+                        except Exception as e:
+                            logger.warning(f"[PREFERENCE] Failed to record like: {e}")
+                        finally:
+                            try:
+                                next(_db_gen)
+                            except StopIteration:
+                                pass
                         logger.info(
                             f"[FEEDBACK] like track_id={payload.track_id} session_id={payload.session_id}"
                         )
@@ -762,8 +898,44 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
                         state.exclude_ids = list(
                             set(state.exclude_ids + [payload.track_id])
                         )[:100]
+                        _db_gen2 = get_db()
+                        _db2 = next(_db_gen2)
+                        try:
+                            _user_id_int = int(current_user.id)
+                            record_behavior(
+                                user_id=str(_user_id_int),
+                                song_id=payload.track_id or "",
+                                behavior_type="dislike",
+                                song_name="",
+                                session_id=payload.session_id,
+                                metadata={},
+                                db=_db2,
+                            )
+                            track_genre = (
+                                payload.track_metadata.get("genre", "")
+                                if payload.track_metadata
+                                else ""
+                            )
+                            if track_genre:
+                                UserPreference.record_dislike(
+                                    db=_db2,
+                                    user_id=_user_id_int,
+                                    genre=track_genre,
+                                )
+                                logger.info(
+                                    f"[PREFERENCE] disliked genre={track_genre} for user_id={_user_id_int}"
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                f"[PREFERENCE] Failed to record dislike: {e}"
+                            )
+                        finally:
+                            try:
+                                next(_db_gen2)
+                            except StopIteration:
+                                pass
                         logger.info(
-                            f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id}"
+                            f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}"
                         )
 
                     return FeedbackResponse(
@@ -878,24 +1050,21 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
         if payload.track_id:
             state.add_feedback(payload.track_id, "dislike")
             state.exclude_ids = list(set(state.exclude_ids + [payload.track_id]))[:100]
-            _db_gen2 = get_db()
-            _db2 = next(_db_gen2)
-            try:
-                record_behavior(
-                    user_id=str(state.user_id) if state.user_id else payload.session_id,
-                    song_id=payload.track_id,
-                    behavior_type="dislike",
-                    session_id=payload.session_id,
-                    db=_db2,
-                )
-                # 更新用户偏好（新增）
-                _user_id_str = state.user_id
-                _user_id_int = (
-                    int(_user_id_str)
-                    if _user_id_str and _user_id_str.isdigit()
-                    else None
-                )
-                if _user_id_int:
+            _user_id_str = state.user_id
+            _user_id_int = (
+                int(_user_id_str) if _user_id_str and _user_id_str.isdigit() else None
+            )
+            if _user_id_int:
+                _db_gen2 = get_db()
+                _db2 = next(_db_gen2)
+                try:
+                    record_behavior(
+                        user_id=str(_user_id_int),
+                        song_id=payload.track_id,
+                        behavior_type="dislike",
+                        session_id=payload.session_id,
+                        db=_db2,
+                    )
                     track_genre = (
                         payload.track_metadata.get("genre", "")
                         if payload.track_metadata
@@ -915,11 +1084,11 @@ def feedback(payload: FeedbackRequest) -> FeedbackResponse:
                             logger.warning(
                                 f"[PREFERENCE] Failed to record dislike: {e}"
                             )
-            finally:
-                try:
-                    next(_db_gen2)
-                except StopIteration:
-                    pass
+                finally:
+                    try:
+                        next(_db_gen2)
+                    except StopIteration:
+                        pass
         logger.info(
             f"[FEEDBACK] dislike track_id={payload.track_id} session_id={payload.session_id} exclude_ids_count={len(state.exclude_ids)}"
         )

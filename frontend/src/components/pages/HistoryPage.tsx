@@ -92,9 +92,42 @@ export default function HistoryPage() {
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                <p className="text-sm text-gray-500 line-clamp-2 mb-3">
                   {session.title || '没有用户消息'}
                 </p>
+
+                {(session.mood || session.scene || session.energy) && (
+                  <div className="mb-3">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">当前偏好</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {session.mood && (
+                        <span className="inline-block px-2.5 py-1 bg-[#2D5A27] text-white text-sm font-bold rounded-lg shadow-sm">
+                          {session.mood}
+                        </span>
+                      )}
+                      {session.scene && (
+                        <span className="inline-block px-2.5 py-1 bg-[#7A5A2D] text-white text-sm font-bold rounded-lg shadow-sm">
+                          {session.scene}
+                        </span>
+                      )}
+                      {session.energy && (
+                        <span className="inline-block px-2.5 py-1 bg-[#2D4A7A] text-white text-sm font-bold rounded-lg shadow-sm">
+                          {session.energy}
+                        </span>
+                      )}
+                      {session.style && (
+                        <span className="inline-block px-2.5 py-1 bg-[#7A2D5A] text-white text-sm font-bold rounded-lg shadow-sm">
+                          {session.style}
+                        </span>
+                      )}
+                      {session.vocal && (
+                        <span className="inline-block px-2.5 py-1 bg-[#5A2D7A] text-white text-sm font-bold rounded-lg shadow-sm">
+                          {session.vocal}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-end">
                   <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#1C1D1C] group-hover:text-[#D1E8C5] transition-colors">
