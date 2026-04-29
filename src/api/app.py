@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 import hashlib
 import json
 import logging
@@ -230,7 +232,7 @@ def _build_runtime() -> tuple[str, SessionStore, ToolRegistry, Orchestrator]:
 
     if llm_mode == "qwen":
         tools = build_default_registry()
-        llm = QwenClient()
+        llm = QwenClient(model="qwen3.5-plus")
         LLM_DEBUG_INFO["llm_model"] = llm.model
     else:
         _install_offline_retrieve_semantic_docs()
@@ -244,9 +246,34 @@ def _build_runtime() -> tuple[str, SessionStore, ToolRegistry, Orchestrator]:
 
 LLM_MODE, SESSION_STORE, TOOL_REGISTRY, ORCHESTRATOR = _build_runtime()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """服务启动/关闭生命周期管理 - 用于预热模型"""
+    logger.info("=" * 60)
+    logger.info("🚀 Music Agent 服务启动中...")
+
+    # 预热向量模型（避免首次请求时加载延迟）
+    logger.info("⏳ 预热向量模型 MusicSearcher...")
+    try:
+        from src.tools.semantic_search_tool import _get_searcher
+
+        searcher = _get_searcher()
+        logger.info(f"✅ 向量模型预热完成，设备: {searcher.device}")
+    except Exception as e:
+        logger.warning(f"⚠️ 向量模型预热失败: {e}，将在首次请求时加载")
+
+    logger.info("✅ 服务启动完成")
+    logger.info("=" * 60)
+    yield
+    # 关闭时清理（如需要）
+    logger.info("👋 Music Agent 服务关闭中...")
+
+
 app = FastAPI(
     title="Music Agent API",
     description="LLM mode is controlled by MUSIC_AGENT_LLM_MODE (mock by default, qwen optional).",
+    lifespan=lifespan,
 )
 
 

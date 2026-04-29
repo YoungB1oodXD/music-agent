@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from pathlib import Path
 from typing import cast
 
@@ -27,6 +28,7 @@ from src.llm.clients.base import BaseLLMClient, ChatResponse
 from src.llm.prompts.schemas import (
     FINAL_RESPONSE_SCHEMA,
     INTENT_AND_SLOTS_SCHEMA,
+    MERGED_INTENT_PREFERENCE_SCHEMA,
     PREFERENCE_PARSE_SCHEMA,
 )
 from src.manager.session_state import SessionState
@@ -206,23 +208,19 @@ class Orchestrator:
                 "recommendation_action": "replace",
             }
 
-        base_intent_slots = self._extract_intent_and_slots(text, state)
-        intent_slots = dict(base_intent_slots)
+        import time
+
+        start_analyze = time.perf_counter()
+        merged_result = self._analyze_and_route(text, state)
+        elapsed_analyze = (time.perf_counter() - start_analyze) * 1000
+        logger.info(
+            f"[LATENCY] step=1_analyze, model=qwen3.5-plus, latency_ms={int(elapsed_analyze)}"
+        )
+
+        intent_slots = dict(merged_result)
         query_text = _as_text(intent_slots.get(_SLOT_QUERY_TEXT)) or text
 
         base_intent = _as_text(intent_slots.get(_SLOT_INTENT)) or _INTENT_SEARCH
-        if _ENABLE_PREFERENCE_PARSING and base_intent not in {
-            _INTENT_FEEDBACK,
-            _INTENT_EXPLAIN,
-        }:
-            preference_result = self._parse_preference_and_query(text, state)
-            preference_slots = self._convert_preference_to_intent_slots(
-                preference_result, state
-            )
-            intent_slots = self._merge_intent_slots(base_intent_slots, preference_slots)
-            query_text = (
-                _as_text(preference_result.get("retrieval_query")) or query_text
-            )
 
         intent = self._resolve_dialogue_intent(text, intent_slots, state, base_intent)
         intent_slots[_SLOT_INTENT] = intent
@@ -271,7 +269,12 @@ class Orchestrator:
         tool_plan = self._build_tool_plan(
             intent, intent_slots, query_text, top_k, state
         )
+        start_search = time.perf_counter()
         tool_results = self._dispatch_tools(tool_plan)
+        elapsed_search = (time.perf_counter() - start_search) * 1000
+        logger.info(
+            f"[LATENCY] step=2_search, model=qwen3.5-plus, latency_ms={int(elapsed_search)}"
+        )
 
         rag_context = self._build_rag_context(query_text)
         recommendations, method = self._extract_recommendations(
@@ -316,6 +319,61 @@ class Orchestrator:
             "recommendation_action": recommendation_action,
         }
 
+    def _analyze_and_route(
+        self, user_text: str, state: SessionState
+    ) -> dict[str, object]:
+        """合并意图识别 + 偏好解析为单次 LLM 调用 (Step 1+2)"""
+        if not _ENABLE_LLM_INTENT_EXTRACTION:
+            return self._deterministic_intent_slots(user_text, state)
+
+        context_summary = state.get_context_summary()
+        state_summary = state.get_state_summary()
+        recent_dialogues = state.get_recent_dialogue(max_turns=5)
+
+        prompt_parts = [
+            "你是音乐助手。根据用户输入和对话历史，输出JSON。",
+            "只返回JSON对象，不要其他文本。",
+            "",
+            "JSON格式:",
+            '{"intent":"recommend_music|search_music|refine_preferences|explain_why|feedback",',
+            ' "query_text":"搜索关键词",',
+            ' "mood":"情感(可选)",',
+            ' "scene":"场景(可选)",',
+            ' "genre":"流派(可选)",',
+            ' "energy":"high|medium|low(可选)",',
+            ' "vocals":"instrumental|vocal(可选)"}',
+            "",
+            "意图说明:",
+            "- recommend_music: 推荐歌曲",
+            "- search_music: 搜索歌曲",
+            "- refine_preferences: 调整偏好继续推荐",
+            "- explain_why: 解释为什么推荐",
+            "- feedback: 用户反馈(喜欢/不喜欢)",
+            "",
+            f"用户输入: {user_text}",
+            f"上下文: {context_summary}",
+            f"状态: {state_summary}",
+            f"历史: {recent_dialogues}",
+        ]
+        prompt = "\n".join(prompt_parts)
+
+        try:
+            response = self.llm.chat(
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=300,
+                json_output=True,
+            )
+            parsed = self._parse_chat_json(response)
+            if parsed is not None:
+                normalized = self._normalize_intent_slots(parsed)
+                if normalized.get(_SLOT_QUERY_TEXT):
+                    return normalized
+        except Exception:
+            state.llm_status = "fallback"
+
+        return self._deterministic_intent_slots(user_text, state)
+
     def _extract_intent_and_slots(
         self, user_text: str, state: SessionState
     ) -> dict[str, object]:
@@ -336,7 +394,7 @@ class Orchestrator:
         )
 
         try:
-            response = self.llm.chat(
+            response = (self.llm_fast or self.llm).chat(
                 messages=self._build_messages(state, prompt),
                 temperature=0.0,
                 max_tokens=400,
@@ -1387,16 +1445,15 @@ class Orchestrator:
             "Rules:\n"
             "- assistant_text: brief natural language (1-2 sentences in Chinese)\n"
             "- recommendations: array with id, name, reason, citations\n"
-            "- reason: REQUIRED. Write 15-40 Chinese characters explaining WHY this song fits user.\n"
+            "- reason: REQUIRED. 20-40 Chinese characters. Describe specific musical traits and why it fits.\n"
             "- You MUST use evidence from: genre_description, mood_tags, scene_tags, instrumentation, energy_note\n"
             "- Each reason MUST mention at least ONE specific musical characteristic (NOT just genre name)\n"
             "- DO NOT mention: similarity score, embedding, ranking, algorithm, technical terms\n"
             "- DO NOT use generic phrases like '适合你的场景' or '符合你的需求'\n"
             "- Good examples (with musical specifics):\n"
-            "  * '弱化节奏推进，合成器铺陈出沉浸感，适合深夜独处'\n"
-            "  * '钢琴与弦乐交织，旋律宁静深远，适合安静思考'\n"
-            "  * '低保真采样带有温暖噪点，节奏松散，适合专注陪伴'\n"
-            "  * '爵士和声变化丰富，即兴段落有格调，适合轻松氛围'\n"
+            "  * '合成器铺陈沉浸感，适合深夜独处'\n"
+            "  * '钢琴弦乐交织，宁静深远'\n"
+            "  * '低保真采样温暖噪点，节奏松散'\n"
             "- Bad examples (too generic, DO NOT USE):\n"
             "  * '适合学习'\n"
             "  * '旋律好听'\n"
@@ -1405,12 +1462,17 @@ class Orchestrator:
             f"{json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}"
         )
 
+        start_final = time.perf_counter()
         try:
             response = self.llm.chat(
                 messages=self._build_messages(state, prompt),
                 temperature=0.2,
-                max_tokens=600,
+                max_tokens=800,
                 json_output=True,
+            )
+            elapsed_final = (time.perf_counter() - start_final) * 1000
+            logger.info(
+                f"[LATENCY] step=3_final, model=qwen3.5-plus, latency_ms={int(elapsed_final)}"
             )
             parsed = self._parse_chat_json(response)
             if parsed is None:

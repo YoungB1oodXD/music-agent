@@ -249,39 +249,76 @@ _GENRE_TO_STYLE: dict[str, str] = {
 }
 
 
-def _derive_explanation_fields(genre: str | None) -> dict[str, object]:
-    if not genre:
+def _derive_explanation_fields(
+    genre: str | None, genres_all: list[str] | None = None
+) -> dict[str, object]:
+    genres_to_process: list[str] = []
+
+    if genres_all and isinstance(genres_all, list):
+        for g in genres_all:
+            if g and isinstance(g, str):
+                genres_to_process.append(g.strip())
+
+    if not genres_to_process and genre:
+        genres_to_process.append(genre.strip())
+
+    if not genres_to_process:
         return {}
 
-    genre_lower = genre.lower().strip()
-    matched_key = None
-    for key in _GENRE_DESCRIPTIONS:
-        if key in genre_lower or genre_lower in key:
-            matched_key = key
-            break
+    all_moods: list[str] = []
+    all_scenes: list[str] = []
+    all_instrumentation: list[str] = []
+    energy_notes: list[str] = []
+    style_candidates: list[str] = []
 
-    if not matched_key:
-        for chinese_genre, english_style in _GENRE_TO_STYLE.items():
-            if chinese_genre in genre_lower or genre_lower in chinese_genre:
-                matched_key = english_style.lower()
+    for g in genres_to_process:
+        genre_lower = g.lower().strip()
+        matched_key = None
+
+        for key in _GENRE_DESCRIPTIONS:
+            if key in genre_lower or genre_lower in key:
+                matched_key = key
                 break
 
-    if not matched_key:
-        return {}
+        if not matched_key:
+            for chinese_genre, english_style in _GENRE_TO_STYLE.items():
+                if chinese_genre in genre_lower or genre_lower in chinese_genre:
+                    matched_key = english_style.lower()
+                    break
+
+        if not matched_key:
+            continue
+
+        if matched_key in _GENRE_MOOD_TAGS:
+            all_moods.extend(_GENRE_MOOD_TAGS[matched_key])
+        if matched_key in _GENRE_SCENE_TAGS:
+            all_scenes.extend(_GENRE_SCENE_TAGS[matched_key])
+        if matched_key in _GENRE_INSTRUMENTATION:
+            all_instrumentation.extend(_GENRE_INSTRUMENTATION[matched_key])
+        if matched_key in _GENRE_ENERGY:
+            energy_notes.append(_GENRE_ENERGY[matched_key])
+        style_candidates.append(matched_key.capitalize())
+
+    seen = set()
+    unique_moods = [x for x in all_moods if not (x in seen or seen.add(x))]
+    seen = set()
+    unique_scenes = [x for x in all_scenes if not (x in seen or seen.add(x))]
+    seen = set()
+    unique_instrumentation = [
+        x for x in all_instrumentation if not (x in seen or seen.add(x))
+    ]
 
     fields: dict[str, object] = {}
-
-    if matched_key in _GENRE_DESCRIPTIONS:
-        fields["genre_description"] = _GENRE_DESCRIPTIONS[matched_key]
-        fields["style"] = matched_key.capitalize()
-    if matched_key in _GENRE_MOOD_TAGS:
-        fields["mood_tags"] = _GENRE_MOOD_TAGS[matched_key]
-    if matched_key in _GENRE_SCENE_TAGS:
-        fields["scene_tags"] = _GENRE_SCENE_TAGS[matched_key]
-    if matched_key in _GENRE_INSTRUMENTATION:
-        fields["instrumentation"] = _GENRE_INSTRUMENTATION[matched_key]
-    if matched_key in _GENRE_ENERGY:
-        fields["energy_note"] = _GENRE_ENERGY[matched_key]
+    if style_candidates:
+        fields["style"] = style_candidates[0]
+    if unique_moods:
+        fields["mood_tags"] = unique_moods[:6]
+    if unique_scenes:
+        fields["scene_tags"] = unique_scenes[:6]
+    if unique_instrumentation:
+        fields["instrumentation"] = unique_instrumentation[:6]
+    if energy_notes:
+        fields["energy_note"] = energy_notes[0]
 
     return fields
 
@@ -488,17 +525,36 @@ def semantic_search(args: dict[str, object]) -> dict[str, object]:
         track_id = str(item.get("track_id", ""))
         audio_info = _get_audio_info(track_id)
         genre = str(item.get("genre", ""))
+        genres_list: list[str] = []
+
         if not genre:
             genres_all_str = str(item.get("genres_all", ""))
             if genres_all_str and genres_all_str != "nan":
                 try:
-                    genres_list = ast.literal_eval(genres_all_str)
-                    if isinstance(genres_list, list) and genres_list:
-                        raw_genre = str(genres_list[0])
-                        genre = _convert_genre_id_to_name(raw_genre)
+                    raw_genres = ast.literal_eval(genres_all_str)
+                    if isinstance(raw_genres, list) and raw_genres:
+                        genres_list = [
+                            _convert_genre_id_to_name(str(g)) for g in raw_genres if g
+                        ]
+                        if not genre and genres_list:
+                            genre = genres_list[0]
                 except Exception:
                     pass
-        explanation_fields = _derive_explanation_fields(genre)
+        else:
+            genres_all_str = str(item.get("genres_all", ""))
+            if genres_all_str and genres_all_str != "nan":
+                try:
+                    raw_genres = ast.literal_eval(genres_all_str)
+                    if isinstance(raw_genres, list) and raw_genres:
+                        genres_list = [
+                            _convert_genre_id_to_name(str(g)) for g in raw_genres if g
+                        ]
+                except Exception:
+                    pass
+
+        explanation_fields = _derive_explanation_fields(
+            genre, genres_list if genres_list else None
+        )
 
         result_item: dict[str, object] = {
             "id": cast(object, item.get("id")),

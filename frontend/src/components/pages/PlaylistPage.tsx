@@ -3,7 +3,7 @@ import { ListMusic, Play, Trash2, Clock, Music, Calendar } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePlaylistStore } from '../../store/usePlaylistStore';
 import { useAudioPlayer } from '../../contexts/AudioPlayerContext';
-import { formatDuration } from '../../lib/utils';
+import { formatDuration, getFallbackCoverUrl } from '../../lib/utils';
 import api from '../../services/api';
 import { Song } from '../../types';
 
@@ -60,7 +60,15 @@ export default function PlaylistPage() {
         <div className="relative z-10 flex items-end gap-6 w-full max-w-5xl mx-auto">
           <div className="w-48 h-48 bg-[#282928] rounded-2xl shadow-2xl flex items-center justify-center border border-[#383938] shrink-0 overflow-hidden">
             {playlistSongs.length > 0 ? (
-              <img src={(playlistSongs[0] as any).cover_url || playlistSongs[0].coverUrl || `https://via.placeholder.com/300x300/6366f1/ffffff?text=${encodeURIComponent((playlistSongs[0].title || 'M').substring(0, 10))}`} alt="Cover" className="w-full h-full object-cover" />
+              <img 
+                src={(playlistSongs[0] as any).cover_url || playlistSongs[0].coverUrl} 
+                alt="Cover" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = getFallbackCoverUrl(playlistSongs[0].title, 192);
+                }}
+              />
             ) : (
               <Music size={48} className="text-[#D1E8C5] opacity-50" />
             )}
@@ -139,7 +147,15 @@ export default function PlaylistPage() {
                 >
                   <div className="w-8 text-center text-sm text-gray-400 font-mono">{index + 1}</div>
                   <div className="flex items-center gap-3 min-w-0">
-                    <img src={(song as any).cover_url || song.coverUrl || `https://via.placeholder.com/300x300/6366f1/ffffff?text=${encodeURIComponent((song.title || song.track_id || 'M').substring(0, 2))}`} alt={song.title || song.track_id || ''} className="w-10 h-10 rounded shadow-sm object-cover" />
+                    <img 
+                    src={(song as any).cover_url || song.coverUrl} 
+                    alt={song.title || song.track_id || ''} 
+                    className="w-10 h-10 rounded shadow-sm object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = getFallbackCoverUrl(song.title || song.track_id, 40);
+                    }}
+                  />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-[#1A1A1A] truncate">{song.title || song.track_id || 'Unknown'}</p>

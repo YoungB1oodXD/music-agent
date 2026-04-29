@@ -134,6 +134,11 @@ const SongCard: React.FC<SongCardProps> = ({
             alt={song.title} 
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              const text = (song.title || 'M').substring(0, 2).toUpperCase();
+              target.src = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="#6366F1"/><text x="32" y="38" font-family="Arial" font-size="20" fill="white" text-anchor="middle" font-weight="bold">${text}</text></svg>`)}`;
+            }}
           />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <button 
