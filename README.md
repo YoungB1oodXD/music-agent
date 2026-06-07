@@ -515,11 +515,6 @@ cd frontend && npm run test:e2e
 | `DASHSCOPE_MODEL` | 模型名称覆盖 | - |
 | `LOG_LEVEL` | 日志级别 | `INFO` |
 
-### 相关文档
-
-- [论文写作指南_20260416.md](论文写作指南_20260416.md) — 论文各章节写作参考
-
----
 
 ## ⚠️ 已知限制
 
