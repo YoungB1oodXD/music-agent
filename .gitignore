@@ -56,8 +56,28 @@ logs/
 # Sisyphus 工作目录
 .sisyphus/
 
-# 文档（内部文档、汇报材料）
+# Agent 专用文件（不应上传到仓库）
+AGENTS.md
+CLAUDE.md
+
+# 文档（内部文档、汇报材料、论文、答辩）
 docs/
+doc/
+
+# 图表文件（draw.io, png, jpg 等）
+*.drawio
+*.vsdx
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# 测试/评估产物
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
 
 # 另一个音乐助手项目（无关）
 melodia---ai-music-assistant/
