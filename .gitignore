@@ -55,11 +55,11 @@ logs/
 
 # Sisyphus 工作目录
 .sisyphus/
-
+.claude/
 # Agent 专用文件（不应上传到仓库）
 AGENTS.md
 CLAUDE.md
-
+.sisyphus
 # 文档（内部文档、汇报材料、论文、答辩）
 doc/
 
