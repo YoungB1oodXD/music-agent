@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A conversational music recommendation agent using semantic search and content-based similarity: 语义检索 (semantic search via BGE-M3 + ChromaDB) and 内容匹配 (content-based metadata similarity). The agent uses a LLM orchestrator for intent routing and response synthesis.
+A conversational music recommendation agent using semantic search: 语义检索 (semantic search via BGE-M3 + ChromaDB). The agent uses an LLM orchestrator for intent routing, query expansion, and response synthesis.
 
 ## Stack
 
@@ -39,11 +39,11 @@ npm run test:e2e   # Playwright e2e tests
 ## Architecture
 
 ```
-User → FastAPI (/chat) → Orchestrator → ToolRegistry → [HybridRecommender]
+User → FastAPI (/chat) → Orchestrator → ToolRegistry → SemanticSearch
                                ↓                          ↓
-                          LLM (Qwen)              Semantic Search
-                               ↓                          ↓
-                          RAG (ChromaDB)         ChromaDB (BGE-M3)
+                          LLM (Qwen)              ChromaDB (BGE-M3)
+                               ↓
+                          RAG (ChromaDB)
 ```
 
 ### Key Modules
@@ -52,16 +52,15 @@ User → FastAPI (/chat) → Orchestrator → ToolRegistry → [HybridRecommende
 |--------|---------|
 | `src/agent/orchestrator.py` | Intent extraction, slot filling, tool dispatch, response synthesis (~1200 lines) |
 | `src/tools/registry.py` | Plugin-style tool dispatch with JSON schema validation |
+| `src/tools/semantic_search_tool.py` | Semantic search tool with query expansion |
 | `src/llm/clients/qwen_openai_compat.py` | LLM client for DashScope Bailian API |
 | `src/searcher/music_searcher.py` | ChromaDB semantic search wrapper |
 | `src/rag/retriever.py`, `context_builder.py` | RAG pipeline for LLM context |
 | `src/rag/sanitize.py` | Prompt injection prevention |
 
-### Dual-Brain Architecture
+### Semantic Search
 
-- **语义检索** (`src/searcher/music_searcher.py`): BGE-M3 embeddings + ChromaDB semantic search
-- **内容匹配** (`src/tools/hybrid_recommend_tool.py`): Content-based metadata similarity (genre, mood, energy tags)
-- **Hybrid** (`src/tools/hybrid_recommend_tool.py`): Blends both streams using weighted scoring
+**语义检索** (`src/searcher/music_searcher.py`): BGE-M3 embeddings + ChromaDB semantic search with query expansion for Chinese scenes.
 
 ### Intent Routing
 
@@ -78,9 +77,9 @@ Chinese scene/emotion keywords (学习, 跑步) mapped to English search terms (
 ### Data Flow
 
 1. User message → Orchestrator intent/slot extraction (LLM)
-2. Intent dispatch → ToolRegistry → hybrid_recommend tool
-3. Tool calls semantic search, blends results with metadata scoring
-4. RAG context built from semantic search results
+2. Intent dispatch → ToolRegistry → semantic_search tool
+3. Tool calls ChromaDB semantic search via BGE-M3 embeddings
+4. RAG context built from search results
 5. Response synthesis with LLM + RAG context
 
 ### Standard Response Format
@@ -114,7 +113,6 @@ Multi-turn dialogue state tracked via `SessionStore` (in-memory by default). Cha
 
 ### Known Issues (from code review)
 
-- CF model removed (2026-04) — system now uses content-based recommendations only
 - Global mutable state (`SESSION_STORE`) unsafe with FastAPI multi-worker — use external cache for production
 - Token storage in-memory (restart invalidates all sessions)
 - Config scattered: display score thresholds defined in both `orchestrator.py` and `src/config.py`

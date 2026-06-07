@@ -3,72 +3,154 @@
 [![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com/)
 [![React 19](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
+[![TailwindCSS v4](https://img.shields.io/badge/TailwindCSS-v4-06B6D4)](https://tailwindcss.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-> 基于**混合推荐架构**的智能音乐推荐对话助手，结合语义搜索与内容相似度匹配，通过 LLM Agent 编排实现自然语言交互式推荐。
+> 基于**语义检索架构**的智能音乐推荐对话助手，通过 BGE-M3 向量模型 + ChromaDB 语义搜索精准匹配歌曲，结合 LLM Agent 编排实现自然语言交互式推荐。
 
-<!-- 【UI界面展示】 -->
-<!-- 详情见 docs/screenshots/ 目录 -->
-<!-- ![登录页面](docs/screenshots/login.png) -->
-<!-- ![对话推荐](docs/screenshots/chat-recommend.png) -->
-<!-- ![用户画像](docs/screenshots/portrait.png) -->
-<!-- ![历史会话](docs/screenshots/history.png) -->
+---
+
+## 📖 目录
+
+- [核心特性](#-核心特性)
+- [系统架构](#-系统架构)
+- [系统用例](#-系统用例)
+- [界面展示](#-界面展示)
+- [项目结构](#-项目结构)
+- [快速开始](#-快速开始)
+- [使用示例](#-使用示例)
+- [API 参考](#-api-参考)
+- [技术栈](#-技术栈)
+- [测试](#-测试)
+- [开发规范](#-开发规范)
+- [已知限制](#-已知限制)
+- [License](#-license)
 
 ---
 
 ## ✨ 核心特性
 
-- 🧠 **混合推荐架构**
-  - **语义检索**：BGE-M3 向量检索 + ChromaDB 语义匹配
-  - **内容匹配**：基于 FMA 元数据的内容相似度（genre/mood/energy/tags）
-  - **融合**：加权混合推荐（默认 0.6:0.4），平衡语义相关性与内容多样性
-- 🤖 **LLM Agent 编排** - 意图识别 → 槽位填充 → 工具调度 → RAG 上下文 → 响应生成
-- 💬 **自然语言交互** - 中文/英文对话式推荐，支持多轮上下文
-- 🎧 **在线试听** - 8000+ 首歌曲可直接在线播放
-- 📊 **智能分数** - 基于排名和相似度的校准匹配指数（65-98%）
-- 🌐 **现代 Web 界面** - React 19 + TailwindCSS v4 暗色主题
-- 🔄 **反馈闭环** - Like/Dislike → 流派计数 + 能量加权平均 → 加法融合影响推荐排序
-- 🎨 **AI 用户画像** - 基于喜欢歌曲 + 对话历史 + 场景偏好，由 Qwen 生成个性化品味深度解读（缓存至 DB）
-- 💾 **会话持久化** - SQLite 存储会话状态，重启后推荐历史不丢失
+- 🧠 **语义检索推荐**
+  - **向量检索**：BGE-M3 模型将用户查询转为 1024 维向量，ChromaDB 语义匹配
+  - **精准匹配**：结合 FMA 元数据标签（genre/mood/energy）进行结果排序与筛选
+- 🤖 **LLM Agent 编排** — 意图识别 → 槽位填充 → 工具调度 → RAG 上下文 → 响应生成
+- 💬 **自然语言交互** — 中文/英文对话式推荐，支持多轮上下文与快捷输入
+- 🎧 **在线试听** — 8000+ 首歌曲可直接在线播放
+- 📊 **智能评分** — 基于排名和相似度的校准匹配指数（65-98%）
+- 🌐 **现代 Web 界面** — React 19 + TypeScript + TailwindCSS v4 暗色主题
+- 🔄 **反馈闭环** — Like/Dislike 反馈影响后续推荐排序，偏好自动记录到用户画像
+- 🎨 **AI 用户画像** — 基于喜欢歌曲 + 对话历史 + 场景偏好，由 Qwen 生成个性化品味深度解读（缓存至 DB）
+- 💾 **会话持久化** — SQLite 存储会话状态，重启后推荐历史不丢失
+- 🎯 **快捷场景输入** — 预设快捷按钮：「推荐适合专注工作的音乐」「来点轻松愉快的歌」等
 
 ---
 
 ## 🏗️ 系统架构
 
+<div align="center">
+  <img src="docs/diagrams/系统架构图.png" width="85%" alt="系统架构图" />
+</div>
+
+
+### 语义检索引擎
+
+### 数据流
+
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                         Mustify 系统架构                              │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                       │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐          │
-│  │   Frontend   │────▶│   FastAPI   │────▶│ Orchestrator │          │
-│  │   (React)    │◀────│   Backend   │◀────│   (LLM)     │          │
-│  └──────────────┘     └──────────────┘     └──────┬───────┘          │
-│                                                      │                 │
-│                                    ┌─────────────────┼──────────────┐  │
-│                                    │                 │              │  │
-│                                    ▼                 ▼              ▼  │
-│                           ┌──────────────┐  ┌────────────┐  ┌──────────┐│
-│                           │  Semantic    │  │    RAG    │  │  Token   ││
-│                           │  Search     │  │  Context  │  │  Store   ││
-│                           └──────┬───────┘  └────────────┘  └──────────┘│
-│                                  │                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐│
-│  │                      混合推荐引擎                                   ││
-│  ├────────────────────────────┬────────────────────────────────────────┤│
-│  │     🧠 语义检索            │         🧠 内容匹配                    ││
-│  │  BGE-M3 + ChromaDB        │  Content-Based (FMA Metadata)          ││
-│  │  语义向量检索               │  流派/情绪/能量/标签匹配               ││
-│  └────────────────────────────┴────────────────────────────────────────┘│
-│                                                                       │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐          │
-│  │ ai_portrait  │────▶│ Portrait     │────▶│  AI Deep     │          │
-│  │   API        │     │  Service     │     │  Analysis    │          │
-│  └──────────────┘     └──────────────┘     └──────────────┘          │
-│                                                                       │
-└───────────────────────────────────────────────────────────────────────┘
+用户输入 → FastAPI (/chat) → Orchestrator (意图提取 + 槽位填充)
+                                    │
+                          ┌─────────┴─────────┐
+                          ▼                   ▼
+                    ToolRegistry       LLM (Qwen/Mock)
+                          │                   │
+                          ▼                   ▼
+                  SemanticSearch ──► RAG Context Builder
+                          │                   │
+                          ▼                   ▼
+                  ChromaDB 搜索 ──────► 响应合成 → 前端展示
+                          反馈闭环更新偏好
 ```
+
+---
+
+## 🎯 系统用例
+
+<div align="center">
+  <img src="docs/diagrams/系统用例图.png" width="85%" alt="系统用例图" />
+</div>
+
+系统提供三大核心用例：
+
+1. **🎧 音乐推荐** — 对话式推荐、场景化推荐、换一批推荐
+2. **👍 偏好管理** — Like/Dislike 反馈、歌单创建与管理、AI 用户画像
+3. **💬 会话管理** — 多轮对话、历史回溯、会话重置
+
+---
+
+## 📸 界面展示
+
+<div align="center">
+  <h3>🏠 导航落地页</h3>
+  <img src="docs/screenshots/导航页截图.png" width="85%" alt="导航落地页" />
+  <p><em>Mustify 品牌展示页，突出「智能对话、精准推荐、个性化体验」三大核心价值</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>💬 对话主界面</h3>
+  <img src="docs/screenshots/对话主界面截图.png" width="95%" alt="对话主界面" />
+  <p><em>三栏布局：侧边栏导航 + 中央对话区域 + 右侧推荐面板</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>🎯 意图识别结果</h3>
+  <img src="docs/screenshots/意图识别结果截图.png" width="85%" alt="意图识别" />
+  <p><em>LLM 实时解析用户意图，提取场景/风格/能量等槽位</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>🎧 推荐结果</h3>
+  <img src="docs/screenshots/推荐结果截图.png" width="95%" alt="推荐结果" />
+  <p><em>歌曲卡片展示：封面、标题、艺术家、流派标签、匹配度（92%）、可试听徽章、AI 推荐理由</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>👍 偏好反馈交互</h3>
+  <img src="docs/screenshots/偏好反馈交互截图.png" width="85%" alt="偏好反馈" />
+  <p><em>Like/Dislike 实时反馈、添加到歌单、Toast 提示</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>📜 对话历史</h3>
+  <img src="docs/screenshots/对话历史截图.png" width="90%" alt="对话历史" />
+  <p><em>历史会话卡片展示标题、创建时间、偏好标签（心情/场景/风格/能量），支持加载与删除</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>📋 歌单详情页</h3>
+  <img src="docs/screenshots/歌单详情页截图.png" width="90%" alt="歌单详情" />
+  <p><em>歌单头部大图展示，歌曲列表含播放、移除操作</em></p>
+</div>
+
+---
+
+<div align="center">
+  <h3>🧑‍🎤 AI 用户画像</h3>
+  <img src="docs/screenshots/用户ai画像截图.png" width="85%" alt="用户画像" />
+  <p><em>流派偏好柱状图、音乐指纹标签、适宜场景、AI 深度品味解读（Qwen 生成）</em></p>
+</div>
 
 ---
 
@@ -76,95 +158,98 @@
 
 ```
 music_agent/
-├── src/                          # Python 后端源码
-│   ├── agent/                     # LLM Agent 编排层
-│   │   ├── orchestrator.py       # 意图识别、工具调度、响应合成
-│   │   └── mock_llm.py           # Mock LLM（开发测试用）
-│   ├── api/                      # FastAPI 应用
-│   │   ├── app.py               # 主应用、路由、中间件
-│   │   ├── auth.py              # 认证
-│   │   ├── sessions.py          # 会话管理（含持久化）
-│   │   ├── session_store.py    # 内存会话存储
-│   │   ├── playlist.py          # 歌单管理
-│   │   ├── user.py             # 用户管理
-│   │   ├── ai_portrait.py      # AI 用户画像 API
-│   │   └── session_persistence.py # 会话持久化模型
-│   ├── llm/                     # LLM 客户端
+├── src/                              # Python 后端源码
+│   ├── agent/
+│   │   ├── orchestrator.py          # 意图识别、工具调度、响应合成
+│   │   └── mock_llm.py              # Mock LLM（开发测试用）
+│   ├── api/                          # FastAPI 应用
+│   │   ├── app.py                   # 主应用、路由、中间件
+│   │   ├── auth.py                  # 认证（JWT）
+│   │   ├── sessions.py              # 会话管理
+│   │   ├── session_store.py         # 内存会话存储
+│   │   ├── session_persistence.py   # 会话持久化
+│   │   ├── playlist.py              # 歌单管理
+│   │   ├── user.py                  # 用户管理
+│   │   └── ai_portrait.py           # AI 用户画像 API
+│   ├── llm/
 │   │   ├── clients/
 │   │   │   └── qwen_openai_compat.py  # Qwen (OpenAI-compatible)
-│   │   └── prompts/             # Prompt 模板
-│   ├── rag/                     # 检索增强生成
-│   │   ├── context_builder.py  # 上下文构建
-│   │   ├── retriever.py        # 文档检索
-│   │   └── sanitize.py          # 注入防护
-│   ├── tools/                   # 工具层
-│   │   ├── registry.py         # 工具注册表
-│   │   ├── semantic_search_tool.py  # 语义搜索
-│   │   └── hybrid_recommend_tool.py # 混合推荐
-│   ├── searcher/               # 向量搜索
-│   │   └── music_searcher.py   # ChromaDB + BGE-M3
-│   ├── recommender/            # 内容推荐
-│   │   └── music_recommender.py # 基于 FMA 元数据的相似度匹配
-│   ├── manager/                # 状态管理
-│   │   └── session_state.py    # 会话状态
-│   ├── models/                 # 数据模型
-│   │   └── session_persistence.py
+│   │   └── prompts/                 # Prompt 模板
+│   ├── rag/
+│   │   ├── context_builder.py       # RAG 上下文构建
+│   │   ├── retriever.py             # 文档检索
+│   │   └── sanitize.py              # 注入防护
+│   ├── tools/
+│   │   ├── registry.py              # 工具注册表
+│   │   └── semantic_search_tool.py  # 语义搜索工具
+│   ├── searcher/
+│   │   └── music_searcher.py        # ChromaDB + BGE-M3 搜索
+│   ├── recommender/
+│   │   └── music_recommender.py     # FMA 元数据相似度推荐
+│   ├── manager/
+│   │   └── session_state.py         # 会话状态管理
+│   ├── models/
+│   │   └── session_persistence.py   # 数据模型
 │   └── services/
-│       └── portrait_service.py  # 用户画像服务（Deep Analysis）
+│       └── portrait_service.py      # 用户画像服务（Deep Analysis）
 │
-├── frontend/                     # React 前端
+├── frontend/                         # React 前端
+│   ├── index.html                   # HTML 入口
+│   ├── vite.config.ts               # Vite 配置（含 API 代理）
 │   ├── src/
+│   │   ├── main.tsx                 # React 入口
+│   │   ├── App.tsx                  # 路由定义
+│   │   ├── index.css                # TailwindCSS 全局样式
+│   │   ├── config/api.ts            # API 端点配置
+│   │   ├── types/index.ts           # TypeScript 类型定义
+│   │   ├── lib/utils.ts             # 工具函数
+│   │   ├── services/                # HTTP 服务
+│   │   │   ├── api.ts               # Axios 实例
+│   │   │   ├── chat.ts              # 对话 API
+│   │   │   ├── feedback.ts          # 反馈 API
+│   │   │   ├── session.ts           # 会话 API
+│   │   │   └── health.ts            # 健康检查
+│   │   ├── store/                   # Zustand 状态管理
+│   │   │   ├── useAuthStore.ts      # 认证状态
+│   │   │   ├── useChatStore.ts      # 对话状态
+│   │   │   ├── usePlaylistStore.ts  # 歌单状态
+│   │   │   └── useProfileStore.ts   # 用户画像状态
+│   │   ├── contexts/
+│   │   │   └── AudioPlayerContext.tsx  # 音频播放器
 │   │   ├── components/
-│   │   │   ├── pages/          # 页面组件
-│   │   │   │   ├── ChatPage.tsx      # 对话页面
-│   │   │   │   ├── PlaylistPage.tsx # 歌单页面
-│   │   │   │   ├── HistoryPage.tsx  # 历史会话页面
-│   │   │   │   └── LandingPage.tsx  # 落地页
-│   │   │   ├── layout/         # 布局组件
-│   │   │   │   ├── Sidebar.tsx          # 侧边栏
-│   │   │   │   ├── ChatArea.tsx         # 对话区域
-│   │   │   │   ├── RecommendationPanel.tsx  # 推荐面板
-│   │   │   │   └── Toast.tsx            # 提示组件
-│   │   │   ├── profile/        # 用户画像
-│   │   │   │   └── UserProfileModal.tsx # 画像弹窗
-│   │   │   └── auth/           # 认证组件
-│   │   │       ├── Login.tsx
-│   │   │       └── Register.tsx
-│   │   ├── services/           # API 服务
-│   │   │   ├── api.ts         # API 客户端
-│   │   │   ├── chat.ts        # 对话服务
-│   │   │   └── feedback.ts    # 反馈服务
-│   │   ├── store/              # Zustand 状态
-│   │   │   ├── useChatStore.ts     # 对话状态
-│   │   │   ├── useAuthStore.ts     # 认证状态
-│   │   │   ├── usePlaylistStore.ts # 歌单状态
-│   │   │   └── useProfileStore.ts  # 用户画像状态
-│   │   └── contexts/           # React Context
-│   │       └── AudioPlayerContext.tsx
-│   └── vite.config.ts           # Vite 配置
+│   │   │   ├── auth/                # 登录/注册
+│   │   │   ├── pages/               # 页面组件
+│   │   │   ├── layout/              # 布局组件
+│   │   │   └── profile/             # 用户画像弹窗
+│   │   ├── mappers/                 # 数据映射
+│   │   └── mock/                    # 前端模拟数据
+│   └── package.json
 │
-├── scripts/                     # 数据处理与工具脚本
-│   ├── run_api.py              # 启动 API 服务
-│   ├── chat_cli.py            # 命令行对话
-│   ├── vectorizer_bge.py       # 构建向量索引
-│   ├── data_processor_bge.py  # 数据预处理
-│   ├── build_metadata_from_json.py
-│   ├── build_audio_mapping.py
-│   ├── migrate_add_portrait_deep_analysis.py  # 画像字段迁移
-│   └── migrate_add_portrait_columns.py
+├── scripts/                          # 数据处理与工具脚本
+│   ├── run_api.py                   # 启动 API
+│   ├── chat_cli.py                  # 命令行对话
+│   ├── vectorizer_bge.py            # 构建向量索引
+│   ├── data_processor_bge.py        # 数据预处理
+│   ├── build_metadata_from_json.py  # 元数据映射构建
+│   └── build_audio_mapping.py       # 音频映射构建
 │
-├── tests/                       # 独立测试脚本（非 pytest）
-│   ├── agent_orchestrator_smoke.py
-│   ├── tool_registry_unit.py
-│   └── api_chat_smoke.py
+├── tests/                            # 独立测试脚本
+├── docs/
+│   ├── diagrams/                     # 架构图与用例图
+│   │   ├── 系统架构图.png
+│   │   └── 系统用例图.png
+│   └── screenshots/                  # UI 界面截图
+│       ├── 导航页截图.png
+│       ├── 对话主界面截图.png
+│       ├── 意图识别结果截图.png
+│       ├── 推荐结果截图.png
+│       ├── 偏好反馈交互截图.png
+│       ├── 对话历史截图.png
+│       ├── 歌单详情页截图.png
+│       └── 用户ai画像截图.png
 │
-└── docs/                        # 文档
-    └── screenshots/             # UI 界面截图
-        ├── login.png            # 【登录页面】
-        ├── chat-recommend.png   # 【对话推荐界面】
-        ├── portrait.png         # 【用户画像弹窗】
-        ├── history.png          # 【历史会话页面】
-        └── playlist.png         # 【歌单管理页面】
+├── requirements.txt                  # Python 依赖
+└── README.md                        # 本文件
 ```
 
 ---
@@ -216,10 +301,12 @@ python scripts/build_audio_mapping.py
 ### 3. 配置与启动
 
 ```bash
-# 配置环境变量
+# 设置 LLM 模式（默认为 mock）
 # Windows
 set MUSIC_AGENT_LLM_MODE=mock
-set MUSIC_AGENT_LLM_MODE=qwen   # 需要真实 API Key
+# 或使用真实 Qwen API
+set MUSIC_AGENT_LLM_MODE=qwen
+set DASHSCOPE_API_KEY=your_api_key_here
 
 # Linux/Mac
 export MUSIC_AGENT_LLM_MODE=mock
@@ -233,60 +320,7 @@ cd frontend && npm run dev
 
 ### 4. 访问
 
-打开 http://localhost:3000
-
----
-
-## 📸 界面展示
-
-### 登录 & 注册
-
-<div align="center">
-  <img src="docs/screenshots/login.png" width="45%" />
-  <img src="docs/screenshots/register.png" width="45%" />
-</div>
-
-> 登录页面支持邮箱密码认证，注册页面包含用户名、邮箱、密码及确认密码
-
-### 落地页
-
-<div align="center">
-  <img src="docs/screenshots/landing.png" width="70%" />
-</div>
-
-> Mustify 品牌展示页，突出"智能对话、精准推荐、个性化体验"三大核心价值，一键开始对话
-
-### 对话推荐
-
-<div align="center">
-  <img src="docs/screenshots/chat-recommend.png" width="90%" />
-</div>
-
-> **主交互界面**：左侧对话区域展示多轮上下文，推荐卡片包含歌曲标题、艺术家、流派标签、匹配度（92%、90%）、可试听徽章、AI 推荐理由；侧边栏展示当前偏好标签与歌单列表
-
-### 用户画像
-
-<div align="center">
-  <img src="docs/screenshots/ai_portrait.png" width="70%" />
-</div>
-
-> 点击侧边栏「我的画像」触发弹窗，展示流派偏好柱状图（Rock ×5、Pop ×4、Jazz ×1、Experimental ×1）、能量偏好分析、AI 个性化深度解读
-
-### 历史会话
-
-<div align="center">
-  <img src="docs/screenshots/history.png" width="90%" />
-</div>
-
-> 历史会话列表页，会话卡片展示标题、创建时间（相对时间）、轮次数量、当前偏好标签（心情/场景/风格/能量），支持加载与删除
-
-### 歌单管理
-
-<div align="center">
-  <img src="docs/screenshots/playlist.png" width="90%" />
-</div>
-
-> 歌单管理页，展示"我喜欢的音乐"等系统歌单及用户自建歌单，显示歌曲数量与创建时间
+打开 **http://localhost:3000** 即可使用。
 
 ---
 
@@ -344,13 +378,21 @@ cd frontend && npm run dev
 |------|------|------|------|
 | POST | `/chat` | 对话式推荐 | 可选 |
 | POST | `/feedback` | 反馈（喜欢/不喜欢） | 必需 |
+| POST | `/recommend/refresh` | 刷新推荐 | 必需 |
+| POST | `/reset_session` | 重置会话 | 必需 |
 | GET | `/sessions` | 会话列表 | 必需 |
 | GET | `/sessions/{id}` | 会话详情 | 必需 |
 | DELETE | `/sessions/{id}` | 删除会话 | 必需 |
-| POST | `/sessions/{id}/reset` | 重置会话 | 必需 |
 | GET | `/playlists` | 歌单列表 | 必需 |
+| GET | `/playlists/{id}` | 歌单详情 | 必需 |
+| POST | `/playlists` | 创建歌单 | 必需 |
+| POST | `/playlists/{id}/songs` | 添加歌曲 | 必需 |
+| DELETE | `/playlists/{id}/songs/{track_id}` | 移除歌曲 | 必需 |
+| DELETE | `/playlists/{id}` | 删除歌单 | 必需 |
 | GET | `/api/ai/portrait` | 获取用户画像 | 必需 |
 | DELETE | `/api/ai/portrait` | 清除用户画像 | 必需 |
+| POST | `/auth/register` | 注册 | 否 |
+| POST | `/auth/login` | 登录 | 否 |
 | GET | `/health` | 健康检查 | 否 |
 
 ### `/chat` 请求示例
@@ -397,20 +439,24 @@ cd frontend && npm run dev
 |------|------|
 | Python 3.11 | 运行环境 |
 | FastAPI | Web 框架 |
-| ChromaDB | 向量数据库 |
-| BGE-M3 | 多语言向量模型 |
-| Qwen (DashScope) | 大语言模型 |
 | SQLAlchemy + SQLite | 数据持久化 |
+| ChromaDB | 向量数据库 |
+| BGE-M3 | 多语言向量模型（1024 维） |
+| Qwen (DashScope) | 大语言模型 |
 
 ### 前端
 
-| 技术 | 用途 |
-|------|------|
-| React 19 | UI 框架 |
-| TypeScript | 类型安全 |
-| Vite | 构建工具 |
-| TailwindCSS v4 | 样式 |
-| Zustand | 状态管理 |
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| React | ^19.0.0 | UI 框架 |
+| TypeScript | ~5.8 | 类型安全 |
+| Vite | ^6.2 | 构建工具 |
+| TailwindCSS | ^4.1 | 原子化 CSS |
+| Zustand | ^5.0 | 状态管理 |
+| React Router | ^7.14 | 客户端路由 |
+| Axios | ^1.14 | HTTP 客户端 |
+| Lucide React | ^0.546 | 图标库 |
+| Motion | ^12.23 | 动画引擎 |
 
 ### 关键参数
 
@@ -421,9 +467,9 @@ cd frontend && npm run dev
 | 可试听 | 8,000+ 首 | FMA Small |
 | 推荐 Top-K | 5-20 | 可配置 |
 | 匹配分数 | 65-98% | 校准后显示 |
-| 混合权重 | 0.6:0.4 | 语义:内容 默认比例 |
 | Like 加分 | +0.03/次 | 上限 +0.15 |
 | Dislike 降权 | -0.05/次（≥3次触发） | 下限 -0.20 |
+| RAG 上下文上限 | 1200 字符 | 可配置 |
 
 ---
 
@@ -444,44 +490,58 @@ python tests/api_chat_smoke.py
 
 # 前端类型检查
 cd frontend && npm run lint
+
+# 前端 E2E 测试
+cd frontend && npm run test:e2e
 ```
 
 ---
 
 ## 🛠️ 开发规范
 
-### 项目规范
+### 代码风格
 
 - **Python**: 4 空格缩进，类型提示，snake_case
-- **TypeScript**: 2 空格缩进，PascalCase 组件
-- **提交**: 使用 `git commit`
-- **测试**: 独立 smoke 脚本，非 pytest
+- **TypeScript**: 2 空格缩进，PascalCase 组件，camelCase 变量
+- **提交**: 使用 `git commit`，清晰描述改动
+
+### 环境变量
+
+| 变量 | 用途 | 默认值 |
+|------|------|--------|
+| `MUSIC_AGENT_LLM_MODE` | LLM 模式（mock/qwen） | `mock` |
+| `DASHSCOPE_API_KEY` | DashScope API 密钥 | - |
+| `DASHSCOPE_BASE_URL` | API 端点覆盖 | - |
+| `DASHSCOPE_MODEL` | 模型名称覆盖 | - |
+| `LOG_LEVEL` | 日志级别 | `INFO` |
 
 ### 相关文档
 
-- [AGENTS.md](AGENTS.md) - 开发规范
-- [论文写作指南_20260416.md](论文写作指南_20260416.md) - 论文各章节写作参考
+- [论文写作指南_20260416.md](论文写作指南_20260416.md) — 论文各章节写作参考
 
 ---
 
 ## ⚠️ 已知限制
 
 - **多 Worker 部署**：当前 SessionStore 为进程内内存 + SQLite 持久化，多 Worker 部署时需引入 Redis 共享状态
+- **Token 存储**：内存存储，重启后所有会话需重新认证
 - **LLM 模式**：mock 模式使用确定性回复，qwen 模式需要 API Key
 - **数据规模**：FMA Small 子集，非完整数据集
+- **配置分散**：显示分数阈值同时定义在 `orchestrator.py` 和 `src/config.py`
 
 ---
 
-## 📜 License
+## 📄 License
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+MIT License — 详见 [LICENSE](LICENSE) 文件
 
 ---
 
 ## 🙏 致谢
 
-- [FMA Dataset](https://github.com/mdeff/fma) - Free Music Archive 数据集
-- [BGE-M3](https://github.com/BAAI-bge/bge-m3) - BAAI 多语言向量模型
-- [ChromaDB](https://www.trychroma.com/) - 向量数据库
-- [Qwen](https://tongyi.aliyun.com/) - 阿里通义千问大模型
-- [React](https://react.dev/) - UI 框架
+- [FMA Dataset](https://github.com/mdeff/fma) — Free Music Archive 数据集
+- [BGE-M3](https://github.com/BAAI-bge/bge-m3) — BAAI 多语言向量模型
+- [ChromaDB](https://www.trychroma.com/) — 向量数据库
+- [Qwen](https://tongyi.aliyun.com/) — 阿里通义千问大模型
+- [React](https://react.dev/) — UI 框架
+- [TailwindCSS](https://tailwindcss.com/) — CSS 框架
